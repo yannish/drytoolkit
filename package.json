@@ -1,0 +1,19 @@
+{
+  "name": "com.drydock.drytoolkit",
+  "version": "1.0.0",
+  "displayName": "DryToolKit",
+  "description": "Some hopefully handy tools.",
+  "unity": "2021.1",
+  "keywords": [
+    "dry",
+    "dock",
+    "drydock",
+    "tool",
+    "toolkit"
+  ],
+  "author": {
+    "name": "Ian Sinclair",
+    "email": "ian.g.sinclair@gmail.com",
+    "url": ""
+  }
+}
