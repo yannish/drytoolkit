@@ -1,88 +1,112 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-public class Pool : MonoBehaviour
+namespace Drydock.Tools
 {
-    public GameObject prefab;
+    public class Pool : MonoBehaviour
+    {
+        public GameObject prefab;
 
-    public int initialSize = 20;
+        public bool growOnExhaustion = true;
 
-    public int exhaustionGrowSize = 10;
+        public int initialSize = 20;
 
-    public int currPoolSize = 0;
-    
-    /* TODO:
+        public int exhaustionGrowSize = 10;
+
+        public int currPoolSize = 0;
+
+        /* TODO:
      * don't really want to pull a "PoolHandle" from out the queue.
      * You'll want something specific you can use right away.
      * PooledParticle, PooledProjectile, PooledRigidbody, etc.
      *
      * Derive those things from poolHandle i guess...?
      */
-    
-    private Queue<PoolHandle> handleQueue = new Queue<PoolHandle>();
-    
-    private List<PoolHandle> activeObjects = new List<PoolHandle>();
-    
-    private List<PoolHandle> inactiveObjects = new List<PoolHandle>();
 
-    public event Action OnExhaustion;
+        private Queue<PoolHandle> handleQueue = new Queue<PoolHandle>();
 
-    public T Get<T>() where T : PoolHandle
-    {
-        if (handleQueue.Count == 0)
+        private List<PoolHandle> activeObjects = new List<PoolHandle>();
+
+        private List<PoolHandle> inactiveObjects = new List<PoolHandle>();
+
+        public event Action OnExhaustion;
+
+        public T GetPooledInstance<T>() where T : PoolHandle
         {
-            Debug.LogWarning("Pool exhausted.");
-            OnExhaustion.Invoke();
-        }
-        
-        return handleQueue.Dequeue() as T;
-    }
-    
-    private void AddObjectToActive(PoolHandle handle)
-    {
-        activeObjects.Add(handle);
-        inactiveObjects.Remove(handle);
-    }
+            if (handleQueue.Count == 0)
+            {
+                // Debug.LogWarning("Pool exhausted.");
+                OnExhaustion.Invoke();
+            }
 
-    private void AddObjectToInactive(PoolHandle handle)
-    {
-        activeObjects.Remove(handle);
-        inactiveObjects.Add(handle);
-        handleQueue.Enqueue(handle);
-    }
-    
-    private void GrowPool(int growSize)
-    {
-        for (int i = 0; i < growSize; i++)
-        {
-            var pooledPrefabInstance = Instantiate(prefab);
-            pooledPrefabInstance.gameObject.name += " " + (i + currPoolSize).ToString();
-            
-            var poolHandle = pooledPrefabInstance.GetOrAddComponent<PoolHandle>();
-            poolHandle.CachePoolables();
-            //... cache any lil IPoolables that might respond to pooling callbacks..?
-            //... those would get stored on poolHandle.
-            poolHandle.gameObject.SetActive(false);
-            inactiveObjects.Add(poolHandle);
-            poolHandle.transform.SetParent(transform);
-            poolHandle.OnAwakened += AddObjectToActive;
-            poolHandle.OnDisabled += AddObjectToInactive;
-            poolHandle.pool = this;
+            return handleQueue.Dequeue() as T;
         }
 
-        currPoolSize += growSize;
-    }
+        private void AddObjectToActive(PoolHandle handle)
+        {
+            activeObjects.Add(handle);
+            inactiveObjects.Remove(handle);
+        }
 
-    public void GrowPoolOnCreation() => GrowPool(initialSize);
-    
-    public void GrowPoolOnExhaustion() => GrowPool(exhaustionGrowSize);
+        private void AddObjectToInactive(PoolHandle handle)
+        {
+            activeObjects.Remove(handle);
+            inactiveObjects.Add(handle);
+            handleQueue.Enqueue(handle);
+            foreach (var poolable in handle.poolables)
+            {
+                poolable.OnReturnToPool();
+            }
+            // TODO:
+            //... can't reparent here w/o complaint in the console from Unity (we've disabled this frame)
+            // handle.transform.SetParent(handle.pool.transform); 
+        }
 
-    public void ClearPool()
-    {
-        var listCopy = activeObjects.ToArray();
-        foreach(var handle in listCopy)
-            handle.gameObject.SetActive(false);
+        public void GrowPool(int growSize)
+        {
+            for (int i = 0; i < growSize; i++)
+            {
+                var pooledPrefabInstance = Instantiate(prefab);
+                pooledPrefabInstance.gameObject.name += " " + (i + currPoolSize).ToString();
+
+                var poolHandle = pooledPrefabInstance.GetOrAddComponent<PoolHandle>();
+                poolHandle.pool = this;
+                poolHandle.CachePoolables();
+                poolHandle.transform.SetParent(transform);
+                poolHandle.gameObject.SetActive(false); //.. get the callback here to fire, adding to queue
+                activeObjects.Add(poolHandle);
+                AddObjectToInactive(poolHandle);
+                poolHandle.OnAwakened += AddObjectToActive;
+                poolHandle.OnDisabled += AddObjectToInactive;
+            }
+
+            currPoolSize += growSize;
+        }
+
+        public void ClearPool()
+        {
+            var listCopy = activeObjects.ToArray();
+            foreach (var handle in listCopy)
+                handle.gameObject.SetActive(false);
+        }
+
+        private readonly WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
+
+        public void Reparent(PoolHandle handle)
+        {
+            if (handle == null)
+                return;
+            StartCoroutine(DelayedReparent(handle));
+        }
+
+        public IEnumerator DelayedReparent(PoolHandle handle)
+        {
+            yield return waitForEndOfFrame;
+            yield return waitForEndOfFrame;
+            handle.transform.SetParent(transform);
+        }
     }
 }
