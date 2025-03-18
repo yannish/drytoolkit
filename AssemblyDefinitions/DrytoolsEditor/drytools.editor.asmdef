@@ -1,0 +1,16 @@
+{
+    "name": "drytool.editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:fa43d6cdfdbc47146ab752dfcc933c3d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
