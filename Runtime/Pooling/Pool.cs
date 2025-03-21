@@ -97,7 +97,7 @@ namespace Drydock.Tools
 
         public void Reparent(PoolHandle handle)
         {
-            if (handle == null)
+            if (handle == null || !this.isActiveAndEnabled)
                 return;
             StartCoroutine(DelayedReparent(handle));
         }
