@@ -10,8 +10,7 @@ public class PoolTester : MonoBehaviour
     public float spacing = 1f;
     private int tally;
     
-    [Pooled]
-    public GameObject prefab;
+    [Pooled] public GameObject prefab;
     public GameObject normalPrefab;
     
     [Button]
