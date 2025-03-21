@@ -25,10 +25,17 @@ namespace Drydock.Tools
         {
             // Debug.Log("Building type-to-field-info lookup from cache...");
             
-            var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>(RuntimeTypeCacheBuilder.path);
+            // var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>(RuntimeTypeCacheBuilder.path);
+            // if (runtimeTypeCache == null)
+            // {
+            //     // Debug.LogWarning("... couldn't find runtime type cache.");
+            //     return;
+            // }
+
+            var runtimeTypeCache = RuntimeTypeCacheBuilder.LoadCache();
             if (runtimeTypeCache == null)
             {
-                // Debug.LogWarning("... couldn't find runtime type cache.");
+                Debug.LogWarning("... couldn't find runtime type cache.");
                 return;
             }
 

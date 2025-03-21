@@ -49,19 +49,20 @@ namespace Drydock.Tools
             AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetName}");
         }
 
-        [MenuItem("Tools/Load Runtime Type Cache")]
-        public static void LoadCache()
+        // [MenuItem("Tools/Load Runtime Type Cache")]
+        public static RuntimeTypeCache LoadCache()
         {
             var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>($"{path}/{folderName}/{assetName}");
             if (runtimeTypeCache == null)
             {
                 Debug.LogWarning("... couldn't find runtime type cache.");
-                return;
+                return null;
             }
             else
             {
                 Debug.LogWarning("... found runtime type cache.");
             }
+            return runtimeTypeCache;
         }
 
 
