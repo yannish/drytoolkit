@@ -34,6 +34,9 @@ namespace Drydock.Tools
 
         public event Action OnExhaustion;
 
+        private readonly WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
+
+        
         public T GetPooledInstance<T>() where T : PoolHandle
         {
             if (handleQueue.Count == 0)
@@ -93,12 +96,14 @@ namespace Drydock.Tools
                 handle.gameObject.SetActive(false);
         }
 
-        private readonly WaitForEndOfFrame waitForEndOfFrame = new WaitForEndOfFrame();
-
         public void Reparent(PoolHandle handle)
         {
-            if (handle == null || !this.isActiveAndEnabled)
+            if (!Application.isPlaying || PlaymodeStateTracker.IsExitingPlayMode)
                 return;
+            
+            if (handle == null || !isActiveAndEnabled || !enabled)
+                return;
+            
             StartCoroutine(DelayedReparent(handle));
         }
 

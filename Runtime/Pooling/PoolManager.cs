@@ -13,12 +13,28 @@ namespace Drydock.Tools
     [InitializeOnLoad]
     public static class PoolManager
     {
-        static PoolManager() => EditorApplication.delayCall += RuntimeTypeCacheBuilder.BuildRuntimeTypeCache;
+        static PoolManager()
+        {
+            EditorApplication.playModeStateChanged += state =>
+            {
+                if (state == PlayModeStateChange.ExitingPlayMode)
+                {
+                    //... clear everything here, just to be clean:
+                    prefabToPoolLookup.Clear();
+                    lookupInitialized = false;
+                }
+            };
+            
+            EditorApplication.delayCall += RuntimeTypeCacheBuilder.BuildRuntimeTypeCache;
+        }
 
         private static Dictionary<Type, List<FieldInfo>> cachedTypeToFieldInfoLookup = new Dictionary<Type, List<FieldInfo>>();
         
         private static Dictionary<GameObject, Pool> prefabToPoolLookup = new Dictionary<GameObject, Pool>();
 
+        private static bool lookupInitialized = false;
+        
+        private static RuntimeTypeCache runtimeTypeCache;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void FetchFromRuntimeTypeCache()
@@ -32,7 +48,7 @@ namespace Drydock.Tools
             //     return;
             // }
 
-            var runtimeTypeCache = RuntimeTypeCacheBuilder.LoadCache();
+            runtimeTypeCache = RuntimeTypeCacheBuilder.LoadCache();
             if (runtimeTypeCache == null)
             {
                 Debug.LogWarning("... couldn't find runtime type cache.");
@@ -41,22 +57,7 @@ namespace Drydock.Tools
 
             cachedTypeToFieldInfoLookup.Clear();
             
-            foreach (var cachedType in runtimeTypeCache.cachedFields)
-            {
-                Type type = Type.GetType(cachedType.assemblyQualifiedName);
-                if (type != null)
-                {
-                    if(!cachedTypeToFieldInfoLookup.ContainsKey(type))
-                        cachedTypeToFieldInfoLookup.Add(type, new List<FieldInfo>());
-
-                    foreach (var fieldname in cachedType.fieldNames)
-                    {
-                        var fieldInfo = type.GetField(fieldname);
-                        if(fieldInfo != null)
-                            cachedTypeToFieldInfoLookup[type].Add(fieldInfo);
-                    }
-                }
-            }
+            lookupInitialized = false;
         }
         
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -71,6 +72,35 @@ namespace Drydock.Tools
              *
              *  3. loop through their pooled fields and try to create a pool for that prefab.
              */
+
+            if (runtimeTypeCache == null)
+            {
+                Debug.LogWarning("... couldn't find runtime type cache when it was time to prewarm.");
+                return;
+            }
+
+            if (!lookupInitialized)
+            {
+                //... clear this here. we might be running w/o domain reload, so we have to kick it off the first scene load.
+                prefabToPoolLookup.Clear();
+                
+                foreach (var cachedType in runtimeTypeCache.cachedFields)
+                {
+                    Type type = Type.GetType(cachedType.assemblyQualifiedName);
+                    if (type != null)
+                    {
+                        if(!cachedTypeToFieldInfoLookup.ContainsKey(type))
+                            cachedTypeToFieldInfoLookup.Add(type, new List<FieldInfo>());
+
+                        foreach (var fieldname in cachedType.fieldNames)
+                        {
+                            var fieldInfo = type.GetField(fieldname);
+                            if(fieldInfo != null)
+                                cachedTypeToFieldInfoLookup[type].Add(fieldInfo);
+                        }
+                    }
+                }
+            }
             
             foreach (var kvp in cachedTypeToFieldInfoLookup)
             {

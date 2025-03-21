@@ -36,6 +36,8 @@ namespace Drydock.Tools
 
         public const string assetName = "RuntimeTypeCache.asset";
 
+        public const string toolMenuPath = "Tools/Pooling/";
+
 
         private static readonly Type[] CachedAttributes = new Type[]
         {
@@ -43,13 +45,13 @@ namespace Drydock.Tools
         };
 
 
-        [MenuItem("Tools/Delete Runtime Type Cache")]
+        [MenuItem(toolMenuPath + "Delete Runtime Type Cache")]
         public static void DeleteCache()
         {
             AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetName}");
         }
 
-        // [MenuItem("Tools/Load Runtime Type Cache")]
+        [MenuItem(toolMenuPath + "Load Runtime Type Cache")]
         public static RuntimeTypeCache LoadCache()
         {
             var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>($"{path}/{folderName}/{assetName}");
@@ -58,15 +60,11 @@ namespace Drydock.Tools
                 Debug.LogWarning("... couldn't find runtime type cache.");
                 return null;
             }
-            else
-            {
-                Debug.LogWarning("... found runtime type cache.");
-            }
             return runtimeTypeCache;
         }
 
 
-        [MenuItem("Tools/Build Runtime Type Cache")]
+        [MenuItem(toolMenuPath + "Rebuild Runtime Type Cache")]
         public static void BuildRuntimeTypeCache()
         {
             var cache = ScriptableObject.CreateInstance<RuntimeTypeCache>();
