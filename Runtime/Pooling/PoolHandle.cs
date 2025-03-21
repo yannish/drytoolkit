@@ -33,7 +33,8 @@ namespace Drydock.Tools
         private void OnDisable()
         {
             OnDisabled?.Invoke(this);
-            pool.Reparent(this);
+            if(pool != null && pool.isActiveAndEnabled)
+                pool.Reparent(this);
         }
     }
 }
