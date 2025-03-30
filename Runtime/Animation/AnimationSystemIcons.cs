@@ -43,7 +43,7 @@ public static class AnimationSystemIcons
             return;
         }
         
-        string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png.png";
+        string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png";
         Texture2D icon = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
         if (icon != null)
         {
