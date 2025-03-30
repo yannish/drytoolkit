@@ -34,17 +34,12 @@ namespace drytoolkit.Runtime.Animation
         static Texture2D TryFindIcon()
         {
             Texture2D icon = EditorGUIUtility.Load("Assets/drytoolkit/Editor/Resources/d_VideoPlayer Icon.png") as Texture2D;
-            if (icon != null)
+            if (icon == null)
             {
-                return icon;
+                string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png";
+                icon = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
             }
-        
-            string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png";
-            icon = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
-            if (icon != null)
-            {
-                return icon;
-            }
+            return icon;
         }
     }
 }
