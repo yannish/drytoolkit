@@ -1,14 +1,11 @@
-using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
+using UnityEditor;
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-#if UNITY_EDITOR
-using UnityEditor;
-using System.Reflection;
-#endif
-
-namespace Drydock.Tools
+namespace drytoolkit.Runtime.Pooling
 {
     [InitializeOnLoad]
     public static class PoolManager

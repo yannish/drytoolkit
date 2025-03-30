@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 
-namespace Drydock.Tools
+namespace drytoolkit.Runtime.Pooling
 {
     public class Pool : MonoBehaviour
     {

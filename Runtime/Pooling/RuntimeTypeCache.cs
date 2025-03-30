@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 
 // [CreateAssetMenu(fileName = "RuntimeTypeCache", menuName = "RuntimeTypeCache", order = 1)]
-namespace Drydock.Tools
+namespace drytoolkit.Runtime.Pooling
 {
     public class RuntimeTypeCache : ScriptableObject
     {

@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Drydock.Tools
+namespace drytoolkit.Runtime.Pooling
 {
     public interface IPoolable
     {
