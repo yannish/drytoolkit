@@ -78,8 +78,11 @@ namespace drytoolkit.Runtime.Animation
         private float currOneShotBlendTime = -1f;
         private bool oneShotAdditive = false;
 
-        public AnimationSystem(Animator animator, AnimationClip idleClip = null,
-            DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
+        public AnimationSystem(
+            Animator animator, 
+            // AnimationClip idleClip = null,
+            DirectorUpdateMode mode = DirectorUpdateMode.GameTime
+            )
         {
             this.animator = animator;
 
@@ -258,8 +261,12 @@ namespace drytoolkit.Runtime.Animation
             );
         }
 
-        public void TransitionToState(AnimationClip newStateClip, float blendInTime, float startTime = 0f,
-            float playbackSpeed = 1f)
+        public void TransitionToState(
+            AnimationClip newStateClip,
+            float blendInTime,
+            float startTime = 0f,
+            float playbackSpeed = 1f
+            )
         {
             currStateBlendTime = blendInTime;
 

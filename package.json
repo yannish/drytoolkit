@@ -4,6 +4,9 @@
   "displayName": "Dry Toolkit",
   "description": "Some hopefully handy tools.",
   "unity": "2021.1",
+  "dependencies": {
+    "com.unity.playablegraph-visualizer": "https://github.com/Unity-Technologies/graph-visualizer.git"
+  },
   "keywords": [
     "dry",
     "dock",
