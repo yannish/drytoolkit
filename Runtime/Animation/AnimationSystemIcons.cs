@@ -1,54 +1,50 @@
 using UnityEditor;
 using UnityEngine;
-using UnityEditor.PackageManager;
 
-[InitializeOnLoad]
-public static class AnimationSystemIcons
+namespace drytoolkit.Runtime.Animation
 {
-    // Assets/drytoolkit/Editor/Resources/d_VideoPlayer Icon.png
-    
-    static AnimationSystemIcons()
+    [InitializeOnLoad]
+    public static class AnimationSystemIcons
     {
-        Texture2D icon = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/drytoolkit/Editor/Resources/d_VideoPlayer Icon.png");
-        if (icon == null) 
+        static AnimationSystemIcons()
         {
-            Debug.LogWarning("Custom icon not found! Make sure the path is correct.");
-            return;
-        }
-
-        // Find all instances of the ScriptableObject type
-        string[] guids = AssetDatabase.FindAssets("t:ClipConfig"); // Change to your class name
-        foreach (string guid in guids)
-        {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            ScriptableObject obj = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
-            if (obj != null)
+            Texture2D icon = TryFindIcon();
+            if (icon == null) 
             {
-                EditorGUIUtility.SetIconForObject(obj, icon);
-                EditorUtility.SetDirty(obj); // Mark the asset as modified
+                Debug.LogWarning("Custom icon not found! Make sure the path is correct.");
+                return;
             }
+
+            string[] guids = AssetDatabase.FindAssets("t:ClipConfig");
+            foreach (string guid in guids)
+            {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                ScriptableObject obj = AssetDatabase.LoadAssetAtPath<ScriptableObject>(path);
+                if (obj != null)
+                {
+                    EditorGUIUtility.SetIconForObject(obj, icon);
+                    EditorUtility.SetDirty(obj);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-    }
-
-    [MenuItem("Tools/Try Find Animation Icon")]
-    static void TryFindIcon()
-    {
-        Texture2D foundTex = EditorGUIUtility.Load("Assets/drytoolkit/Editor/Resources/d_VideoPlayer Icon.png") as Texture2D;
-        if (foundTex != null)
+        static Texture2D TryFindIcon()
         {
-            Debug.LogWarning("Found tex");
-            return;
-        }
+            Texture2D icon = EditorGUIUtility.Load("Assets/drytoolkit/Editor/Resources/d_VideoPlayer Icon.png") as Texture2D;
+            if (icon != null)
+            {
+                return icon;
+            }
         
-        string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png";
-        Texture2D icon = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
-        if (icon != null)
-        {
-            Debug.LogWarning("... found tex the other way.");
-            return;
+            string packagePath = "Packages/com.drydock.drytoolkit/Editor/Resources/d_VideoPlayer Icon.png";
+            icon = AssetDatabase.LoadAssetAtPath<Texture2D>(packagePath);
+            if (icon != null)
+            {
+                return icon;
+            }
         }
     }
 }
