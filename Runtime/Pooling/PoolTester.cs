@@ -13,6 +13,8 @@ public class PoolTester : MonoBehaviour
     [Pooled] public GameObject prefab;
     public GameObject normalPrefab;
     
+    [Expandable] public RuntimeTypeCache cache;
+    
     [Button]
     public void Spawn()
     {
