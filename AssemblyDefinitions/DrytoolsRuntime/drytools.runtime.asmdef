@@ -2,7 +2,9 @@
     "name": "drytool.runtime",
     "rootNamespace": "",
     "references": [
-        "Unity.VisualScripting.Core"
+        "Unity.VisualScripting.Core",
+        "Unity.Mathematics",
+        "Unity.Burst"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
