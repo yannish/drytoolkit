@@ -10,6 +10,9 @@ namespace drytoolkit.Runtime.Animation
         public AnimationSystem.ClipBlendStyle blendStyle;
         public List<ClipConfig> clips;
         public AnimationSystem animSystem;
+
+        [Header("BLENDING:")]
+        public float blendInTime = 0.2f;
         
         private Animator animator;
         
@@ -28,4 +31,4 @@ namespace drytoolkit.Runtime.Animation
         }
     }
 
-}
+}   

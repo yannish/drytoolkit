@@ -43,20 +43,27 @@ public class ClipHandlerInspector : Editor
                 {
                     if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
                     {
-                        var effBlendTime = -1f;
-                        switch (clipHandler.blendStyle)
-                        {
-                            case AnimationSystem.ClipBlendStyle.SMOOTHDAMP:
-                                // effBlendTime = clipHandler.blendInTime;
-                                break;
-                            
-                            case AnimationSystem.ClipBlendStyle.MOVETOWARDS:
-                                // effBlendTime = clipHandler.moveTowardsSpeed;
-                                break;
-                        }
+                        var effBlendTime = clipConfig.overrideBlendInTime ? 
+                            clipConfig.blendInTime :
+                            clipHandler.blendInTime;
                         
-                        if(clipConfig.overrideBlendInTime)
-                            effBlendTime = clipConfig.blendInTime;
+                        // switch (clipHandler.blendStyle)
+                        // {
+                        //     case AnimationSystem.ClipBlendStyle.SMOOTHDAMP:
+                        //         effBlendTime = clipConfig.overrideBlendInTime ? 
+                        //             clipConfig.blendInTime :
+                        //             clipHandler.blendInTime;
+                        //         break;
+                        //     
+                        //     case AnimationSystem.ClipBlendStyle.MOVETOWARDS:
+                        //         effBlendTime = clipConfig.overrideBlendInTime ? 
+                        //             clipConfig.blendInTime :
+                        //             clipHandler.blendInTime;
+                        //         break;
+                        // }
+                        //
+                        // if(clipConfig.overrideBlendInTime)
+                        //     effBlendTime = clipConfig.blendInTime;
                         
                         clipHandler.animSystem.TransitionToState(clipConfig.clip, effBlendTime);
                         

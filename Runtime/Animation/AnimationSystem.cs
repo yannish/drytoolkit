@@ -18,7 +18,6 @@ namespace drytoolkit.Runtime.Animation
 
         private AnimationClipPlayable oneShotPlayable;
         // private AnimationClipPlayable additiveOneShotPlayable;
-
         // private readonly AnimationLayerMixerPlayable layerMixer;
         private readonly AnimationLayerMixerPlayable topLevelMixer;
         private readonly AnimationMixerPlayable stateMixer;
@@ -78,11 +77,7 @@ namespace drytoolkit.Runtime.Animation
         private float currOneShotBlendTime = -1f;
         private bool oneShotAdditive = false;
 
-        public AnimationSystem(
-            Animator animator, 
-            // AnimationClip idleClip = null,
-            DirectorUpdateMode mode = DirectorUpdateMode.GameTime
-            )
+        public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
         {
             this.animator = animator;
 
@@ -238,8 +233,11 @@ namespace drytoolkit.Runtime.Animation
 
 
         //... STATE:
-        public void TransitionToStateClip(StateClipHandle stateClipHandle, float blendInTime = -1f,
-            float startTime = 0f, float playbackSpeed = 1f)
+        public void TransitionToStateClip(
+            StateClipHandle stateClipHandle, 
+            float blendInTime = -1f,
+            float startTime = 0f, 
+            float playbackSpeed = 1f)
         {
             TransitionToState(
                 stateClipHandle.clip,
