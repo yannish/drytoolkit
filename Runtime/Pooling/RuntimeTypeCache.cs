@@ -96,6 +96,9 @@ namespace drytoolkit.Runtime.Pooling
             }
 
             // var fullPath = path + folderName + assetName;
+            
+            if(!AssetDatabase.IsValidFolder($"{path}"))
+                AssetDatabase.CreateFolder("Assets", "Resources");
 
             if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
                 AssetDatabase.CreateFolder(path, folderName);

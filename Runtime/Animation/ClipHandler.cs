@@ -7,6 +7,8 @@ namespace drytoolkit.Runtime.Animation
 {
     public class ClipHandler : MonoBehaviour
     {
+        public bool logDebug;
+        
         public AnimationSystem.ClipBlendStyle blendStyle;
         public List<ClipConfig> clips;
         public AnimationSystem animSystem;
@@ -29,6 +31,12 @@ namespace drytoolkit.Runtime.Animation
         {
             animSystem.Tick(blendStyle);
         }
-    }
 
+        public void HandleAnimationEvent(AnimationEvent animationEvent)
+        {
+            // if(animationEvent.animatorClipInfo.clip == 
+        }
+
+        private void OnDestroy() => animSystem.Destroy();
+    }
 }   

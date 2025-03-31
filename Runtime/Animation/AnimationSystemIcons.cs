@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace drytoolkit.Runtime.Animation
 {
-    [InitializeOnLoad]
+    // [InitializeOnLoad]
     public static class AnimationSystemIcons
     {
         static AnimationSystemIcons()

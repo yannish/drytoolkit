@@ -1,21 +1,16 @@
-using System;
-using drytoolkit.Runtime.Pooling;
-using Sirenix.OdinInspector;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
+using drytoolkit.Runtime.Pooling;
 
 public class PoolTester : MonoBehaviour
 {
+    public bool spawnContinuosly = false;
     public float spacing = 1f;
     private int tally;
     
-    [Pooled] public GameObject prefab;
+    [Pooled, Expandable] public GameObject prefab;
     public GameObject normalPrefab;
     
-    [Expandable] public RuntimeTypeCache cache;
-    
-    [Button]
     public void Spawn()
     {
         var spawnPos = transform.position + Vector3.forward * tally * spacing;
@@ -29,6 +24,7 @@ public class PoolTester : MonoBehaviour
 
     private void Update()
     {
-        Spawn();
+        if(spawnContinuosly)
+            Spawn();
     }
 }

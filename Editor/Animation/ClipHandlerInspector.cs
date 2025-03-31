@@ -25,49 +25,59 @@ public class ClipHandlerInspector : Editor
         if (!Application.isPlaying)
         {
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
-            {
                 EditorGUILayout.LabelField("Enter playmode to enable playback controls.");
-            }
-
             return;
         }
 
         var clipHandler = target as ClipHandler;
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            EditorGUILayout.LabelField("STATES", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("STATE CLIPS:", EditorStyles.boldLabel);
             for (int i = 0; i < clipHandler.clips.Count; i++)
             {
                 var clipConfig = clipHandler.clips[i];
+                if (clipConfig.isOneShot)
+                    continue;
+                
                 using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                 {
                     if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
                     {
-                        var effBlendTime = clipConfig.overrideBlendInTime ? 
-                            clipConfig.blendInTime :
-                            clipHandler.blendInTime;
+                        var effectiveBlendTime = clipConfig.overrideBlendInTime
+                            ? clipConfig.blendInTime
+                            : clipHandler.blendInTime;
                         
-                        // switch (clipHandler.blendStyle)
-                        // {
-                        //     case AnimationSystem.ClipBlendStyle.SMOOTHDAMP:
-                        //         effBlendTime = clipConfig.overrideBlendInTime ? 
-                        //             clipConfig.blendInTime :
-                        //             clipHandler.blendInTime;
-                        //         break;
-                        //     
-                        //     case AnimationSystem.ClipBlendStyle.MOVETOWARDS:
-                        //         effBlendTime = clipConfig.overrideBlendInTime ? 
-                        //             clipConfig.blendInTime :
-                        //             clipHandler.blendInTime;
-                        //         break;
-                        // }
-                        //
-                        // if(clipConfig.overrideBlendInTime)
-                        //     effBlendTime = clipConfig.blendInTime;
+                        clipHandler.animSystem.TransitionToState(clipConfig.clip,effectiveBlendTime);
                         
-                        clipHandler.animSystem.TransitionToState(clipConfig.clip, effBlendTime);
+                        if(clipHandler.logDebug)
+                            Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
+                    }
+                    EditorGUILayout.LabelField(clipConfig.clip.name);
+                }
+            }
+        }
+        
+        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField("ONE SHOT CLIPS:", EditorStyles.boldLabel);
+            for (int i = 0; i < clipHandler.clips.Count; i++)
+            {
+                var clipConfig = clipHandler.clips[i];
+                if (!clipConfig.isOneShot)
+                    continue;
+                
+                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    {
+                        // var effectiveBlendTime = clipConfig.overrideBlendInTime
+                        //     ? clipConfig.blendInTime
+                        //     : clipHandler.blendInTime;
                         
-                        Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {clipConfig.blendInTime}");
+                        clipHandler.animSystem.PlayOneShot(clipConfig);
+                        
+                        if(clipHandler.logDebug)
+                            Debug.LogWarning($"Playing oneshot : {clipConfig.clip.name} in {clipConfig.blendInTime}");
                     }
                     EditorGUILayout.LabelField(clipConfig.clip.name);
                 }
