@@ -110,10 +110,13 @@ namespace drytoolkit.Runtime.Animation
         private MethodInfo rebindMethod;
 
         private float currStateBlendTime = -1f;
+        
         private bool clipCountChanged = false;
 
         private float currOneShotBlendInTime = -1f;
+        
         private float currOneShotBlendOutTime = -1f;
+        
         private float currOneShotBlendTime = -1f;
 
         public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
@@ -426,6 +429,22 @@ namespace drytoolkit.Runtime.Animation
                 );
         }
 
+        
+        private float oneShotBlendingDuration = -1f;
+        private float oneShotBlendInTime = -1f;
+        private float oneShotBlendOutTime = -1f;
+        public void PlayOneShot_NEW(AnimationClip clip, float blendInTime, float blendOutTime)
+        {
+            if (oneShotClipHandles.Count > 0 && oneShotClipHandles[0].clip == clip)
+            {
+                Debug.LogWarning($"Already blending to one-shot clip : {clip.name}", clip);
+                return;
+            }
+
+            oneShotBlendingDuration = clip.length;
+        }
+
+        
         public void PlayOneShot(AnimationClip clip, float blendInTime, float blendOutTime)
         {
             if (oneShotPlayable.IsValid() && oneShotPlayable.GetAnimationClip() == clip)
@@ -469,8 +488,8 @@ namespace drytoolkit.Runtime.Animation
         }
 
         
-        Queue<ClipConfig> clipQueue = new Queue<ClipConfig>();
         //... SEQUENCES:
+        Queue<ClipConfig> clipQueue = new Queue<ClipConfig>();
         public void PlaySequence(List<ClipConfig> clipConfigs)
         {
             clipQueue.Clear();
