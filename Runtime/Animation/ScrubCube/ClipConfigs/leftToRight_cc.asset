@@ -10,12 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb62c5de14ad45a4da9e2a01e3085e38, type: 3}
-  m_Name: downToUp - clipConfig
+  m_Name: leftToRight_cc
   m_EditorClassIdentifier: 
-  clip: {fileID: 7400000, guid: 91e22bc653f310749a051c544cf0b8f3, type: 2}
+  clip: {fileID: 7400000, guid: 375eecef8564acb45aa6ad78c3eb001f, type: 2}
   overrideBlendInTime: 0
   blendInTime: 0.1
-  moveTowardsSpeed: 0
-  targetWeight: 0
+  overrideBlendOutTime: 0
+  blendOutTime: 0.1
+  isOneShot: 1
+  additive: 0
   startTime: 0
   playbackSpeed: 1
+  moveTowardsSpeed: 0
+  targetWeight: 0

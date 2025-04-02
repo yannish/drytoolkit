@@ -33,9 +33,9 @@ public class ClipHandlerInspector : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("STATE CLIPS:", EditorStyles.boldLabel);
-            for (int i = 0; i < clipHandler.clips.Count; i++)
+            for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {
-                var clipConfig = clipHandler.clips[i];
+                var clipConfig = clipHandler.stateClips[i];
                 if (clipConfig.isOneShot)
                     continue;
                 
@@ -60,10 +60,10 @@ public class ClipHandlerInspector : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("ONE SHOT CLIPS:", EditorStyles.boldLabel);
-            for (int i = 0; i < clipHandler.clips.Count; i++)
+            for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {
-                var clipConfig = clipHandler.clips[i];
-                if (!clipConfig.isOneShot)
+                var oneShotClipConfig = clipHandler.stateClips[i];
+                if (!oneShotClipConfig.isOneShot)
                     continue;
                 
                 using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
@@ -74,12 +74,12 @@ public class ClipHandlerInspector : Editor
                         //     ? clipConfig.blendInTime
                         //     : clipHandler.blendInTime;
                         
-                        clipHandler.animSystem.PlayOneShot(clipConfig);
+                        clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
                         
                         if(clipHandler.logDebug)
-                            Debug.LogWarning($"Playing oneshot : {clipConfig.clip.name} in {clipConfig.blendInTime}");
+                            Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");
                     }
-                    EditorGUILayout.LabelField(clipConfig.clip.name);
+                    EditorGUILayout.LabelField(oneShotClipConfig.clip.name);
                 }
             }
         }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using drytoolkit.Runtime.Animation;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace drytoolkit.Runtime.Animation
 {
@@ -10,13 +11,16 @@ namespace drytoolkit.Runtime.Animation
         public bool logDebug;
         
         public AnimationSystem.ClipBlendStyle blendStyle;
-        public List<ClipConfig> clips;
+        public List<ClipConfig> stateClips;
+        public List<ClipConfig> oneShotClips;
         public AnimationSystem animSystem;
 
+        
         [Header("BLENDING:")]
         public float blendInTime = 0.2f;
         
         private Animator animator;
+        
         
         void Start()
         {
@@ -34,7 +38,7 @@ namespace drytoolkit.Runtime.Animation
 
         public void HandleAnimationEvent(AnimationEvent animationEvent)
         {
-            // if(animationEvent.animatorClipInfo.clip == 
+            
         }
 
         private void OnDestroy() => animSystem.Destroy();

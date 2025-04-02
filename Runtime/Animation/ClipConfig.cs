@@ -7,15 +7,18 @@ namespace drytoolkit.Runtime.Animation
     public class ClipConfig : ScriptableObject
     {
         public AnimationClip clip;
+        [HideInInspector]
         public AnimationClipPlayable clipPlayable;
         
         /*
          * Who owns blend-in time generally... the system, or the clip...?
          */
         public bool overrideBlendInTime = false;
+        [ShowIf("overrideBlendInTime")]
         public float blendInTime = 0.1f;
 
         public bool overrideBlendOutTime = false;
+        [ShowIf("overrideBlendOutTime")]
         public float blendOutTime = 0.1f;
 
         public bool isOneShot = false;
@@ -25,8 +28,6 @@ namespace drytoolkit.Runtime.Animation
         public float playbackSpeed = 1f;
         
         public float moveTowardsSpeed = 0f;
-        public float targetWeight = 0f;
-        
         
         // public float blendVel = 0f;
         // public float currWeight = 0f;

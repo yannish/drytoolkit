@@ -48,6 +48,16 @@ namespace drytoolkit.Runtime.Animation
             public bool additive;
             public float blendInTime = 0.1f;
             public float blendOutTime = 0.1f;
+
+            public float GetCurrentBlendWeight()
+            {
+                float currClipTime = (float)clipPlayable.GetTime();
+                if (blendInTime > 0f && currClipTime <= blendInTime)
+                    return currClipTime / blendInTime;
+                if(blendOutTime > 0f && currClipTime >= (clip.length - blendOutTime))
+                    return 1f - ((currClipTime - clip.length) / blendOutTime);
+                return 1f;
+            }
         }
 
         [Serializable]
@@ -76,6 +86,7 @@ namespace drytoolkit.Runtime.Animation
 
 
         const int MAX_STATE_HANDLES = 16;
+        const int MAX_ONESHOT_HANDLES = 16;
         
         const float BLEND_EPSILON = 0.001f;
         
@@ -110,8 +121,6 @@ namespace drytoolkit.Runtime.Animation
         private MethodInfo rebindMethod;
 
         private float currStateBlendTime = -1f;
-        
-        private bool clipCountChanged = false;
 
         private float currOneShotBlendInTime = -1f;
         
@@ -119,6 +128,9 @@ namespace drytoolkit.Runtime.Animation
         
         private float currOneShotBlendTime = -1f;
 
+        private bool clipCountChanged = false;
+
+        
         public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
         {
             this.animator = animator;
@@ -139,10 +151,12 @@ namespace drytoolkit.Runtime.Animation
 
             //... state mixer frantically tries to blend to the most recently requested state:
             stateMixer = AnimationMixerPlayable.Create(graph, MAX_STATE_HANDLES);
+            oneShotMixer = AnimationMixerPlayable.Create(graph, MAX_ONESHOT_HANDLES);
 
             //... oneShot playable sneaks in on top, additively..?
 
             topLevelMixer.ConnectInput(0, stateMixer, 0);
+            // topLevelMixer.ConnectInput(1, oneShotMixer, 0);
 
             playableOutput.SetSourcePlayable(topLevelMixer);
 
@@ -151,9 +165,11 @@ namespace drytoolkit.Runtime.Animation
             graph.Play();
         }
 
+        
         public void Tick(ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP, bool normalizeBlendWeights = false)
         {
             TickStateClips(blendStyle);
+            TickOneShots_NEW();
             // TickOneShotBlending();
         }
 
@@ -334,6 +350,41 @@ namespace drytoolkit.Runtime.Animation
             currOneShotBlendTime += Time.deltaTime;
         }
 
+        private void TickOneShots_NEW()
+        {
+            if (oneShotClipHandles.Count <= 0)
+                return;
+            
+            var leadOneShotClipHandle = oneShotClipHandles[oneShotClipHandles.Count - 1];
+            var leadClipBlendWeight = leadOneShotClipHandle.GetCurrentBlendWeight();
+            // var oneShotsWeight
+            
+            if (leadOneShotClipHandle.clipPlayable.GetTime() >= leadOneShotClipHandle.clip.length)
+            {
+                Debug.LogWarning("DONE WITH ONESHOT");
+                
+                //.. skew back towards states:
+                topLevelMixer.SetInputWeight(0, 1f);
+                topLevelMixer.SetInputWeight(1, 0f);
+
+                if (leadOneShotClipHandle.clipPlayable.IsValid())
+                {
+                    topLevelMixer.DisconnectInput(1);
+                    graph.DestroyPlayable(leadOneShotClipHandle.clipPlayable);
+                }
+                
+                oneShotClipHandles.RemoveAt(0);
+            }
+            
+            // // leadOneShotClipHandle.currWeight
+            //
+            // // float maxOneShotWeight = 0f;
+            // //... loop through all non-lead clips:
+            // foreach (var oneShotClipHandle in oneShotClipHandles)
+            // {
+            //     
+            // }
+        }
 
         //... STATE:
         public void TransitionToState(ClipConfig clipConfig)
@@ -393,33 +444,11 @@ namespace drytoolkit.Runtime.Animation
                 };
 
                 stateClipHandles.Add(newStateClipHandle);
-                // stateMixer.ConnectInput(stateClipHandles.Count, newStateClipHandle.clipPlayable, 0); 
             }
         }
-        
-        // public void TransitionToStateClip(
-        //     StateClipHandle stateClipHandle, 
-        //     float blendInTime = -1f,
-        //     float startTime = 0f, 
-        //     float playbackSpeed = 1f)
-        // {
-        //     TransitionToState(
-        //         stateClipHandle.clip,
-        //         stateClipHandle.overrideBlendInTime || blendInTime < 0f ? stateClipHandle.blendInOverrideTime : blendInTime
-        //     );
-        // }
 
         
         //... ONE SHOTS:
-        public void PlayOneShot(OneShotClipHandle oneShotClipHandle)
-        {
-            PlayOneShot(
-                oneShotClipHandle.clip,
-                oneShotClipHandle.blendInTime,
-                oneShotClipHandle.blendOutTime
-            );
-        }
-
         public void PlayOneShot(ClipConfig clipConfig)
         {
             PlayOneShot(
@@ -429,11 +458,11 @@ namespace drytoolkit.Runtime.Animation
                 );
         }
 
-        
+        private float oneShotBlendTimer = -1f;
         private float oneShotBlendingDuration = -1f;
         private float oneShotBlendInTime = -1f;
         private float oneShotBlendOutTime = -1f;
-        public void PlayOneShot_NEW(AnimationClip clip, float blendInTime, float blendOutTime)
+        public void PlayOneShot(AnimationClip clip, float blendInTime, float blendOutTime, float startTime = 0f, float playbackSpeed = 1f)
         {
             if (oneShotClipHandles.Count > 0 && oneShotClipHandles[0].clip == clip)
             {
@@ -441,7 +470,35 @@ namespace drytoolkit.Runtime.Animation
                 return;
             }
 
+            //... otherwise, check that we can add a new oneShotHandle
+            
+            
+            //... and then add it:
+            var newOneShotClipHandle = new OneShotClipHandle()
+            {
+                clip = clip,
+                blendInTime = blendInTime,
+                blendOutTime = blendOutTime,
+                clipPlayable = AnimationClipPlayable.Create(graph, clip)
+            };
+            
+            newOneShotClipHandle.clipPlayable.SetTime(startTime);
+            newOneShotClipHandle.clipPlayable.SetSpeed(playbackSpeed);
+            newOneShotClipHandle.clipPlayable.Play();
+            
             oneShotBlendingDuration = clip.length;
+            oneShotBlendTimer = clip.length;
+            oneShotBlendInTime = blendInTime;
+            oneShotBlendOutTime = blendOutTime;
+            
+            oneShotMixer.ConnectInput(oneShotClipHandles.Count, newOneShotClipHandle.clipPlayable, 0);
+            oneShotMixer.SetInputWeight(oneShotClipHandles.Count, 1f);
+            topLevelMixer.ConnectInput(1, oneShotMixer, 0);
+            
+            topLevelMixer.SetInputWeight(0, 0f);
+            topLevelMixer.SetInputWeight(1, 1f);
+            
+            oneShotClipHandles.Add(newOneShotClipHandle);
         }
 
         
