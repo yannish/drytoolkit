@@ -11,11 +11,13 @@ namespace drytoolkit.Runtime.Animation
         public bool logDebug;
         
         public AnimationSystem.ClipBlendStyle blendStyle;
+        
         public List<ClipConfig> stateClips;
         public List<ClipConfig> oneShotClips;
+        public List<ClipConfig> sequenceClips;
+
         public AnimationSystem animSystem;
 
-        
         [Header("BLENDING:")]
         public float blendInTime = 0.2f;
         
@@ -38,7 +40,8 @@ namespace drytoolkit.Runtime.Animation
 
         public void HandleAnimationEvent(AnimationEvent animationEvent)
         {
-            
+            Debug.LogWarning($"handling event: {animationEvent.functionName}");
+            // SendMessage(animationEvent.messageOptions);
         }
 
         private void OnDestroy() => animSystem.Destroy();

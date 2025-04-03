@@ -16,13 +16,13 @@ MonoBehaviour:
   overrideLoop: 0
   loop: 0
   startTime: 0
-  playbackSpeed: 0.2
+  playbackSpeed: 0.5
   smoothDampBlendTime: 0.1
   moveTowardsBlendTime: 1
   overrideBlendInTime: 1
-  blendInTime: 0.5
+  blendInTime: 0.1
   overrideBlendOutTime: 1
-  blendOutTime: 0.5
+  blendOutTime: 0.1
   isOneShot: 0
   additive: 0
   moveTowardsSpeed: 0

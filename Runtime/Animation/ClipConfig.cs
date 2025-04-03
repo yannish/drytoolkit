@@ -33,9 +33,6 @@ namespace drytoolkit.Runtime.Animation
         [ShowIf("overrideBlendOutTime")]
         public float blendOutTime = 0.1f;
 
-        public bool isOneShot = false;
-        public bool additive = false;
-
         public float moveTowardsSpeed = 0f;
         
         // public float blendVel = 0f;

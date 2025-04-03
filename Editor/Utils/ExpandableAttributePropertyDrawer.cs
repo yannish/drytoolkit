@@ -23,6 +23,10 @@ public class ExpandableAttributePropertyDrawer : PropertyDrawer
             _animBool.valueChanged.AddListener(() =>
             {
                 EditorWindow.focusedWindow.Repaint();
+                if (_animBool.faded == 0f)
+                {
+                    Object.DestroyImmediate(_editor);
+                }
             });
         }
 

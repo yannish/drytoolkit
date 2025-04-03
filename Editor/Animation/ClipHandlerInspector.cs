@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEngine;
@@ -9,8 +10,11 @@ public class ClipHandlerInspector : Editor
     GUIContent playFromStart;
     const float buttonWidth = 24f;
     
+    private ClipHandler clipHandler;
+    
     private void OnEnable()
     {
+        clipHandler = target as ClipHandler;
         playFromStart = EditorGUIUtility.IconContent("d_PlayButton");
     }
     
@@ -29,7 +33,6 @@ public class ClipHandlerInspector : Editor
             return;
         }
 
-        var clipHandler = target as ClipHandler;
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("STATE CLIPS:", EditorStyles.boldLabel);
@@ -79,6 +82,52 @@ public class ClipHandlerInspector : Editor
                 }
             }
         }
+
+        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField("SEQUENCE CLIPS:", EditorStyles.boldLabel);
+            string labelText = "";
+            foreach (var clipConfig in clipHandler.sequenceClips)
+            {
+                labelText += clipConfig.clip.name + " / "; 
+                // EditorGUILayout.LabelField(clipConfig.clip.name);
+            }
+
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+            {
+                Debug.LogWarning("PLAYING SEQUENCE");
+                clipHandler.animSystem.PlayOneShot(
+                    clipHandler.sequenceClips[0],
+                    () => clipHandler.animSystem.PlayOneShot(clipHandler.sequenceClips[1])
+                    );
+                
+                // foreach (var clipConfig in clipHandler.sequenceClips)
+                //     clipQueue.Enqueue(clipConfig);
+                // PlayClipSequence();
+            }
+            GUILayout.Label(labelText);
+            EditorGUILayout.EndHorizontal();
+        }
+
     }
+    
+    Queue<ClipConfig> clipQueue = new Queue<ClipConfig>();
+    void PlayClipSequence()
+    {
+        if (clipHandler == null || clipQueue == null || clipQueue.Count == 0)
+            return;
+            
+        var nextClip = clipQueue.Dequeue();
+        if(clipQueue.Count > 0)
+            clipHandler.animSystem.PlayOneShot(nextClip, () =>
+            {
+                Debug.LogWarning("next clip in sequence");
+                PlayClipSequence();
+            });
+        else
+            clipHandler.animSystem.PlayOneShot(nextClip);
+    }
+
 }
 
