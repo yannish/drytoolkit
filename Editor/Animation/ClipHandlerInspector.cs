@@ -36,8 +36,6 @@ public class ClipHandlerInspector : Editor
             for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {
                 var clipConfig = clipHandler.stateClips[i];
-                if (clipConfig.isOneShot)
-                    continue;
                 
                 using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                 {
@@ -47,7 +45,7 @@ public class ClipHandlerInspector : Editor
                             ? clipConfig.blendInTime
                             : clipHandler.blendInTime;
                         
-                        clipHandler.animSystem.TransitionToState(clipConfig.clip,effectiveBlendTime);
+                        clipHandler.animSystem.TransitionToState(clipConfig);
                         
                         if(clipHandler.logDebug)
                             Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
@@ -60,11 +58,9 @@ public class ClipHandlerInspector : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("ONE SHOT CLIPS:", EditorStyles.boldLabel);
-            for (int i = 0; i < clipHandler.stateClips.Count; i++)
+            for (int i = 0; i < clipHandler.oneShotClips.Count; i++)
             {
-                var oneShotClipConfig = clipHandler.stateClips[i];
-                if (!oneShotClipConfig.isOneShot)
-                    continue;
+                var oneShotClipConfig = clipHandler.oneShotClips[i];
                 
                 using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                 {

@@ -13,13 +13,16 @@ MonoBehaviour:
   m_Name: leftToRight_cc
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: 375eecef8564acb45aa6ad78c3eb001f, type: 2}
+  overrideLoop: 0
+  loop: 0
+  startTime: 0
+  playbackSpeed: 0.2
+  smoothDampBlendTime: 0.1
+  moveTowardsBlendTime: 1
   overrideBlendInTime: 0
   blendInTime: 0.1
   overrideBlendOutTime: 0
   blendOutTime: 0.1
   isOneShot: 1
   additive: 0
-  startTime: 0
-  playbackSpeed: 1
   moveTowardsSpeed: 0
-  targetWeight: 0

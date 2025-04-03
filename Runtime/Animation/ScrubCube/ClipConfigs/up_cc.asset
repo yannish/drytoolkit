@@ -13,9 +13,16 @@ MonoBehaviour:
   m_Name: up_cc
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: 4778570ca15c53540b6d276842929e0f, type: 2}
-  overrideBlendInTime: 0
-  blendInTime: 0.1
-  moveTowardsSpeed: 0
-  targetWeight: 0
+  overrideLoop: 0
+  loop: 0
   startTime: 0
   playbackSpeed: 1
+  smoothDampBlendTime: 0.1
+  moveTowardsBlendTime: 1
+  overrideBlendInTime: 1
+  blendInTime: 0.05
+  overrideBlendOutTime: 0
+  blendOutTime: 0.1
+  isOneShot: 1
+  additive: 0
+  moveTowardsSpeed: 0

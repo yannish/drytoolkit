@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb62c5de14ad45a4da9e2a01e3085e38, type: 3}
-  m_Name: downToUp_cc
+  m_Name: hardSetRight_cc
   m_EditorClassIdentifier: 
-  clip: {fileID: 7400000, guid: 91e22bc653f310749a051c544cf0b8f3, type: 2}
+  clip: {fileID: 7400000, guid: 3718a9e307e3b124e9544597585e4b34, type: 2}
   overrideLoop: 0
   loop: 0
   startTime: 0
@@ -23,6 +23,6 @@ MonoBehaviour:
   blendInTime: 0.5
   overrideBlendOutTime: 1
   blendOutTime: 0.5
-  isOneShot: 1
+  isOneShot: 0
   additive: 0
   moveTowardsSpeed: 0
