@@ -1,0 +1,64 @@
+using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+
+#if UNITY_EDITOR
+[InitializeOnLoad]
+#endif
+public static class ColorSwatchesBuilder
+{
+	private const string path = "Assets/Resources";
+
+	private const string folderName = "ColorPicker";
+
+	private const string assetName = "ColorSwatches";
+
+	private const string assetNameFull = "ColorSwatches.asset";
+
+	private const string toolMenuPath = "Tools/ColorPicker/";
+
+	public const string resourcesLoadPath = folderName + "/" + assetName;
+
+
+	#if UNITY_EDITOR
+	static ColorSwatchesBuilder() => EditorApplication.delayCall += CheckColorSwatches;
+	#endif	
+
+	#if UNITY_EDITOR
+	[MenuItem(toolMenuPath + "Check Swatches at Runtime")]
+	#endif
+	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+	private static void CheckColorSwatches()
+	{
+		Debug.LogWarning("Checking color swatches.");
+		
+		var colorSwatchTypes = TypeCache.GetTypesDerivedFrom(typeof(ColorSwatches));
+		foreach(var colorSwatchType in colorSwatchTypes)
+			Debug.LogWarning($"... {colorSwatchType.Name}");
+
+		if (colorSwatchTypes.Count == 0)
+		{
+			Debug.LogWarning("no classes derive from ColorSwatches, so we can't generate an instance.");
+			return;
+		}
+		
+		var swatches = ScriptableObject.CreateInstance(colorSwatchTypes[0]);
+
+		if(!AssetDatabase.IsValidFolder($"{path}"))
+			AssetDatabase.CreateFolder("Assets", "Resources");
+
+		if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
+			AssetDatabase.CreateFolder(path, folderName);
+		
+		AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
+		AssetDatabase.CreateAsset(swatches, $"{path}/{folderName}/{assetNameFull}");
+		AssetDatabase.SaveAssets();
+		AssetDatabase.Refresh();
+	}
+
+	[MenuItem(toolMenuPath + "Delete Color Swatches")]
+	public static void DeleteColorSwatches() => AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
+}

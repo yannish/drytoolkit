@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEditor;
 using UnityEngine;
 
-// [CreateAssetMenu(fileName = "RuntimeTypeCache", menuName = "RuntimeTypeCache", order = 1)]
+using UnityEditor;
+
 namespace drytoolkit.Runtime.Pooling
 {
     public class RuntimeTypeCache : ScriptableObject
@@ -32,8 +32,14 @@ namespace drytoolkit.Runtime.Pooling
         public const string path = "Assets/Resources";
 
         public const string folderName = "TypeCache";
+        
+        public const string assetName = "RuntimeTypeCache";
 
-        public const string assetName = "RuntimeTypeCache.asset";
+        public const string assetNameFull = "RuntimeTypeCache.asset";
+        
+        public const string fullPath = path + folderName + assetNameFull;
+
+        public const string resourceLoadPath = folderName + "/" + assetName;
 
         public const string toolMenuPath = "Tools/Pooling/";
 
@@ -45,15 +51,13 @@ namespace drytoolkit.Runtime.Pooling
 
 
         [MenuItem(toolMenuPath + "Delete Runtime Type Cache")]
-        public static void DeleteCache()
-        {
-            AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetName}");
-        }
+        public static void DeleteCache() => AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
 
+        //... this happens at runtime...
         [MenuItem(toolMenuPath + "Load Runtime Type Cache")]
         public static RuntimeTypeCache LoadCache()
         {
-            var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>($"{path}/{folderName}/{assetName}");
+            var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>($"{path}/{folderName}/{assetNameFull}");
             if (runtimeTypeCache == null)
             {
                 Debug.LogWarning("... couldn't find runtime type cache.");
@@ -63,9 +67,12 @@ namespace drytoolkit.Runtime.Pooling
         }
 
 
+        //... this happens at edit time...
         [MenuItem(toolMenuPath + "Rebuild Runtime Type Cache")]
         public static void BuildRuntimeTypeCache()
         {
+            Debug.LogWarning("Building runtime type cache");
+            
             var cache = ScriptableObject.CreateInstance<RuntimeTypeCache>();
 
             Dictionary<Type, List<FieldInfo>> typeToFieldsLookup = new Dictionary<Type, List<FieldInfo>>();
@@ -95,16 +102,14 @@ namespace drytoolkit.Runtime.Pooling
                 }
             }
 
-            // var fullPath = path + folderName + assetName;
-            
             if(!AssetDatabase.IsValidFolder($"{path}"))
                 AssetDatabase.CreateFolder("Assets", "Resources");
 
             if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
                 AssetDatabase.CreateFolder(path, folderName);
 
-            AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetName}");
-            AssetDatabase.CreateAsset(cache, $"{path}/{folderName}/{assetName}");
+            AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
+            AssetDatabase.CreateAsset(cache, $"{path}/{folderName}/{assetNameFull}");
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }

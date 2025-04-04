@@ -2,14 +2,14 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(ClipEvent))]
+[CustomEditor(typeof(ClipEventDefinition))]
 public class ClipEventConfigInspector : Editor
 {
-    private ClipEvent config;
+    private ClipEventDefinition config;
     
     private void OnEnable()
     {
-        config = (ClipEvent)target;
+        config = (ClipEventDefinition)target;
         AnimationMode.StartAnimationMode();
     }
 

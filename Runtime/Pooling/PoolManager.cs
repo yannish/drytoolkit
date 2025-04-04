@@ -1,17 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using UnityEditor;
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 namespace drytoolkit.Runtime.Pooling
 {
+    #if UNITY_EDITOR
     [InitializeOnLoad]
+    #endif
     public static class PoolManager
     {
         static PoolManager()
         {
+            #if UNITY_EDITOR
             EditorApplication.playModeStateChanged += state =>
             {
                 if (state == PlayModeStateChange.ExitingPlayMode)
@@ -23,6 +29,7 @@ namespace drytoolkit.Runtime.Pooling
             };
             
             EditorApplication.delayCall += RuntimeTypeCacheBuilder.BuildRuntimeTypeCache;
+            #endif
         }
 
         private static Dictionary<Type, List<FieldInfo>> cachedTypeToFieldInfoLookup = new Dictionary<Type, List<FieldInfo>>();
@@ -33,19 +40,17 @@ namespace drytoolkit.Runtime.Pooling
         
         private static RuntimeTypeCache runtimeTypeCache;
 
+
+
+        #if UNITY_EDITOR
+        [MenuItem("Tools/TryLoadRuntimeCache")]
+        #endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void FetchFromRuntimeTypeCache()
         {
             // Debug.Log("Building type-to-field-info lookup from cache...");
-            
-            // var runtimeTypeCache = AssetDatabase.LoadAssetAtPath<RuntimeTypeCache>(RuntimeTypeCacheBuilder.path);
-            // if (runtimeTypeCache == null)
-            // {
-            //     // Debug.LogWarning("... couldn't find runtime type cache.");
-            //     return;
-            // }
 
-            runtimeTypeCache = RuntimeTypeCacheBuilder.LoadCache();
+            runtimeTypeCache = Resources.Load<RuntimeTypeCache>(RuntimeTypeCacheBuilder.resourceLoadPath);
             if (runtimeTypeCache == null)
             {
                 Debug.LogWarning("... couldn't find runtime type cache.");
@@ -53,7 +58,6 @@ namespace drytoolkit.Runtime.Pooling
             }
 
             cachedTypeToFieldInfoLookup.Clear();
-            
             lookupInitialized = false;
         }
         

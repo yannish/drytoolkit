@@ -2,20 +2,21 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Animations;
+using UnityEngine.Serialization;
 
 namespace drytoolkit.Runtime.Animation
 {
-    [Serializable]
-    public class ClipConfigEvent
-    {
-        [Range(0f,1f)]
-        public float time;
-        public string eventName;
-    }
-    
     [CreateAssetMenu(menuName = "AnimationSystem/ClipConfig")]
     public class ClipConfig : ScriptableObject
     {
+        [Serializable]
+        public class ClipConfigEvent
+        {
+            [Range(0f,1f)]
+            public float time;
+            public ClipEventDefinition clipEventDefinition;
+        }
+        
         [Expandable]
         public AnimationClip clip;
 

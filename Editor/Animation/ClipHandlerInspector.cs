@@ -15,6 +15,7 @@ public class ClipHandlerInspector : Editor
     private void OnEnable()
     {
         clipHandler = target as ClipHandler;
+        
         playFromStart = EditorGUIUtility.IconContent("d_PlayButton");
     }
     
@@ -74,6 +75,7 @@ public class ClipHandlerInspector : Editor
                         //     : clipHandler.blendInTime;
                         
                         clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
+                        // clipHandler.animSystem.AddListener();
                         
                         if(clipHandler.logDebug)
                             Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");
@@ -81,6 +83,21 @@ public class ClipHandlerInspector : Editor
                     EditorGUILayout.LabelField(oneShotClipConfig.clip.name);
                 }
             }
+        }
+
+        void OnReload()
+        {
+            
+        }
+
+        void OnMidway()
+        {
+            
+        }
+
+        void OnShotFired()
+        {
+            
         }
 
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))

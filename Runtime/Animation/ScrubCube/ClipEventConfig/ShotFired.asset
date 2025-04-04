@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8be9ac5c18c9e5044ae2c9d3749ba3d4, type: 3}
-  m_Name: QuickClipEvent
+  m_Name: ShotFired
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: bf0b2a7507608c24bb410fbf1c5b66e5, type: 2}
   eventTime: 0.239

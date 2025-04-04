@@ -25,8 +25,8 @@ MonoBehaviour:
   moveTowardsSpeed: 0
   events:
   - time: 0.07
-    eventName: StartEvent
+    clipEventDefinition: {fileID: 11400000, guid: 7345a58be27bf5b4f92eddfc099be3f6, type: 2}
   - time: 0.8
-    eventName: ShellReloaded
+    clipEventDefinition: {fileID: 11400000, guid: 37c8d78361679ae45bddb9656d5264ce, type: 2}
   - time: 0.95
-    eventName: ShotFired
+    clipEventDefinition: {fileID: 11400000, guid: 642f34b8a6fee6f48b36a01aad98436f, type: 2}
