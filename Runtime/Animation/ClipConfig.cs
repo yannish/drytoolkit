@@ -8,12 +8,12 @@ namespace drytoolkit.Runtime.Animation
     {
         [Expandable]
         public AnimationClip clip;
-        [HideInInspector]
-        public AnimationClipPlayable clipPlayable;
+
+        public WrapMode wrapMode = WrapMode.Once;
         
-        public bool overrideLoop = false;
-        [ShowIf("overrideLoop")]
-        public bool loop = false;
+        // public bool overrideLoop = false;
+        // [ShowIf("overrideLoop")]
+        // public bool loop = false;
         
         public float startTime = 0f;
         public float playbackSpeed = 1f;

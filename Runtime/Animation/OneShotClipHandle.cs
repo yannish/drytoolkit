@@ -9,7 +9,7 @@ namespace drytoolkit.Runtime.Animation
     [Serializable]
     public class OneShotClipHandle : ClipHandle
     {
-        public bool additive;
+        public WrapMode wrapMode = WrapMode.Once;
         public float blendInTime = 0.1f;
         public float blendOutTime = 0.1f;
 
@@ -21,7 +21,7 @@ namespace drytoolkit.Runtime.Animation
         {
             double currClipTime = clipPlayable.GetTime();
 
-            var effLength = clipPlayable.GetDuration();
+            // var effLength = clipPlayable.GetDuration();
 
             var effBlendInTime = blendInTime * clipPlayable.GetSpeed();
 
@@ -39,7 +39,6 @@ namespace drytoolkit.Runtime.Animation
                 );
                 return result;
             }
-
 
             return 1f;
         }

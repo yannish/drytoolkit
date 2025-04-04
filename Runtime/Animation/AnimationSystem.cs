@@ -47,7 +47,9 @@ namespace drytoolkit.Runtime.Animation
         public List<OneShotClipHandle> oneShotClipHandles = new List<OneShotClipHandle>();
         public List<OneShotClipHandle> additiveOneShotClipHandles = new List<OneShotClipHandle>();
 
+        
         public PlayableGraph graph { get; private set; }
+        
         private Animator animator;
         
         private AnimationClipPlayable oneShotPlayable;
@@ -256,7 +258,7 @@ namespace drytoolkit.Runtime.Animation
 
         #endregion
 
-        #region ONE-SHOTS
+        #region ONE-SHOTS:
 
         //... ONE SHOTS:
         private void TickOneShotBlending()
@@ -305,6 +307,7 @@ namespace drytoolkit.Runtime.Animation
                 bool clipIsComplete = false;
                 if (clipHandle.clipPlayable.GetTime() >= 1f)
                 {
+                    // if(clipHandle.)
                     clipIsComplete = true;
                     clipHandle.onCompleteCallback?.Invoke();
                     Debug.LogWarning("Clip ran its time.");
@@ -364,6 +367,7 @@ namespace drytoolkit.Runtime.Animation
                 clipConfig.blendOutTime,
                 clipConfig.startTime,
                 clipConfig.playbackSpeed,
+                clipConfig.wrapMode,
                 callback
             );
         }
@@ -374,6 +378,7 @@ namespace drytoolkit.Runtime.Animation
             float blendOutTime,
             float startTime = 0f,
             float playbackSpeed = 1f,
+            WrapMode wrapMode = WrapMode.Once,
             Action callback = null
             )
         {
@@ -400,6 +405,7 @@ namespace drytoolkit.Runtime.Animation
             // newOneShotClipHandle.callbackTime = clip.length * 0.5f;
             // newOneShotClipHandle.callBack += () => Debug.LogWarning("Halfway callback!");
             
+            newOneShotClipHandle.wrapMode = wrapMode;
             newOneShotClipHandle.clipPlayable.SetTime(startTime);
             newOneShotClipHandle.clipPlayable.SetSpeed(playbackSpeed);
             newOneShotClipHandle.clipPlayable.SetDuration(clip.length / playbackSpeed);
@@ -430,7 +436,7 @@ namespace drytoolkit.Runtime.Animation
 
         #endregion
 
-        #region ADDITIVE ONESHOTS:
+        #region ADDITIVE ONE-SHOTS:
 
         
 
