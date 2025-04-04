@@ -33,12 +33,7 @@ public static class ColorSwatchesBuilder
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
 	private static void CheckColorSwatches()
 	{
-		Debug.LogWarning("Checking color swatches.");
-		
 		var colorSwatchTypes = TypeCache.GetTypesDerivedFrom(typeof(ColorSwatches));
-		foreach(var colorSwatchType in colorSwatchTypes)
-			Debug.LogWarning($"... {colorSwatchType.Name}");
-
 		if (colorSwatchTypes.Count == 0)
 		{
 			Debug.LogWarning("no classes derive from ColorSwatches, so we can't generate an instance.");
