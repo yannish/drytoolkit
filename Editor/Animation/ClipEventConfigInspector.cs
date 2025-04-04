@@ -2,14 +2,14 @@ using System;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(ClipEventConfig))]
+[CustomEditor(typeof(ClipEvent))]
 public class ClipEventConfigInspector : Editor
 {
-    private ClipEventConfig config;
+    private ClipEvent config;
     
     private void OnEnable()
     {
-        config = (ClipEventConfig)target;
+        config = (ClipEvent)target;
         AnimationMode.StartAnimationMode();
     }
 
@@ -19,20 +19,20 @@ public class ClipEventConfigInspector : Editor
     {
         DrawDefaultInspector();
 
-        if (
-            config.clip != null
-            && Selection.activeObject != null
-            && Selection.activeObject is GameObject gameObject
-            )
-        {
-            // AnimationMode.StartAnimationMode();
-            AnimationMode.SampleAnimationClip(
-                gameObject, 
-                config.clip,
-                config.eventTime
-            );
-            // AnimationMode.StopAnimationMode();
-            SceneView.RepaintAll();
-        }
+        // if (
+        //     config.clip != null
+        //     && Selection.activeObject != null
+        //     && Selection.activeObject is GameObject gameObject
+        //     )
+        // {
+        //     // AnimationMode.StartAnimationMode();
+        //     AnimationMode.SampleAnimationClip(
+        //         gameObject, 
+        //         config.clip,
+        //         config.eventTime
+        //     );
+        //     // AnimationMode.StopAnimationMode();
+        //     SceneView.RepaintAll();
+        // }
     }
 }

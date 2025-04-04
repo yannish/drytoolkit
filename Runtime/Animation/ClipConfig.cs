@@ -1,8 +1,18 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Animations;
 
 namespace drytoolkit.Runtime.Animation
 {
+    [Serializable]
+    public class ClipConfigEvent
+    {
+        [Range(0f,1f)]
+        public float time;
+        public string eventName;
+    }
+    
     [CreateAssetMenu(menuName = "AnimationSystem/ClipConfig")]
     public class ClipConfig : ScriptableObject
     {
@@ -10,18 +20,10 @@ namespace drytoolkit.Runtime.Animation
         public AnimationClip clip;
 
         public WrapMode wrapMode = WrapMode.Once;
-        
-        // public bool overrideLoop = false;
-        // [ShowIf("overrideLoop")]
-        // public bool loop = false;
-        
+       
         public float startTime = 0f;
         public float playbackSpeed = 1f;
         
-        /*
-         * Who owns blend-in time generally... the system, or the clip...?
-         */
-
         public float smoothDampBlendTime = 0.1f;
         public float moveTowardsBlendTime = 1f;
         
@@ -34,6 +36,10 @@ namespace drytoolkit.Runtime.Animation
         public float blendOutTime = 0.1f;
 
         public float moveTowardsSpeed = 0f;
+        
+        
+        [Header("EVENTS:")]
+        public List<ClipConfigEvent> events;
         
         // public float blendVel = 0f;
         // public float currWeight = 0f;

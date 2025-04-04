@@ -13,13 +13,20 @@ MonoBehaviour:
   m_Name: downAndUp_cc
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: bf0b2a7507608c24bb410fbf1c5b66e5, type: 2}
+  wrapMode: 1
+  startTime: 0
+  playbackSpeed: 1
+  smoothDampBlendTime: 0.1
+  moveTowardsBlendTime: 1
   overrideBlendInTime: 0
   blendInTime: 0.1
   overrideBlendOutTime: 0
   blendOutTime: 0.1
-  isOneShot: 0
-  additive: 0
-  startTime: 0
-  playbackSpeed: 1
   moveTowardsSpeed: 0
-  targetWeight: 0
+  events:
+  - time: 0.07
+    eventName: StartEvent
+  - time: 0.8
+    eventName: ShellReloaded
+  - time: 0.95
+    eventName: ShotFired

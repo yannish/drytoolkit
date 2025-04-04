@@ -13,16 +13,13 @@ MonoBehaviour:
   m_Name: downToUp_cc
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: 91e22bc653f310749a051c544cf0b8f3, type: 2}
-  overrideLoop: 0
-  loop: 0
+  wrapMode: 1
   startTime: 0
-  playbackSpeed: 0.2
+  playbackSpeed: 1
   smoothDampBlendTime: 0.1
   moveTowardsBlendTime: 1
   overrideBlendInTime: 1
   blendInTime: 0.5
   overrideBlendOutTime: 1
   blendOutTime: 0.5
-  isOneShot: 1
-  additive: 0
   moveTowardsSpeed: 0

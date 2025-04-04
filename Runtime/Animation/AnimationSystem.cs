@@ -50,6 +50,8 @@ namespace drytoolkit.Runtime.Animation
         
         public PlayableGraph graph { get; private set; }
         
+        Dictionary<ClipEvent, List<Action>> eventLookup = new Dictionary<ClipEvent, List<Action>>();
+        
         private Animator animator;
         
         private AnimationClipPlayable oneShotPlayable;
@@ -268,7 +270,6 @@ namespace drytoolkit.Runtime.Animation
             
             bool oneShotClipCountChanged = false;
             
-            float heaviestWeight = 0f;
             float leadingClipWeight = 0f;
             float accumulatedWeight = 0f;
             
@@ -291,36 +292,62 @@ namespace drytoolkit.Runtime.Animation
                     clipHandle.currWeight = Mathf.Min(currWeight, 1f - leadingClipWeight);
                 }
                 
-                // Debug.LogWarning($"oneshot blend weight: {clipHandle.currWeight}");
-
                 if (prevWeight < 1f && clipHandle.currWeight >= 1f)
                 {
-                    Debug.LogWarning($"Done blending oneshot in, time: {clipHandle.clipPlayable.GetTime()}");
-                }
-                
-                if (leadingClip && clipHandle.currWeight > heaviestWeight)
-                {
-                    heaviestWeight = clipHandle.currWeight;
+                    if(logDebug)
+                        Debug.LogWarning($"Done blending oneshot in, time: {clipHandle.clipPlayable.GetTime()}");
                 }
 
+                if (clipHandle.config != null)
+                {
+                    var prevTime = clipHandle.clipPlayable.GetPreviousTime();
+                    var currTime = clipHandle.clipPlayable.GetTime();
+                    foreach(var clipEvent in clipHandle.config.events)
+                    {
+                        if (clipEvent.time > prevTime && clipEvent.time <= currTime)
+                        {
+                            Debug.LogWarning($"Firing event: {clipEvent.eventName}");
+                        }
+                    }
+                }
 
                 bool clipIsComplete = false;
                 if (clipHandle.clipPlayable.GetTime() >= 1f)
                 {
-                    // if(clipHandle.)
-                    clipIsComplete = true;
-                    clipHandle.onCompleteCallback?.Invoke();
-                    Debug.LogWarning("Clip ran its time.");
+                    switch (clipHandle.wrapMode)
+                    {
+                        case WrapMode.Once:
+                            clipIsComplete = true;
+                            clipHandle.onCompleteCallback?.Invoke();
+                            if(logDebug)
+                                Debug.LogWarning("Clip ran its time.");
+                            break;
+                        
+                        case WrapMode.Loop:
+                            clipHandle.clipPlayable.SetTime(clipHandle.clipPlayable.GetTime() % 1f);
+                            if(logDebug)
+                                Debug.LogWarning("Looping clip.");
+                            break;
+                        
+                        case WrapMode.PingPong:
+                            break;
+                        
+                        case WrapMode.Default:
+                            break;
+                        
+                        case WrapMode.ClampForever:
+                            break;
+                    }
                 }
 
+                //... if isn't the leading one and weight has been driven down, it's done:
                 if (!leadingClip && clipHandle.currWeight <= 0f)
-                {
                     clipIsComplete = true;
-                }
                 
                 if (clipIsComplete)
                 {
-                    Debug.LogWarning($"DONE WITH ONESHOT : {clipHandle.clip.name}");
+                    if(logDebug)
+                        Debug.LogWarning($"DONE WITH ONESHOT : {clipHandle.clip.name}");
                     
                     if (clipHandle.clipPlayable.IsValid())
                     {
@@ -361,7 +388,7 @@ namespace drytoolkit.Runtime.Animation
 
         public OneShotClipHandle PlayOneShot(ClipConfig clipConfig, Action callback = null)
         {
-            return PlayOneShot(
+            var newOneShotClipHandle = PlayOneShot(
                 clipConfig.clip,
                 clipConfig.blendInTime,
                 clipConfig.blendOutTime,
@@ -370,6 +397,10 @@ namespace drytoolkit.Runtime.Animation
                 clipConfig.wrapMode,
                 callback
             );
+
+            newOneShotClipHandle.config = clipConfig;
+
+            return newOneShotClipHandle;
         }
 
         public OneShotClipHandle PlayOneShot(
@@ -440,6 +471,25 @@ namespace drytoolkit.Runtime.Animation
 
         
 
+        #endregion
+
+        #region EVENTS:
+        public void AddListener(ClipEvent clipEvent, Action callback)
+        {
+            if (eventLookup.TryGetValue(clipEvent, out var callbacks))
+            {
+                callbacks.Add(callback);
+                return;
+            }
+            
+            eventLookup.Add(clipEvent, new List<Action>(){ callback });
+        }
+
+        public void RemoveListener(ClipEvent clipEvent)
+        {
+            if(eventLookup.ContainsKey(clipEvent))
+                eventLookup.Remove(clipEvent);
+        }
         #endregion
 
         

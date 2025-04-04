@@ -9,6 +9,7 @@ namespace drytoolkit.Runtime.Animation
     public class ClipHandle
     {
         public AnimationClip clip;
+        public ClipConfig config;
         public AnimationClipPlayable clipPlayable;
 
         //... state stuff:

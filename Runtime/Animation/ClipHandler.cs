@@ -16,6 +16,8 @@ namespace drytoolkit.Runtime.Animation
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> sequenceClips;
 
+        public ClipConfig oneShotWithEvent;
+        
         public AnimationSystem animSystem;
 
         [Header("BLENDING:")]
@@ -42,6 +44,12 @@ namespace drytoolkit.Runtime.Animation
         {
             Debug.LogWarning($"handling event: {animationEvent.functionName}");
             // SendMessage(animationEvent.messageOptions);
+        }
+
+        public void TryPlayWithAnEvent()
+        {
+            animSystem.PlayOneShot(oneShotWithEvent, () => { Debug.LogWarning("CALLBACK!"); });
+            // animSystem.AddListener()
         }
 
         private void OnDestroy() => animSystem.Destroy();
