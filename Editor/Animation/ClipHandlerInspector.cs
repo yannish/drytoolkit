@@ -75,7 +75,9 @@ public class ClipHandlerInspector : Editor
                         //     : clipHandler.blendInTime;
                         
                         clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
-                        // clipHandler.animSystem.AddListener();
+                        clipHandler.animSystem.AddListener(clipHandler.reloadEventDef, OnReload);
+                        clipHandler.animSystem.AddListener(clipHandler.midwayEventDef, OnMidway);
+                        clipHandler.animSystem.AddListener(clipHandler.shotFiredEventDef, OnShotFired);
                         
                         if(clipHandler.logDebug)
                             Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");

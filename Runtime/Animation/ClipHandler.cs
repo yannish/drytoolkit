@@ -16,7 +16,11 @@ namespace drytoolkit.Runtime.Animation
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> sequenceClips;
 
+        [Header("EVENTS:")]
         public ClipConfig oneShotWithEvent;
+        public ClipEventDefinition reloadEventDef;
+        public ClipEventDefinition midwayEventDef;
+        public ClipEventDefinition shotFiredEventDef;
         
         public AnimationSystem animSystem;
 

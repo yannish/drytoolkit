@@ -50,7 +50,8 @@ namespace drytoolkit.Runtime.Animation
         
         public PlayableGraph graph { get; private set; }
         
-        Dictionary<ClipEventDefinition, List<Action>> eventLookup = new Dictionary<ClipEventDefinition, List<Action>>();
+        Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
+        // Dictionary<ClipEventDefinition, List<Action>> eventLookup = new Dictionary<ClipEventDefinition, List<Action>>();
         
         private Animator animator;
         
@@ -306,7 +307,7 @@ namespace drytoolkit.Runtime.Animation
                     {
                         if (clipEvent.time > prevTime && clipEvent.time <= currTime)
                         {
-                            Debug.LogWarning($"Firing event: {clipEvent}");
+                            Debug.LogWarning($"Firing event: {clipEvent.clipEventDefinition}");
                         }
                     }
                 }
@@ -478,11 +479,11 @@ namespace drytoolkit.Runtime.Animation
         {
             if (eventLookup.TryGetValue(clipEventDefinition, out var callbacks))
             {
-                callbacks.Add(callback);
+                callbacks += callback;
                 return;
             }
-            
-            eventLookup.Add(clipEventDefinition, new List<Action>(){ callback });
+
+            eventLookup.Add(clipEventDefinition, new Action(callback));
         }
 
         public void RemoveListener(ClipEventDefinition clipEventDefinition)
