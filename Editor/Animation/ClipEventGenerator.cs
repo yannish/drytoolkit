@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEditor.Compilation;
@@ -10,8 +11,13 @@ using File = System.IO.File;
 public static class ClipEventGenerator
 {
     private const string FILE_PATH = "Assets/ClipEvents.cs";
+    private const string CACHE_CLASS_FILE_PATH = "Assets/ClipEventsCache.cs";
     private const string ASSET_PATH = "Assets";
     private const string CLASS_NAME = "ClipEvents";
+    private const string CACHE_CLASS_NAME = "ClipEventsCache";
+    
+    private static readonly string fullFilePath = Path.Combine("Assets", FILE_PATH, ".cs");
+    private static readonly string fullCacheFilePath = Path.Combine("Assets", CACHE_CLASS_FILE_PATH, ".cs");
 
     [MenuItem("Tools/Find All Clip Events")]
     public static void FindAllClipEvents()
@@ -28,15 +34,13 @@ public static class ClipEventGenerator
         }
     }
     
-    
-
     [MenuItem("Tools/Check name")]
     public static void CheckName()
     {
-        Debug.LogWarning($"searching by {nameof(ClipHandler)}");
+        Debug.LogWarning($"searching by {nameof(ColorSwatches)}");
         var foundType = FindGeneratedScrObjType(nameof(ColorSwatches));
         if(foundType == null)
-            Debug.LogWarning("... couldn't find type w/ name " + nameof(ClipHandler));
+            Debug.LogWarning("... couldn't find type w/ name " + nameof(ColorSwatches));
         else
         {
             Debug.LogWarning($"... found by {nameof(ColorSwatches)}");
@@ -51,7 +55,6 @@ public static class ClipEventGenerator
             }
             return null;
         }
-        
         
         // Debug.LogWarning(nameof(ClipHandler));
         Type FindGeneratedType(string className)
@@ -74,14 +77,42 @@ public static class ClipEventGenerator
         foreach (var guid in eventDefGUIDs)
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);
+            
             var clipEventDef = AssetDatabase.LoadAssetAtPath<ClipEventDefinition>(path);
             if(clipEventDefinitions.Contains(clipEventDef))
                 continue;
+            
             clipEventDefinitions.Add(clipEventDef);
         }
 
+        string classContent = "";
+        
+        WriteCacheClass(clipEventDefinitions);
+        WriteGetterClass(clipEventDefinitions);
+        
+        // string classContent = "using UnityEngine;\n\n";
+        // classContent += "public static class " + CLASS_NAME + " : ScriptableObject\n{\n";
+        // foreach (var foundEvent in clipEventDefinitions)
+        // {
+        //     Debug.LogWarning($"... line for {foundEvent.name}");
+        //     classContent += $"\t public static ClipEventDefinition {foundEvent.name};\n";
+        // }
+        // classContent += "}\n";
+        //
+        // File.WriteAllText(FILE_PATH, classContent);
+        
+        CompilationPipeline.assemblyCompilationFinished -= InstantiateSwatchAfterCompilation;
+        CompilationPipeline.assemblyCompilationFinished += InstantiateSwatchAfterCompilation;
+        // CompilationPipeline.
+        
+        AssetDatabase.Refresh();
+    }
+
+    private static void WriteGetterClass(List<ClipEventDefinition> clipEventDefinitions)
+    {
         string classContent = "using UnityEngine;\n\n";
         classContent += "public static class " + CLASS_NAME + "\n{\n";
+        classContent += "\t public static " + CACHE_CLASS_NAME + " Cache;\n";
         foreach (var foundEvent in clipEventDefinitions)
         {
             Debug.LogWarning($"... line for {foundEvent.name}");
@@ -90,17 +121,69 @@ public static class ClipEventGenerator
         classContent += "}\n";
         
         File.WriteAllText(FILE_PATH, classContent);
-        AssetDatabase.Refresh();
-
-        CompilationPipeline.assemblyCompilationFinished -= InstantiateSwatchAfterCompilation;
-        CompilationPipeline.assemblyCompilationFinished += InstantiateSwatchAfterCompilation;
     }
 
-    private static void InstantiateSwatchAfterCompilation(string arg1, CompilerMessage[] arg2)
+    private static void WriteCacheClass(List<ClipEventDefinition> clipEventDefinitions)
+    {
+        string classContent = "using UnityEngine;\n\n";
+        classContent += "public class static " + CACHE_CLASS_NAME + " : ScriptableObject\n{\n";
+        
+        foreach (var foundEvent in clipEventDefinitions)
+        {
+            Debug.LogWarning($"... line for {foundEvent.name}");
+            classContent += $"\t public ClipEventDefinition {foundEvent.name};\n";
+        }
+        
+        classContent += "}\n";
+        
+        File.WriteAllText(CACHE_CLASS_FILE_PATH, classContent);
+    }
+
+    private static void InstantiateSwatchAfterCompilation(string arg1, CompilerMessage[] messages)
     {
         // Now that compilation is done, we can instantiate the ScriptableObject
-        Debug.Log("Compilation finished! Instantiating the generated ScriptableObject...");
+        Debug.Log($"Compilation finished with {messages.Length} messages.");
 
+        bool hasErrors = false;
+        foreach (var msg in messages)
+        {
+            Debug.LogError($"Compilation error w/ scriptGen : {msg.message}");// in {msg.file}");
+            Debug.LogWarning($"... {msg.file}");
+            if(msg.file == fullFilePath)
+                Debug.LogWarning("FILE ISSUE CAUGHT");
+            if(msg.file == fullCacheFilePath)
+                Debug.LogWarning("CACHE FILE ISSUE CAUGHT");
+            
+            // if (msg.type == CompilerMessageType.Error && msg.file == CACHE_CLASS_FILE_PATH)
+            // {
+            //     hasErrors = true;
+            //     Debug.LogError($"Compilation error w/ scriptGen : {msg.message} in {msg.file}");
+            // }
+        }
+
+        if (hasErrors)
+        {
+            if (File.Exists(FILE_PATH))
+            {
+                File.Delete(FILE_PATH);
+                File.Delete(FILE_PATH + ".meta");
+                AssetDatabase.Refresh();
+            }
+            
+            if (File.Exists(CACHE_CLASS_FILE_PATH))
+            {
+                File.Delete(CACHE_CLASS_FILE_PATH);
+                File.Delete(CACHE_CLASS_FILE_PATH + ".meta");
+                AssetDatabase.Refresh();
+            }
+            
+            Debug.LogWarning("Generated script was deleted.");
+        }
+        
+        CompilationPipeline.assemblyCompilationFinished -= InstantiateSwatchAfterCompilation;
+        
+        return;
+        
         Type generatedType = FindGeneratedType(CLASS_NAME);
         if (generatedType == null)
         {

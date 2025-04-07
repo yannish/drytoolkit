@@ -43,7 +43,7 @@ namespace drytoolkit.Runtime.Pooling
 
 
         #if UNITY_EDITOR
-        [MenuItem("Tools/TryLoadRuntimeCache")]
+        [MenuItem("Tools/Pooling/TryLoadRuntimeCache")]
         #endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void FetchFromRuntimeTypeCache()
