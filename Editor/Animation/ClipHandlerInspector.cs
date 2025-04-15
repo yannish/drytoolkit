@@ -7,9 +7,9 @@ using UnityEditor;
 [CustomEditor(typeof(ClipHandler))]
 public class ClipHandlerInspector : Editor
 {
-    GUIContent playFromStart;
-    const float buttonWidth = 24f;
-    
+    private GUIContent playFromStart;
+    private const float buttonWidth = 24f;
+    private const float objectFieldWidth = 80f;
     private ClipHandler clipHandler;
     
     private void OnEnable()
@@ -54,7 +54,14 @@ public class ClipHandlerInspector : Editor
                         if(clipHandler.logDebug)
                             Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
                     }
-                    EditorGUILayout.LabelField(clipConfig.clip.name);
+                    // EditorGUILayout.LabelField(clipConfig.clip.name);
+                    // EditorGUILayout.GetControlRect().
+                    EditorGUILayout.ObjectField(
+                        clipConfig, 
+                        typeof(ClipConfig),
+                        false, 
+                        null
+                        );
                 }
             }
         }

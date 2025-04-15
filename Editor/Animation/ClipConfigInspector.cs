@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEngine;
@@ -39,13 +40,21 @@ public class ClipConfigInspector : Editor
             EditorGUILayout.LabelField("PREVIEW:", EditorStyles.boldLabel);
             using (new GUILayout.HorizontalScope())
             {
-                if (Selection.activeObject != null && Selection.activeObject is GameObject gameObject)
+                var foundAnimatorObject = Selection.gameObjects
+                    .Select(t => t.GetComponentInChildren(typeof(Animator)))
+                    .FirstOrDefault();
+                
+                if (
+                    foundAnimatorObject != null
+                    // Selection.activeTransform != null 
+                    // && Selection.activeTransform.gameObject is GameObject gameObject
+                    )
                 {
                     EditorGUI.BeginChangeCheck();
                     previewScrubTime = EditorGUILayout.Slider("Clip Time", previewScrubTime, 0f, 1f);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        AnimationMode.SampleAnimationClip(gameObject, config.clip, previewScrubTime);
+                        AnimationMode.SampleAnimationClip(foundAnimatorObject.gameObject, config.clip, previewScrubTime);
                         SceneView.RepaintAll();
                     }
 

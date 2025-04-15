@@ -44,10 +44,7 @@ namespace drytoolkit.Runtime.Animation
         private void Update()
         {
             animSystem.Tick(blendStyle);
-
         }
-
-
 
         public void HandleAnimationEvent(AnimationEvent animationEvent)
         {
