@@ -43,19 +43,19 @@ namespace drytoolkit.Runtime.Pooling
 
 
         #if UNITY_EDITOR
-        [MenuItem("Tools/Pooling/TryLoadRuntimeCache")]
+        // [MenuItem("Tools/Pooling/TryLoadRuntimeCache")]
         #endif
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
         private static void FetchFromRuntimeTypeCache()
         {
-            // Debug.Log("Building type-to-field-info lookup from cache...");
-
             runtimeTypeCache = Resources.Load<RuntimeTypeCache>(RuntimeTypeCacheBuilder.resourceLoadPath);
             if (runtimeTypeCache == null)
             {
                 Debug.LogWarning("... couldn't find runtime type cache.");
                 return;
             }
+            
+            Debug.LogWarning("... found runtime type cache.");
 
             cachedTypeToFieldInfoLookup.Clear();
             lookupInitialized = false;

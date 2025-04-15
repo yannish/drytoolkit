@@ -38,7 +38,6 @@ namespace drytoolkit.Editor.Animation
                 var foundAnimator = gameObject.GetComponentInParent(typeof(Animator));
                 if(foundAnimator)
                 {
-                    // foundAnimator.
                     // Debug.LogWarning($"scrubbing to: {eventTimeProp.floatValue}");
                     AnimationMode.StartAnimationMode();
                     AnimationMode.SampleAnimationClip(

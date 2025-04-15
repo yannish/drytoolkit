@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 namespace drytoolkit.Runtime.Pooling
 {
@@ -50,10 +52,12 @@ namespace drytoolkit.Runtime.Pooling
         };
 
 
+        #if UNITY_EDITOR
         [MenuItem(toolMenuPath + "Delete Runtime Type Cache")]
         public static void DeleteCache() => AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
-
-        //... this happens at runtime...
+        #endif
+        
+        #if UNITY_EDITOR
         [MenuItem(toolMenuPath + "Load Runtime Type Cache")]
         public static RuntimeTypeCache LoadCache()
         {
@@ -65,9 +69,10 @@ namespace drytoolkit.Runtime.Pooling
             }
             return runtimeTypeCache;
         }
-
+        #endif
 
         //... this happens at edit time...
+        #if UNITY_EDITOR
         [MenuItem(toolMenuPath + "Rebuild Runtime Type Cache")]
         public static void BuildRuntimeTypeCache()
         {
@@ -113,5 +118,6 @@ namespace drytoolkit.Runtime.Pooling
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
+        #endif
     }
 }

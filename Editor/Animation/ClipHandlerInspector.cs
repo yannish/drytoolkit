@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using drytoolkit.Runtime.Animation;
-using UnityEditor;
 using UnityEngine;
+using UnityEditor;
 
 
 [CustomEditor(typeof(ClipHandler))]

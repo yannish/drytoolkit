@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEngine;
-using UnityEngine.Windows;
 using File = System.IO.File;
 
 public static class ClipEventGenerator
@@ -34,7 +32,7 @@ public static class ClipEventGenerator
         }
     }
     
-    [MenuItem("Tools/Check name")]
+    // [MenuItem("Tools/Check name")]
     public static void CheckName()
     {
         Debug.LogWarning($"searching by {nameof(ColorSwatches)}");
@@ -112,7 +110,7 @@ public static class ClipEventGenerator
     {
         string classContent = "using UnityEngine;\n\n";
         classContent += "public static class " + CLASS_NAME + "\n{\n";
-        classContent += "\t public static " + CACHE_CLASS_NAME + " Cache;\n";
+        // classContent += "\t public static " + CACHE_CLASS_NAME + " Cache;\n";
         foreach (var foundEvent in clipEventDefinitions)
         {
             Debug.LogWarning($"... line for {foundEvent.name}");
