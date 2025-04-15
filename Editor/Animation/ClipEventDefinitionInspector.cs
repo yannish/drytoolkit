@@ -1,19 +1,25 @@
 using System;
+using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(ClipEventDefinition))]
-public class ClipEventConfigInspector : Editor
+[CustomEditor(typeof(ClipConfig))]
+public class ClipEventDefinitionInspector : Editor
 {
-    private ClipEventDefinition config;
+    private ClipConfig config;
     
     private void OnEnable()
     {
-        config = (ClipEventDefinition)target;
+        config = (ClipConfig)target;
         AnimationMode.StartAnimationMode();
+        Debug.LogWarning("Starting anim mode.");
     }
 
-    private void OnDisable() => AnimationMode.StopAnimationMode();
+    private void OnDisable()
+    {
+        Debug.LogWarning("Stopping anim mode.");
+        AnimationMode.StopAnimationMode();
+    }
 
     public override void OnInspectorGUI()
     {

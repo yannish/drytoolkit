@@ -12,12 +12,14 @@ namespace drytoolkit.Runtime.Animation
         
         public AnimationSystem.ClipBlendStyle blendStyle;
         
+        [Header("CLIPS:")]
+        [Expandable]
+        public ClipConfig oneShotWithEvent;
         public List<ClipConfig> stateClips;
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> sequenceClips;
 
         [Header("EVENTS:")]
-        public ClipConfig oneShotWithEvent;
         public ClipEventDefinition reloadEventDef;
         public ClipEventDefinition midwayEventDef;
         public ClipEventDefinition shotFiredEventDef;
