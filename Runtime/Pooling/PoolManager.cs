@@ -51,11 +51,11 @@ namespace drytoolkit.Runtime.Pooling
             runtimeTypeCache = Resources.Load<RuntimeTypeCache>(RuntimeTypeCacheBuilder.resourceLoadPath);
             if (runtimeTypeCache == null)
             {
-                Debug.LogWarning("... couldn't find runtime type cache.");
+                // Debug.LogWarning("... couldn't find runtime type cache.");
                 return;
             }
             
-            Debug.LogWarning("... found runtime type cache.");
+            // Debug.LogWarning("... found runtime type cache.");
 
             cachedTypeToFieldInfoLookup.Clear();
             lookupInitialized = false;

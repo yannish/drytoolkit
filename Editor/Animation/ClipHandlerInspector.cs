@@ -82,6 +82,7 @@ public class ClipHandlerInspector : Editor
                         //     : clipHandler.blendInTime;
                         
                         clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
+                        
                         clipHandler.animSystem.AddListener(clipHandler.reloadEventDef, OnReload);
                         clipHandler.animSystem.AddListener(clipHandler.midwayEventDef, OnMidway);
                         clipHandler.animSystem.AddListener(clipHandler.shotFiredEventDef, OnShotFired);
@@ -96,17 +97,17 @@ public class ClipHandlerInspector : Editor
 
         void OnReload()
         {
-            
+            Debug.LogWarning("RELOAD!");
         }
 
         void OnMidway()
         {
-            
+            Debug.LogWarning("MIDWAY!");
         }
 
         void OnShotFired()
         {
-            
+            Debug.LogWarning("SHOTFIRED!");
         }
 
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))

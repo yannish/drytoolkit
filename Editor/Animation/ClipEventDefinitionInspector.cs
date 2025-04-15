@@ -3,7 +3,7 @@ using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEngine;
 
-[CustomEditor(typeof(ClipConfig))]
+// [CustomEditor(typeof(ClipConfig))]
 public class ClipEventDefinitionInspector : Editor
 {
     private ClipConfig config;

@@ -305,9 +305,16 @@ namespace drytoolkit.Runtime.Animation
                     var currTime = clipHandle.clipPlayable.GetTime();
                     foreach(var clipEvent in clipHandle.config.events)
                     {
+                        if(clipEvent.clipEventDefinition == null)
+                            continue;
+                        
                         if (clipEvent.time > prevTime && clipEvent.time <= currTime)
                         {
                             Debug.LogWarning($"Firing event: {clipEvent.clipEventDefinition}");
+                            if (eventLookup.TryGetValue(clipEvent.clipEventDefinition, out var callback))
+                            {
+                                callback?.Invoke();
+                            }
                         }
                     }
                 }
@@ -483,7 +490,7 @@ namespace drytoolkit.Runtime.Animation
                 return;
             }
 
-            eventLookup.Add(clipEventDefinition, new Action(callback));
+            eventLookup.Add(clipEventDefinition, callback);
         }
 
         public void RemoveListener(ClipEventDefinition clipEventDefinition)

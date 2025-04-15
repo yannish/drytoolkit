@@ -24,7 +24,9 @@ MonoBehaviour:
   blendOutTime: 0.1
   moveTowardsSpeed: 0
   events:
-  - time: 0.165
-    clipEventDefinition: {fileID: 11400000, guid: 55126289f94a3ad4b96b77a9b7c66627, type: 2}
-  - time: 0.856
+  - time: 0.531
+    clipEventDefinition: {fileID: 11400000, guid: 7345a58be27bf5b4f92eddfc099be3f6, type: 2}
+  - time: 0.959
     clipEventDefinition: {fileID: 11400000, guid: 8c6b7667426e2d14282f3cc28b471463, type: 2}
+  - time: 0.042
+    clipEventDefinition: {fileID: 11400000, guid: 642f34b8a6fee6f48b36a01aad98436f, type: 2}
