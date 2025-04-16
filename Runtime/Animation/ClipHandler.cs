@@ -15,6 +15,10 @@ namespace drytoolkit.Runtime.Animation
         [Header("CLIPS:")]
         [Expandable]
         public ClipConfig oneShotWithEvent;
+
+        [Expandable]
+        public ClipConfig anotherOneShotWithEvent;
+        
         public List<ClipConfig> stateClips;
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> sequenceClips;

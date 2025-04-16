@@ -1,13 +1,28 @@
-using System;
 using System.Linq;
-using drytoolkit.Runtime.Animation;
 using UnityEditor;
 using UnityEngine;
+using drytoolkit.Runtime.Animation;
+
 
 [CustomEditor(typeof(ClipConfig))]
 public class ClipConfigInspector : Editor
 {
     private ClipConfig config;
+
+    
+    [MenuItem("Tools/BigCheck")]
+    public static void FindAllTheseInspectors()
+    {
+        var all = Resources.FindObjectsOfTypeAll<ClipConfigInspector>();
+        Debug.LogWarning($"Found: {all.Length}");
+    }
+    
+    // [MenuItem("Tools/AnimBoolCheck")]
+    // public static void FindAllAnimBools()
+    // {
+    //     var all = Resources.FindObjectsOfTypeAll<ClipConfigInspector>();
+    //     Debug.LogWarning($"Found: {all.Length}");
+    // }
     
     public override void OnInspectorGUI()
     {
@@ -18,14 +33,14 @@ public class ClipConfigInspector : Editor
     private void OnEnable()
     {
         config = (ClipConfig)target;
-        AnimationMode.StartAnimationMode();
+        // AnimationMode.StartAnimationMode();
         // Debug.LogWarning("Starting anim mode.");
     }
 
     private void OnDisable()
     {
         // Debug.LogWarning("Stopping anim mode.");
-        AnimationMode.StopAnimationMode();
+        // AnimationMode.StopAnimationMode();
     }
 
     public float previewScrubTime;
