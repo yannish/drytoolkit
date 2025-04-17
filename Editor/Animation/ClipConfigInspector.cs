@@ -69,7 +69,8 @@ public class ClipConfigInspector : Editor
                     previewScrubTime = EditorGUILayout.Slider("Clip Time", previewScrubTime, 0f, 1f);
                     if (EditorGUI.EndChangeCheck())
                     {
-                        AnimationMode.SampleAnimationClip(foundAnimatorObject.gameObject, config.clip, previewScrubTime);
+                        if(AnimationMode.InAnimationMode())
+                            AnimationMode.SampleAnimationClip(foundAnimatorObject.gameObject, config.clip, previewScrubTime);
                         SceneView.RepaintAll();
                     }
 
