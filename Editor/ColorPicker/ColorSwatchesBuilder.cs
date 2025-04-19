@@ -29,7 +29,7 @@ public static class ColorSwatchesBuilder
 	// #if UNITY_EDITOR
 	[MenuItem(toolMenuPath + "Check Swatches at Runtime")]
 	[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
-	private static void CheckColorSwatches()
+	public static void CheckColorSwatches()
 	{
 		var colorSwatchTypes = TypeCache.GetTypesDerivedFrom(typeof(ColorSwatches));
 		if (colorSwatchTypes.Count == 0)
@@ -39,7 +39,8 @@ public static class ColorSwatchesBuilder
 		}
 		
 		var swatches = ScriptableObject.CreateInstance(colorSwatchTypes[0]);
-
+		// swatches.name = "ColorSwatches ---";
+		
 		if(!AssetDatabase.IsValidFolder($"{path}"))
 			AssetDatabase.CreateFolder("Assets", "Resources");
 
@@ -47,7 +48,7 @@ public static class ColorSwatchesBuilder
 			AssetDatabase.CreateFolder(path, folderName);
 		
 		AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
-		AssetDatabase.CreateAsset(swatches, $"{path}/{folderName}/{assetNameFull}");
+		AssetDatabase.CreateAsset(swatches,$"{path}/{folderName}/{assetNameFull}");
 		AssetDatabase.SaveAssets();
 		AssetDatabase.Refresh();
 	}

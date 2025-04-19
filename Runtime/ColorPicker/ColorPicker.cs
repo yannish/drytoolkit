@@ -13,6 +13,9 @@ public class ColorPicker<T> where T : ColorSwatches
     {
         get
         {
+            #if UNITY_EDITOR
+            #endif
+            
             if(_swatches == null)
                 _swatches = Resources.Load(resourcesLoadPath, typeof(T)) as T;
             return _swatches;
