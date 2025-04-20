@@ -218,7 +218,7 @@ namespace drytoolkit.Runtime.Animation
 
         public void TransitionToState(
             AnimationClip newStateClip,
-            float blendInTime,
+            float blendInTime = 0f,
             float startTime = 0f,
             float playbackSpeed = 1f
         )
@@ -314,6 +314,11 @@ namespace drytoolkit.Runtime.Animation
                             if (eventLookup.TryGetValue(clipEvent.clipEventDefinition, out var callback))
                             {
                                 callback?.Invoke();
+                                //... TODO: remove here... this seems wrong though.
+                                //... what if you had multiple events on a clip tied to the same definition...
+                                //... well then ADDING them to begin with would be breaking...
+                                //... that would mean duplicate entries in the dictionary...
+                                // eventLookup.Remove(clipEvent.clipEventDefinition);
                             }
                         }
                     }
@@ -346,6 +351,9 @@ namespace drytoolkit.Runtime.Animation
                         case WrapMode.ClampForever:
                             break;
                     }
+                    
+                    //... TODO: clean events here?
+                    ClearEventListeners();
                 }
 
                 //... if isn't the leading one and weight has been driven down, it's done:
@@ -498,6 +506,9 @@ namespace drytoolkit.Runtime.Animation
             if(eventLookup.ContainsKey(clipEventDefinition))
                 eventLookup.Remove(clipEventDefinition);
         }
+
+        public void ClearEventListeners() => eventLookup.Clear();
+
         #endregion
 
         
