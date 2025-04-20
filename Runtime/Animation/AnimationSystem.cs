@@ -353,9 +353,12 @@ namespace drytoolkit.Runtime.Animation
                     }
                     
                     //... TODO: clean events here?
-                    ClearEventListeners();
+                    //... don't do it if we're NOT the leading clip. otherwise non-leading clips coming to completion 
+                    //... would remove callbacks we want...
+                    if(leadingClip)
+                        ClearEventListeners();
                 }
-
+                
                 //... if isn't the leading one and weight has been driven down, it's done:
                 if (!leadingClip && clipHandle.currWeight <= 0f)
                     clipIsComplete = true;
@@ -429,6 +432,9 @@ namespace drytoolkit.Runtime.Animation
             Action callback = null
             )
         {
+            //... if this interrupts a prev oneshot, it doesn't get to completion to clear listeners there, so do it now...
+            ClearEventListeners();
+            
             if (oneShotClipHandles.Count > 0 && oneShotClipHandles[0].clip == clip)
             {
                 Debug.LogWarning($"Already blending to one-shot clip : {clip.name}", clip);
