@@ -191,9 +191,14 @@ namespace drytoolkit.Runtime.Animation
             {
                 stateMixer.SetInputWeight(i, stateClipHandles[i].currWeight * oneOverTotalWeights);
             }
-            
-            topLevelMixer.SetInputWeight(0, stateClipHandles.Count == 1 ? heaviestWeight : 1f);
 
+            
+            var effectiveStateWeight = stateClipHandles.Count == 1 ? heaviestWeight : 1f;
+            topLevelMixer.SetInputWeight(0, effectiveStateWeight);
+                        
+            if(logDebug)
+                Debug.LogWarning($"... STATE-WEIGHT: {effectiveStateWeight}");
+            
             stateClipCountChanged = false;
         }
         
@@ -403,6 +408,9 @@ namespace drytoolkit.Runtime.Animation
             
             topLevelMixer.SetInputWeight(0, 1f - accumulatedWeight);
             topLevelMixer.SetInputWeight(1, accumulatedWeight);
+            
+            if(logDebug)
+                Debug.LogWarning($"... ONESHOT-WEIGHT: {accumulatedWeight}");
         }
 
         public OneShotClipHandle PlayOneShot(ClipConfig clipConfig, Action callback = null)
@@ -498,6 +506,12 @@ namespace drytoolkit.Runtime.Animation
         #region EVENTS:
         public void AddListener(ClipEventDefinition clipEventDefinition, Action callback)
         {
+            if (clipEventDefinition == null)
+            {
+                Debug.LogWarning("Tried to add a listener without a clip definition.");
+                return;
+            }
+            
             if (eventLookup.TryGetValue(clipEventDefinition, out var callbacks))
             {
                 callbacks += callback;
