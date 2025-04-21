@@ -51,7 +51,6 @@ namespace drytoolkit.Runtime.Animation
         public PlayableGraph graph { get; private set; }
         
         Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
-        // Dictionary<ClipEventDefinition, List<Action>> eventLookup = new Dictionary<ClipEventDefinition, List<Action>>();
         
         private Animator animator;
         
@@ -63,10 +62,8 @@ namespace drytoolkit.Runtime.Animation
         private readonly AnimationPlayableOutput playableOutput;
 
         private MethodInfo rebindMethod;
-        
         bool stateClipCountChanged = false;
 
-        
         public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
         {
             this.animator = animator;
@@ -104,14 +101,23 @@ namespace drytoolkit.Runtime.Animation
         public void Tick(ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP)
         {
             TickStateBlending(blendStyle);
+            
             TickOneShotBlending();
-            // TickOneShotBlending();
+            
+            topLevelMixer.SetInputWeight(0, 1f);
+            topLevelMixer.SetInputWeight(1, 1f);
+            
+            if (logDebug)
+            {
+                for (int i = 0; i < topLevelMixer.GetInputCount(); i++)
+                {
+                    Debug.Log($"weight at {i}: {topLevelMixer.GetInputWeight(i)}");
+                }
+            }
         }
 
 
         #region STATE-CLIPS:
-
-        //... STATE:
         private void TickStateBlending(ClipBlendStyle blendStyle)
         {
             float totalWeights = 0f;
@@ -192,12 +198,11 @@ namespace drytoolkit.Runtime.Animation
                 stateMixer.SetInputWeight(i, stateClipHandles[i].currWeight * oneOverTotalWeights);
             }
 
-            
-            var effectiveStateWeight = stateClipHandles.Count == 1 ? heaviestWeight : 1f;
-            topLevelMixer.SetInputWeight(0, effectiveStateWeight);
+            // var effectiveStateWeight = stateClipHandles.Count == 1 ? heaviestWeight : 1f;
+            // topLevelMixer.SetInputWeight(0, effectiveStateWeight);
                         
-            if(logDebug)
-                Debug.LogWarning($"... STATE-WEIGHT: {effectiveStateWeight}");
+            // if(logDebug)
+            //     Debug.LogWarning($"... STATE-WEIGHT: {effectiveStateWeight}");
             
             stateClipCountChanged = false;
         }
@@ -267,8 +272,6 @@ namespace drytoolkit.Runtime.Animation
         #endregion
 
         #region ONE-SHOTS:
-
-        //... ONE SHOTS:
         private void TickOneShotBlending()
         {
             if (oneShotClipHandles.Count <= 0)
@@ -283,9 +286,11 @@ namespace drytoolkit.Runtime.Animation
             {
                 var clipHandle = oneShotClipHandles[i];
                 var prevWeight = clipHandle.currWeight;
-                var currWeight = (float)clipHandle.GetCurrentBlendWeight();
                 
-                clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
+                var currWeight = (float)clipHandle.GetCurrentBlendWeight();
+                clipHandle.currWeight = currWeight;
+                
+                // clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
 
                 bool leadingClip = i == oneShotClipHandles.Count - 1;
                 if (leadingClip)
@@ -304,6 +309,7 @@ namespace drytoolkit.Runtime.Animation
                         Debug.LogWarning($"Done blending oneshot in, time: {clipHandle.clipPlayable.GetTime()}");
                 }
 
+                //... handle events:
                 if (clipHandle.config != null)
                 {
                     var prevTime = clipHandle.clipPlayable.GetPreviousTime();
@@ -390,6 +396,7 @@ namespace drytoolkit.Runtime.Animation
                 accumulatedWeight += clipHandle.currWeight;
             }
             
+            //... re-wire our playables if any clips have been discarded:
             if (oneShotClipCountChanged)
             {
                 for (int i = 0; i < oneShotMixer.GetInputCount(); i++)
@@ -409,8 +416,8 @@ namespace drytoolkit.Runtime.Animation
             topLevelMixer.SetInputWeight(0, 1f - accumulatedWeight);
             topLevelMixer.SetInputWeight(1, accumulatedWeight);
             
-            if(logDebug)
-                Debug.LogWarning($"... ONESHOT-WEIGHT: {accumulatedWeight}");
+            // if(logDebug)
+            //     Debug.LogWarning($"... ONESHOT-WEIGHT: {accumulatedWeight}");
         }
 
         public OneShotClipHandle PlayOneShot(ClipConfig clipConfig, Action callback = null)
@@ -455,10 +462,15 @@ namespace drytoolkit.Runtime.Animation
             var newOneShotClipHandle = new OneShotClipHandle()
             {
                 clip = clip,
-                blendInTime = blendInTime,
+                //... if this is first oneShot added to our stack, we start at a weight of 1f.
+                //... blending still happens with the topLevel mixer.
+                blendInTime = oneShotClipHandles.Count == 0 ? 0f : blendInTime,
+                // blendInTime = blendInTime,
                 blendOutTime = blendOutTime,
                 clipPlayable = AnimationClipPlayable.Create(graph, clip)
             };
+            
+            // if(oneShotClipHandles.Count)
             
             if(callback != null)
                 newOneShotClipHandle.onCompleteCallback += callback;
@@ -494,12 +506,10 @@ namespace drytoolkit.Runtime.Animation
             topLevelMixer.DisconnectInput(1);
             graph.DestroyPlayable(oneShotPlayable);
         }
-
         #endregion
 
         #region ADDITIVE ONE-SHOTS:
 
-        
 
         #endregion
 
@@ -528,11 +538,9 @@ namespace drytoolkit.Runtime.Animation
         }
 
         public void ClearEventListeners() => eventLookup.Clear();
-
         #endregion
-
         
-        //... SEQUENCES:
+        #region SEQUENCES:
         Queue<ClipConfig> clipQueue = new Queue<ClipConfig>();
         public void PlaySequence(List<ClipConfig> clipConfigs)
         {
@@ -544,6 +552,7 @@ namespace drytoolkit.Runtime.Animation
             InterruptOneShot();
             PlayOneShot(clipToPlayFirst);
         }
+        #endregion
         
         public void Destroy()
         {

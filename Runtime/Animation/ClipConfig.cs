@@ -40,7 +40,7 @@ namespace drytoolkit.Runtime.Animation
         
         
         [Header("EVENTS:")]
-        public List<ClipConfigEvent> events;
+        public List<ClipConfigEvent> events = new List<ClipConfigEvent>();
         
         // public float blendVel = 0f;
         // public float currWeight = 0f;

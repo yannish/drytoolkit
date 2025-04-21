@@ -23,7 +23,7 @@ namespace drytoolkit.Runtime.Animation
 
             // var effLength = clipPlayable.GetDuration();
 
-            var effBlendInTime = blendInTime * clipPlayable.GetSpeed();
+            var effBlendInTime = blendInTime * clipPlayable.GetSpeed();  
 
             if (effBlendInTime > 0f && currClipTime <= effBlendInTime)
                 return (float)(currClipTime / effBlendInTime);
