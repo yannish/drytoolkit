@@ -13,9 +13,14 @@ MonoBehaviour:
   m_Name: rotZ_cc
   m_EditorClassIdentifier: 
   clip: {fileID: 7400000, guid: 171bf2f1527b8d6499de8e0aeb369944, type: 2}
-  overrideBlendInTime: 0
-  blendInTime: 0.1
-  moveTowardsSpeed: 0
-  targetWeight: 0
+  wrapMode: 2
   startTime: 0
   playbackSpeed: 1
+  smoothDampBlendTime: 0.1
+  moveTowardsBlendTime: 1
+  overrideBlendInTime: 0
+  blendInTime: 0.1
+  overrideBlendOutTime: 0
+  blendOutTime: 0.1
+  moveTowardsSpeed: 0
+  events: []

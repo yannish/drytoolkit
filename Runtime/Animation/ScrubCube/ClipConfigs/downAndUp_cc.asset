@@ -15,12 +15,12 @@ MonoBehaviour:
   clip: {fileID: 7400000, guid: bf0b2a7507608c24bb410fbf1c5b66e5, type: 2}
   wrapMode: 1
   startTime: 0
-  playbackSpeed: 1
+  playbackSpeed: 0.2
   smoothDampBlendTime: 0.1
   moveTowardsBlendTime: 1
-  overrideBlendInTime: 0
+  overrideBlendInTime: 1
   blendInTime: 0.1
-  overrideBlendOutTime: 0
+  overrideBlendOutTime: 1
   blendOutTime: 0.1
   moveTowardsSpeed: 0
   events:
