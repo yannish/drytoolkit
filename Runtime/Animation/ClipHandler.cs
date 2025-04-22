@@ -21,6 +21,7 @@ namespace drytoolkit.Runtime.Animation
         
         public List<ClipConfig> stateClips;
         public List<ClipConfig> oneShotClips;
+        public List<ClipConfig> additiveOneShotClips;
         public List<ClipConfig> sequenceClips;
 
         [Header("EVENTS:")]

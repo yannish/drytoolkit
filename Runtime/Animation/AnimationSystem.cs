@@ -1,7 +1,9 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
+using Codice.CM.Common.Checkin.Partial;
 using Unity.Mathematics;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -12,8 +14,10 @@ namespace drytoolkit.Runtime.Animation
     [Serializable]
     public class AnimationSystem
     {
-        const int MAX_STATE_HANDLES = 16;
+        const int MAX_STATE_HANDLES = 16; //TODO:... are these maxes necessary? can't we add / subtract inputs at will?
+        
         const int MAX_ONESHOT_HANDLES = 16;
+        
         const float BLEND_EPSILON = 0.001f;
         
         public enum ClipBlendStyle
@@ -48,26 +52,32 @@ namespace drytoolkit.Runtime.Animation
         public List<OneShotClipHandle> additiveOneShotClipHandles = new List<OneShotClipHandle>();
 
         
-        public PlayableGraph graph { get; private set; }
-        
-        Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
         
         private Animator animator;
+        
+        public PlayableGraph graph { get; private set; }
+        
+        private Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
+
         
         private AnimationClipPlayable oneShotPlayable;
         private readonly AnimationLayerMixerPlayable topLevelMixer;
         private readonly AnimationMixerPlayable stateMixer;
         private readonly AnimationMixerPlayable oneShotMixer;
-        private readonly AnimationMixerPlayable oneShotAdditiveMixer;
+        private readonly AnimationMixerPlayable additiveOneShotMixer;
         private readonly AnimationPlayableOutput playableOutput;
 
         private MethodInfo rebindMethod;
         bool stateClipCountChanged = false;
+        private float heaviestOneShot = 0f;
 
+        
         public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime)
         {
             this.animator = animator;
 
+            heaviestOneShot = 0f;
+            
             rebindMethod = typeof(Animator).GetMethod(
                 "Rebind",
                 BindingFlags.NonPublic | BindingFlags.Instance
@@ -85,12 +95,14 @@ namespace drytoolkit.Runtime.Animation
             //... state mixer frantically tries to blend to the most recently requested state:
             stateMixer = AnimationMixerPlayable.Create(graph, MAX_STATE_HANDLES);
             oneShotMixer = AnimationMixerPlayable.Create(graph, MAX_ONESHOT_HANDLES);
-            oneShotAdditiveMixer = AnimationMixerPlayable.Create(graph, MAX_ONESHOT_HANDLES);
+            additiveOneShotMixer = AnimationMixerPlayable.Create(graph, MAX_ONESHOT_HANDLES);
 
             topLevelMixer.ConnectInput(0, stateMixer, 0);
             topLevelMixer.ConnectInput(1, oneShotMixer, 0);
-            topLevelMixer.ConnectInput(2, oneShotAdditiveMixer, 0);
+            topLevelMixer.ConnectInput(2, additiveOneShotMixer, 0);
 
+            topLevelMixer.SetLayerAdditive(2, true);
+            
             playableOutput.SetSourcePlayable(topLevelMixer);
 
             graph.GetRootPlayable(0).SetInputWeight(0, 1f);
@@ -98,14 +110,18 @@ namespace drytoolkit.Runtime.Animation
             graph.Play();
         }
 
+        
         public void Tick(ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP)
         {
             TickStateBlending(blendStyle);
             
             TickOneShotBlending();
+
+            TickAdditiveOneShotBlending();
             
-            topLevelMixer.SetInputWeight(0, 1f);
+            topLevelMixer.SetInputWeight(0, 1f - heaviestOneShot);
             topLevelMixer.SetInputWeight(1, 1f);
+            topLevelMixer.SetInputWeight(2, 1f);
             
             if (logDebug)
             {
@@ -114,6 +130,13 @@ namespace drytoolkit.Runtime.Animation
                     Debug.Log($"weight at {i}: {topLevelMixer.GetInputWeight(i)}");
                 }
             }
+        }
+
+
+        public void Destroy()
+        {
+            if (graph.IsValid())
+                graph.Destroy();
         }
 
 
@@ -171,8 +194,8 @@ namespace drytoolkit.Runtime.Animation
                 }
             }
 
-            var oneOverTotalWeights = 1f / totalWeights;
-            // var oneOverTotalWeights = stateClipHandles.Count == 1 ? 1f : 1f / totalWeights;
+            // var oneOverTotalWeights = 1f / totalWeights;
+            var oneOverTotalWeights = stateClipHandles.Count == 1 ? 1f : 1f / totalWeights;
 
             //... rewire:
             if (stateClipCountChanged)
@@ -195,7 +218,10 @@ namespace drytoolkit.Runtime.Animation
 
             for (int i = 0; i < stateClipHandles.Count; i++)
             {
-                stateMixer.SetInputWeight(i, stateClipHandles[i].currWeight * oneOverTotalWeights);
+                // var normalizeWeight = stateClipHandles.Count > 1 ? oneOverTotalWeights : 1f;
+                var effectiveWeight = stateClipHandles[i].currWeight * oneOverTotalWeights;// * normalizeWeight;
+                stateMixer.SetInputWeight(i, effectiveWeight);
+                // Debug.LogWarning($"effStateWeight: {effectiveWeight}");
             }
 
             // var effectiveStateWeight = stateClipHandles.Count == 1 ? heaviestWeight : 1f;
@@ -274,24 +300,28 @@ namespace drytoolkit.Runtime.Animation
         #region ONE-SHOTS:
         private void TickOneShotBlending()
         {
-            if (oneShotClipHandles.Count <= 0)
-                return;
-            
             bool oneShotClipCountChanged = false;
             
             float leadingClipWeight = 0f;
             float accumulatedWeight = 0f;
+            heaviestOneShot = 0f;
+            
+            if (oneShotClipHandles.Count <= 0)
+                return;
             
             for (int i = oneShotClipHandles.Count - 1; i >= 0; i--)
             {
                 var clipHandle = oneShotClipHandles[i];
                 var prevWeight = clipHandle.currWeight;
                 
+                //... this is the local weight of the clip according to ITS params :
                 var currWeight = (float)clipHandle.GetCurrentBlendWeight();
-                clipHandle.currWeight = currWeight;
-                
+                // clipHandle.currWeight = currWeight;
                 // clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
 
+                if(currWeight > heaviestOneShot)
+                    heaviestOneShot = currWeight;
+                
                 bool leadingClip = i == oneShotClipHandles.Count - 1;
                 if (leadingClip)
                 {
@@ -413,11 +443,8 @@ namespace drytoolkit.Runtime.Animation
             
             accumulatedWeight = Mathf.Clamp01(accumulatedWeight);
             
-            topLevelMixer.SetInputWeight(0, 1f - accumulatedWeight);
-            topLevelMixer.SetInputWeight(1, accumulatedWeight);
-            
-            // if(logDebug)
-            //     Debug.LogWarning($"... ONESHOT-WEIGHT: {accumulatedWeight}");
+            // topLevelMixer.SetInputWeight(0, 1f - accumulatedWeight);
+            // topLevelMixer.SetInputWeight(1, accumulatedWeight);
         }
 
         public OneShotClipHandle PlayOneShot(ClipConfig clipConfig, Action callback = null)
@@ -464,8 +491,8 @@ namespace drytoolkit.Runtime.Animation
                 clip = clip,
                 //... if this is first oneShot added to our stack, we start at a weight of 1f.
                 //... blending still happens with the topLevel mixer.
-                blendInTime = oneShotClipHandles.Count == 0 ? 0f : blendInTime,
-                // blendInTime = blendInTime,
+                blendInTime = blendInTime,
+                // blendInTime = oneShotClipHandles.Count == 0 ? 0f : blendInTime,
                 blendOutTime = blendOutTime,
                 clipPlayable = AnimationClipPlayable.Create(graph, clip)
             };
@@ -509,8 +536,134 @@ namespace drytoolkit.Runtime.Animation
         #endregion
 
         #region ADDITIVE ONE-SHOTS:
+        private void TickAdditiveOneShotBlending()
+        {
+            if (additiveOneShotClipHandles.Count <= 0)
+                return;
 
+            var clipCountChanged = false;
+            
+            for (int i =  additiveOneShotClipHandles.Count - 1; i >= 0; i--)
+            {
+                var clipHandle = additiveOneShotClipHandles[i];
+                clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
 
+                var clipComplete = false;
+                
+                if (clipHandle.clipPlayable.GetTime() >= 1f)
+                {
+                    switch (clipHandle.wrapMode)
+                    {
+                        case WrapMode.Once:
+                            clipComplete = true;
+                            clipHandle.onCompleteCallback?.Invoke();
+                            if(logDebug)
+                                Debug.LogWarning("Additive clip ran its time.");
+                            break;
+                        
+                        case WrapMode.Loop:
+                            clipHandle.clipPlayable.SetTime(clipHandle.clipPlayable.GetTime() % 1f);
+                            if(logDebug)
+                                Debug.LogWarning("Looping additive clip.");
+                            break;
+                        
+                        case WrapMode.PingPong:
+                            break;
+                        
+                        case WrapMode.Default:
+                            break;
+                        
+                        case WrapMode.ClampForever:
+                            break;
+                    }
+                }
+
+                if (clipComplete)
+                {
+                    if (clipHandle.clipPlayable.IsValid())
+                    {
+                        additiveOneShotClipHandles.RemoveAt(i);
+                        graph.DestroyPlayable(clipHandle.clipPlayable);
+                    }
+
+                    clipCountChanged = true;
+                }
+            }
+            
+            if (clipCountChanged)
+            {
+                for (int i = 0; i < additiveOneShotMixer.GetInputCount(); i++)
+                    additiveOneShotMixer.DisconnectInput(i);
+                
+                for (int i = 0; i < additiveOneShotClipHandles.Count; i++)
+                    additiveOneShotMixer.ConnectInput(i, additiveOneShotClipHandles[i].clipPlayable, 0);
+            }
+
+            for (int i = 0; i < additiveOneShotClipHandles.Count; i++)
+            {
+                additiveOneShotMixer.SetInputWeight(i, additiveOneShotClipHandles[i].currWeight);
+            }
+        }
+
+        public OneShotClipHandle PlayAdditiveOneShot(ClipConfig clipConfig, Action callback = null)
+        {
+            var newAdditiveOneShotClipHandle = PlayAdditiveOneShot(
+                clipConfig.clip,
+                clipConfig.blendInTime,
+                clipConfig.blendOutTime,
+                clipConfig.startTime,
+                clipConfig.playbackSpeed,
+                clipConfig.wrapMode,
+                callback
+            );
+            
+            newAdditiveOneShotClipHandle.config = clipConfig;
+            
+            return newAdditiveOneShotClipHandle;
+        }
+
+        public OneShotClipHandle PlayAdditiveOneShot(
+            AnimationClip clip,
+            float blendInTime,
+            float blendOutTime,
+            float startTime = 0f,
+            float playbackSpeed = 1f,
+            WrapMode wrapMode = WrapMode.Once,
+            Action callback = null
+            )
+        {
+            // if (additiveOneShotClipHandles.Select(t => t.clip == clip) != null)
+            // {
+            //     Debug.LogWarning($"Already playing additive one-shot clip : {clip.name}", clip);
+            //     return null;
+            // }
+
+            var newAdditiveOneShotClip = new OneShotClipHandle()
+            {
+                clip = clip,
+                blendInTime = blendInTime,
+                blendOutTime = blendOutTime,
+                targetWeight = 1f,
+                clipPlayable = AnimationClipPlayable.Create(graph, clip)
+            };
+
+            if(callback != null)
+                newAdditiveOneShotClip.onCompleteCallback += callback;
+            
+            newAdditiveOneShotClip.wrapMode = wrapMode;
+            newAdditiveOneShotClip.clipPlayable.SetTime(startTime);
+            newAdditiveOneShotClip.clipPlayable.SetSpeed(playbackSpeed);
+            newAdditiveOneShotClip.clipPlayable.SetDuration(clip.length / playbackSpeed);
+            newAdditiveOneShotClip.clipPlayable.Play();
+            
+            additiveOneShotMixer.ConnectInput(additiveOneShotClipHandles.Count, newAdditiveOneShotClip.clipPlayable, 0);
+            additiveOneShotMixer.SetInputWeight(additiveOneShotClipHandles.Count, 0f);
+            
+            additiveOneShotClipHandles.Add(newAdditiveOneShotClip);
+
+            return newAdditiveOneShotClip;
+        }
+        
         #endregion
 
         #region EVENTS:
@@ -554,11 +707,6 @@ namespace drytoolkit.Runtime.Animation
         }
         #endregion
         
-        public void Destroy()
-        {
-            if (graph.IsValid())
-                graph.Destroy();
-        }
         
 
         // playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());

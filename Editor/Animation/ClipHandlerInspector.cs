@@ -96,6 +96,25 @@ public class ClipHandlerInspector : Editor
                             Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");
                     }
                     EditorGUILayout.LabelField(oneShotClipConfig.clip.name);
+                    EditorGUILayout.ObjectField(oneShotClipConfig, typeof(ClipConfig), false, null);
+                }
+            }
+        }
+
+        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField("ADDITIVE ONE SHOTS:", EditorStyles.boldLabel);
+            for (int i = 0; i < clipHandler.additiveOneShotClips.Count; i++)
+            {
+                var additiveOneShot = clipHandler.additiveOneShotClips[i];
+                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    {
+                        clipHandler.animSystem.PlayAdditiveOneShot(additiveOneShot);
+                    }
+                    EditorGUILayout.LabelField(additiveOneShot.clip.name);
+                    EditorGUILayout.ObjectField(additiveOneShot, typeof(ClipConfig), false, null);
                 }
             }
         }
