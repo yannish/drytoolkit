@@ -45,14 +45,14 @@ public class ClipHandlerInspector : Editor
                 {
                     if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
                     {
-                        var effectiveBlendTime = clipConfig.overrideBlendInTime
-                            ? clipConfig.blendInTime
-                            : clipHandler.blendInTime;
+                        // var effectiveBlendTime = clipConfig.overrideBlendInTime
+                        //     ? clipConfig.blendInTime
+                        //     : clipHandler.blendInTime;
                         
                         clipHandler.animSystem.TransitionToState(clipConfig);
                         
-                        if(clipHandler.logDebug)
-                            Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
+                        // if(clipHandler.logDebug)
+                        //     Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
                     }
                     // EditorGUILayout.LabelField(clipConfig.clip.name);
                     // EditorGUILayout.GetControlRect().

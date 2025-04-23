@@ -14,18 +14,19 @@ namespace drytoolkit.Runtime.Animation
     [Serializable]
     public class AnimationSystem
     {
-        const int MAX_STATE_HANDLES = 16; //TODO:... are these maxes necessary? can't we add / subtract inputs at will?
-        
-        const int MAX_ONESHOT_HANDLES = 16;
-        
-        const float BLEND_EPSILON = 0.001f;
-        
         public enum ClipBlendStyle
         {
             SMOOTHDAMP,
             MOVETOWARDS
         }
 
+        
+        const int MAX_STATE_HANDLES = 16; //TODO:... are these maxes necessary? can't we add / subtract inputs at will?
+        
+        const int MAX_ONESHOT_HANDLES = 16;
+        
+        const float BLEND_EPSILON = 0.001f;
+        
 
         public bool logDebug;
         
@@ -68,7 +69,7 @@ namespace drytoolkit.Runtime.Animation
         private readonly AnimationPlayableOutput playableOutput;
 
         private MethodInfo rebindMethod;
-        bool stateClipCountChanged = false;
+        private bool stateClipCountChanged = false;
         private float heaviestOneShot = 0f;
 
         
@@ -110,7 +111,6 @@ namespace drytoolkit.Runtime.Animation
             graph.Play();
         }
 
-        
         public void Tick(ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP)
         {
             TickStateBlending(blendStyle);
@@ -123,15 +123,14 @@ namespace drytoolkit.Runtime.Animation
             topLevelMixer.SetInputWeight(1, 1f);
             topLevelMixer.SetInputWeight(2, 1f);
             
-            if (logDebug)
-            {
-                for (int i = 0; i < topLevelMixer.GetInputCount(); i++)
-                {
-                    Debug.Log($"weight at {i}: {topLevelMixer.GetInputWeight(i)}");
-                }
-            }
+            // if (logDebug)
+            // {
+            //     for (int i = 0; i < topLevelMixer.GetInputCount(); i++)
+            //     {
+            //         Debug.Log($"weight at {i}: {topLevelMixer.GetInputWeight(i)}");
+            //     }
+            // }
         }
-
 
         public void Destroy()
         {
@@ -339,6 +338,12 @@ namespace drytoolkit.Runtime.Animation
                         Debug.LogWarning($"Done blending oneshot in, time: {clipHandle.clipPlayable.GetTime()}");
                 }
 
+                if (prevWeight > 0f && clipHandle.currWeight <= 0f)
+                {
+                    if(logDebug)
+                        Debug.LogWarning($"Done blending oneshot out, time: {clipHandle.clipPlayable.GetTime()}");
+                }
+
                 //... handle events:
                 if (clipHandle.config != null)
                 {
@@ -366,7 +371,7 @@ namespace drytoolkit.Runtime.Animation
                 }
 
                 bool clipIsComplete = false;
-                if (clipHandle.clipPlayable.GetTime() >= 1f)
+                if (clipHandle.clipPlayable.GetTime() >= clipHandle.clipPlayable.GetDuration()) 
                 {
                     switch (clipHandle.wrapMode)
                     {
@@ -374,7 +379,7 @@ namespace drytoolkit.Runtime.Animation
                             clipIsComplete = true;
                             clipHandle.onCompleteCallback?.Invoke();
                             if(logDebug)
-                                Debug.LogWarning("Clip ran its time.");
+                                Debug.LogWarning($"Clip ran its time: {clipHandle.clipPlayable.GetTime()}");
                             break;
                         
                         case WrapMode.Loop:
@@ -402,7 +407,11 @@ namespace drytoolkit.Runtime.Animation
                 
                 //... if isn't the leading one and weight has been driven down, it's done:
                 if (!leadingClip && clipHandle.currWeight <= 0f)
+                {
+                    if(logDebug)
+                        Debug.LogWarning("clip done by blending weight down.");
                     clipIsComplete = true;
+                }
                 
                 if (clipIsComplete)
                 {
@@ -547,10 +556,16 @@ namespace drytoolkit.Runtime.Animation
             {
                 var clipHandle = additiveOneShotClipHandles[i];
                 clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
+                
+                Debug.LogWarning($"weight: {clipHandle.currWeight}");
 
                 var clipComplete = false;
-                
-                if (clipHandle.clipPlayable.GetTime() >= 1f)
+                var clipTime = clipHandle.clipPlayable.GetTime();
+                //... TODO: is GetTime() isn't actually normalized...? where else are we treating it like it is...?
+                if (
+                    clipHandle.clipPlayable.IsDone()
+                    // && clipHandle.clipPlayable.GetTime() >= 1f
+                    )
                 {
                     switch (clipHandle.wrapMode)
                     {

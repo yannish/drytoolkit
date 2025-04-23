@@ -10,30 +10,37 @@ namespace drytoolkit.Runtime.Animation
     public class OneShotClipHandle : ClipHandle
     {
         public WrapMode wrapMode = WrapMode.Once;
+        
         public float blendInTime = 0.1f;
         public float blendOutTime = 0.1f;
 
         public float callbackTime;
         public (float, Action)[] callbacks;
+        
         public Action onCompleteCallback;
 
         public double GetCurrentBlendWeight()
         {
             double currClipTime = clipPlayable.GetTime();
 
+            var clipDuration = clipPlayable.GetDuration();
             // var effLength = clipPlayable.GetDuration();
 
-            var effBlendInTime = blendInTime * clipPlayable.GetSpeed();  
-
+            double result = 1;
+            
+            var effBlendInTime = blendInTime * clipPlayable.GetSpeed();
             if (effBlendInTime > 0f && currClipTime <= effBlendInTime)
-                return (float)(currClipTime / effBlendInTime);
+            {
+                result = (currClipTime / effBlendInTime);
+                return result;
+            }
+                // return (float)(currClipTime / effBlendInTime);
 
             var effBlendOutTime = blendOutTime * clipPlayable.GetSpeed();
-
-            if (blendOutTime > 0f && currClipTime >= (1f - effBlendOutTime))
+            if (blendOutTime > 0f && currClipTime >= (clipDuration - effBlendOutTime))
             {
-                var result = 1f - math.clamp(
-                    (currClipTime - (1f - effBlendOutTime)) / effBlendOutTime,
+                result = 1f - math.clamp(
+                    (currClipTime - (clipDuration - effBlendOutTime)) / effBlendOutTime,
                     0,
                     1
                 );

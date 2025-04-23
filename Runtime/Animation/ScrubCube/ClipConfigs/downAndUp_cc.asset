@@ -15,7 +15,7 @@ MonoBehaviour:
   clip: {fileID: 7400000, guid: bf0b2a7507608c24bb410fbf1c5b66e5, type: 2}
   wrapMode: 1
   startTime: 0
-  playbackSpeed: 0.2
+  playbackSpeed: 1
   smoothDampBlendTime: 0.1
   moveTowardsBlendTime: 1
   overrideBlendInTime: 1
@@ -23,6 +23,9 @@ MonoBehaviour:
   overrideBlendOutTime: 1
   blendOutTime: 0.1
   moveTowardsSpeed: 0
+  isAdditive: 0
+  referencePoseClip: {fileID: 7400000, guid: f3678d506937704418f7c14bc59747f6, type: 2}
+  referencePoseTime: 0
   events:
   - time: 0.531
     clipEventDefinition: {fileID: 11400000, guid: 7345a58be27bf5b4f92eddfc099be3f6, type: 2}
