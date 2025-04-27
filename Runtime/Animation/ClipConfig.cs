@@ -42,11 +42,11 @@ namespace drytoolkit.Runtime.Animation
 
         public float moveTowardsSpeed = 0f;
 
-
         public bool isAdditive = false;
 
         [ShowIf("isAdditive")]
         public AnimationClip referencePoseClip;
+        
         [ShowIf("isAdditive")]
         public float referencePoseTime = 0f;
         
