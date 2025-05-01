@@ -59,6 +59,9 @@ namespace drytoolkit.Runtime.Animation
 #if UNITY_EDITOR
         private void OnValidate()
         {
+            if (clip == null)
+                return;
+            
             if (isAdditive && referencePoseClip != null)
             {
                 // Debug.LogWarning(".. set ref pose clip.");
