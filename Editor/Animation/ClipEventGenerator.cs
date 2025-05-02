@@ -55,16 +55,16 @@ public static class ClipEventGenerator
         }
         
         // Debug.LogWarning(nameof(ClipHandler));
-        Type FindGeneratedType(string className)
-        {
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                Type type = assembly.GetType(className);
-                if (type != null)
-                    return type;
-            }
-            return null;
-        }
+        // Type FindGeneratedType(string className)
+        // {
+        //     foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+        //     {
+        //         Type type = assembly.GetType(className);
+        //         if (type != null)
+        //             return type;
+        //     }
+        //     return null;
+        // }
     }
     
     [MenuItem("Tools/Generate Clip Events")]

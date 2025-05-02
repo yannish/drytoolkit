@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using Object = UnityEngine.Object;
 
-public class RuntimeRigEditor : EditorWindow
+public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 {
     private Animator parentAnimator;
     private Animator childAnimator;
@@ -402,6 +402,7 @@ public class RuntimeRigEditor : EditorWindow
         root.Add(section);
     }
 
+    
     private Button CreateSpoofRecordButton()
     {
         Button spoofButton = new Button();
@@ -591,7 +592,8 @@ public class RuntimeRigEditor : EditorWindow
     //... CALLBACKS:
     private void UpdateDisplay()
     {
-        // Debug.LogWarning("Selection changed.");
+        if (locked)
+            return;
         
         parentAnimatorField.value = null;
         childAnimatorField.value = null;
@@ -839,5 +841,26 @@ public class RuntimeRigEditor : EditorWindow
         // clipListView.RefreshItems();
     }
 
+    private bool locked = false;
+    private GUIStyle lockButtonStyle;
 
+    private void ShowButton(Rect rect)
+    {
+        if(this.lockButtonStyle == null)
+            this.lockButtonStyle = "IN LockButton";
+        this.locked = GUI.Toggle(rect, this.locked, GUIContent.none, this.lockButtonStyle);
+    }
+
+    public void AddItemsToMenu(GenericMenu menu)
+    {
+        menu.AddItem(
+            new GUIContent("Lock"), 
+            this.locked,
+            () =>
+            {
+                this.locked = !this.locked;
+                UpdateDisplay();
+            }
+            );
+    }
 }
