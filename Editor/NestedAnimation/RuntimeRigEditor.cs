@@ -4,6 +4,7 @@ using System.Reflection;
 using PlasticPipe.PlasticProtocol.Messages;
 using UnityEditor;
 using UnityEditor.Graphs;
+using UnityEditor.Profiling.Memory.Experimental;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -13,12 +14,16 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 {
     private Animator parentAnimator;
     private Animator childAnimator;
+
+    private ObjectField dummyField;
     
     private ObjectField parentAnimatorField;
     private ObjectField childAnimatorField;
 
     private AnimationClip sourceClip;
     private AnimationClip targetClip;
+    
+    private ObjectField selectedParentClipField;
     
     private ObjectField sourceClipField;
     private ObjectField targetClipField;
@@ -29,21 +34,29 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private VisualElement clipGrid;
     private VisualElement selectionMessage;
     private VisualElement parentSection;
-    private VisualElement childSection;
+    private VisualElement nestedAnimatorSection;
     private VisualElement controlsSection;
 
     private Texture buttonIconTexture;
     private Texture dupeIconTexture;
     private Texture editIconTexture;
-    private Texture recordIconTexture;
+    private Texture2D recordIconTexture;
 
     // private bool isRecording = false;
     
     
     private Color backgroundGrey;
+    private Color selectedBackgroundColor;
     private const float clipFieldWidth = 200f;
     private const float indentPadding = 20f;
-    private const float buttonWidth = 24f;
+    private const float buttonWidth = 32f;
+    
+    private const float headerHeight = 30f;
+    private const float headerPaddingRight = 10f;
+
+    private const float iconSize = 16f;
+    private const float buttonSize = 16f;
+    
     // private float noteHeight = 
     
     [MenuItem("Tools/Runtime Rig Editor")]
@@ -62,11 +75,19 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     public void CreateGUI()
     {
         backgroundGrey = new Color(0.3f, 0.3f, 0.3f, 1f);
-        
+        selectedBackgroundColor = new Color(0.4f, 0.4f, 0.6f, 1f);
+
         buttonIconTexture = EditorGUIUtility.IconContent("d_PlayButton").image;
         dupeIconTexture = EditorGUIUtility.IconContent("Animator Icon").image;
         editIconTexture = EditorGUIUtility.IconContent("CollabEdit Icon").image;
-        recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image;
+        recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image as Texture2D;
+
+        selectedParentClipField = new ObjectField();
+        selectedParentClipField.objectType = typeof(AnimationClip);
+        selectedParentClipField.RegisterValueChangedCallback(evt =>
+        {
+            
+        });
         
         var root = rootVisualElement;
         root.style.flexDirection = FlexDirection.Column;
@@ -78,17 +99,42 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         sourceClipField = new ObjectField("Source Clip");
         sourceClipField.objectType = typeof(AnimationClip);
 
+        // var dummyHeader = CreateDummyHeader("DUMMY:", out dummyField, typeof(Animator));
+        // rootVisualElement.Add(dummyHeader);
+        
+        //... PARENT:
+        parentSection = new VisualElement();
+        
+        var parentHeader = CreateDummyHeader("ANIMATOR:", out parentAnimatorField, typeof(Animator));
+        rootVisualElement.Add(parentHeader);
         
         //... parent clips are the 'target' into which we might temporarily copy bindings from child clips.
-        parentSection = CreateAnimatorSection("PARENT:", out parentAnimatorField, targetClipField, withEditButton: true);
+        var parentControls  = CreateAnimatorSection(parentAnimatorField, targetClipField, withEditButton: true);
+        
+        parentSection.Add(parentHeader);
+        parentSection.Add(parentControls);
         parentSection.style.display = DisplayStyle.None;
+        
         rootVisualElement.Add(parentSection);
         
-        //... child clips are the 'source' which may get copied in temporarily to parent clips.
-        childSection = CreateAnimatorSection("CHILD:", out childAnimatorField, sourceClipField, withSpoofButton: true);
-        childSection.style.display = DisplayStyle.None;
-        rootVisualElement.Add(childSection);
         
+        //... NESTED:
+        nestedAnimatorSection = new VisualElement();
+        
+        var nestedAnimatorHeader = CreateDummyHeader("\u2937 NESTED:", out childAnimatorField, typeof(Animator));
+        rootVisualElement.Add(nestedAnimatorHeader);
+        
+        //... child clips are the 'source' which may get copied in temporarily to parent clips.
+        var nestedAnimatorControls = CreateAnimatorSection(childAnimatorField, sourceClipField, withSpoofButton: true);
+        
+        nestedAnimatorSection.Add(nestedAnimatorHeader);
+        nestedAnimatorSection.Add(nestedAnimatorControls);
+        nestedAnimatorSection.style.display = DisplayStyle.None;
+        
+        rootVisualElement.Add(nestedAnimatorSection);
+        
+        
+        //... CONTROLS:
         controlsSection = CreateControlsSection(sourceClipField, targetClipField);
         controlsSection.style.display = DisplayStyle.None;
         rootVisualElement.Add(controlsSection);
@@ -123,57 +169,61 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         messageBox.style.marginTop = 8;
         messageBox.style.marginBottom = 8;
         messageBox.style.unityFontStyleAndWeight = FontStyle.Italic;
-        messageBox.style.display = DisplayStyle.Flex; // start hidden
+        messageBox.style.display = DisplayStyle.Flex;
 
-        var messageLabel = new Label("Please select an Animator.");
+        var messageLabel = new Label("Select an Animator.");
         messageBox.Add(messageLabel);
         return messageBox;
     }
     
-    private VisualElement CreateDummyHeader(string headerLabel, out ObjectField quickObjectField, Type fieldType)
+    private VisualElement CreateDummyHeader(string headerLabel, out ObjectField objectField, Type fieldType)
     {
         VisualElement section = new VisualElement();
         section.style.flexDirection = FlexDirection.Row;
-        section.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); // Dark gray
+        section.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+        section.style.height = headerHeight;
 
-        quickObjectField = new ObjectField();
-        // quickObjectField.objectType = fieldType;
+        objectField = new ObjectField();
+        objectField.objectType = fieldType;
+        objectField.style.flexDirection = FlexDirection.Row;
+        objectField.style.flexGrow = 1;
+        objectField.style.alignSelf = Align.Center;
         
-        // ObjectField newObjectFieldA = new ObjectField();
-        // newObjectFieldA.objectType = typeof(GameObject);
-        //
-        // ObjectField newObjectFieldB = new ObjectField();
-        // newObjectFieldB.objectType = typeof(GameObject);
-        
-        // section.Add(newObjectFieldB);
         
         Label header = new Label(headerLabel);
 
-        // // 📏 Make it bold and larger
         header.style.unityFontStyleAndWeight = FontStyle.Bold;
-        header.style.fontSize = 14; // Or larger if you like
+        header.style.fontSize = 14; 
         header.style.alignSelf = Align.Center;
-        //
-        // // 🎨 Optional background color
-        // header.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 1f); // Dark gray
-        // header.style.color = Color.white; // Text color
-        //
-        // // 🧱 Padding and spacing
-        // header.style.paddingLeft = 6;
-        // header.style.paddingTop = 4;
-        // header.style.paddingBottom = 4;
-        // header.style.marginBottom = 4;
+        header.style.paddingRight = headerPaddingRight;
+
+        // 🎨 Optional background color
+        header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+        header.style.color = Color.white; 
+
+        header.style.flexGrow = 1;
         
-        // section.Add(header);
-        // section.Add(quickObjectField);
+        // 🧱 Padding and spacing
+        header.style.paddingLeft = 6;
+        header.style.paddingTop = 4;
+        header.style.paddingBottom = 4;
+        header.style.marginBottom = 4;
         
         section.Add(header);
-        // section.Add(quickObjectField);
+        section.Add(objectField);
 
         return section;
     }
     
-    private VisualElement CreateAnimatorSection(string headerLabel, out ObjectField animatorField, ObjectField clipField, bool withEditButton = false, bool withSpoofButton = false)
+    List<ObjectField> allClipObjectFields = new List<ObjectField>();
+    List<VisualElement> allClipElements = new List<VisualElement>();
+    
+    private VisualElement CreateAnimatorSection(
+        ObjectField animatorField, 
+        ObjectField clipField, 
+        bool withEditButton = false, 
+        bool withSpoofButton = false
+        )
     {
         VisualElement section = new VisualElement();
         section.style.paddingTop = 6f;
@@ -182,29 +232,23 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         section.style.display = DisplayStyle.None;
 
         // 🧩 Animator field
-        animatorField = new ObjectField();
-        animatorField.objectType = typeof(Animator);
-        animatorField.label = "";
-        animatorField.style.paddingBottom = 6f;
-        
-        AddObjectFieldHeaderSection(section, headerLabel, animatorField);
-        // AddHeaderSection(section, headerLabel);
-
-        // clipField.RegisterValueChangedCallback(evt =>
-        // {
-        //     
-        // });
-
-        section.Add(animatorField);
+        // animatorField = new ObjectField();
+        // animatorField.objectType = typeof(Animator);
+        // animatorField.label = "";
+        // animatorField.style.paddingBottom = 6f;
         
         section.style.flexDirection = FlexDirection.Column;
         section.style.overflow = Overflow.Hidden;
 
         VisualElement clipList = new VisualElement();
         clipList.style.flexDirection = FlexDirection.Column;
+        
+        allClipElements.Clear();
 
         animatorField.RegisterValueChangedCallback(evt =>
         {
+            allClipObjectFields.Clear();
+            // allClipElements.Clear();
             clipList.Clear();
             
             var animator = evt.newValue as Animator;
@@ -228,6 +272,9 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                     section.Add(clipListing);
 
                     entry.Add(clipListing);
+                    
+                    allClipObjectFields.Add(clipListing);
+                    allClipElements.Add(entry);
                     
                     if (withEditButton)
                     {
@@ -255,49 +302,74 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                         selectClipButton.clicked -= null; // Clear previous listeners if reused
                         selectClipButton.clicked += () => selectClipButton.Blur();
                         selectClipButton.clicked += () => OnSelectClipButtonClicked(clip, animator);
+                        selectClipButton.clicked += () =>
+                        {
+                            entry.style.backgroundColor = selectedBackgroundColor;
+                            Debug.LogWarning($"... setting selected background colour for clip {clip.name}");
+                        };
                         
                         entry.Add(selectClipButton);
+                        
+                        Debug.LogWarning($"default background color: {entry.style.backgroundColor.value}");
                     }
 
                     if (withSpoofButton)
                     {
+                        var spoofButton = new Button();
+                        spoofButton.style.flexDirection = FlexDirection.Row;
+                        spoofButton.style.width = buttonWidth;// * 2f;
+                        spoofButton.style.alignContent = Align.Center;
+                        spoofButton.style.alignItems = Align.Center;
+                        
                         var recordIconImage = new Image();
+                        recordIconImage.style.flexGrow = 1;
+                        recordIconImage.style.flexDirection = FlexDirection.Column;
                         recordIconImage.style.alignSelf = Align.Center;
+                        // recordIconImage.style.alignContent = Align.Center;
                         recordIconImage.image = recordIconTexture;
                         recordIconImage.scaleMode = ScaleMode.ScaleToFit;
-                        recordIconImage.style.width = 16;
-                        recordIconImage.style.height = 16;
+                        recordIconImage.style.width = iconSize;
+                        recordIconImage.style.height = iconSize;
+                        // recordIconImage.style.paddingLeft = 0f;
+                        // recordIconImage.style.paddingRight = 0f;
+                        // recordIconImage.style.paddingTop = 0f;
+                        // recordIconImage.style.paddingBottom = 0f;
+                        // recordIconImage.style.marginLeft = 0f;
+                        // recordIconImage.style.marginRight = 0f;
+                        // recordIconImage.style.marginTop = 0f;
+                        // recordIconImage.style.marginBottom = 0f;
+                        recordIconImage.style.flexShrink = 0;
                         
                         var dupeIconImage = new Image();
                         dupeIconImage.style.alignSelf = Align.Center;
                         dupeIconImage.image = dupeIconTexture;
                         // dupeIconImage.scaleMode = ScaleMode.ScaleToFit;
-                        dupeIconImage.style.width = 16;
-                        dupeIconImage.style.height = 16;
+                        dupeIconImage.style.width = iconSize;
+                        dupeIconImage.style.height = iconSize;
                         
-                        var dupeButton = new Button();
-                        dupeButton.style.flexDirection = FlexDirection.Row;
-                        dupeButton.style.width = buttonWidth;// * 2f;
+                        // dupeButton.style.backgroundImage = new StyleBackground(recordIconTexture);
                         
-                        dupeButton.Add(recordIconImage);
+                        spoofButton.Add(recordIconImage);
                         entry.Add(dupeIconImage);
+                        
+                        // entry.Add(recordIconImage);
                         // dupeButton.Add(dupeIconImage);
                         
-                        dupeButton.RegisterCallback<FocusInEvent>(e =>
+                        spoofButton.RegisterCallback<FocusInEvent>(e =>
                         {
                             e.StopPropagation();  // Prevent focus-related events from propagating
                         });
 
-                        dupeButton.RegisterCallback<BlurEvent>(e =>
+                        spoofButton.RegisterCallback<BlurEvent>(e =>
                         {
                             e.StopPropagation();  // Stop the blur events from triggering
                         });
                         
-                        dupeButton.clicked -= null; // Clear previous listeners if reused
-                        dupeButton.clicked += () => dupeButton.Blur();
-                        dupeButton.clicked += () => OnDupeButtonClicked(clipField, clip, animator);
+                        spoofButton.clicked -= null; // Clear previous listeners if reused
+                        spoofButton.clicked += () => spoofButton.Blur();
+                        spoofButton.clicked += () => OnDupeButtonClicked(clipField, clip, animator);
                         
-                        entry.Add(dupeButton);
+                        entry.Add(spoofButton);
                     }
                     
                     clipList.Add(entry);
@@ -322,6 +394,21 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 animationWindow.animationClip = clip;
             animationWindow.Repaint();
         }
+
+        foreach (var clipElement in allClipElements)
+        {
+            clipElement.style.backgroundColor = new Color(0f, 0f, 0f, 0f);
+        }
+        
+        // foreach (var clipEntry in allClipObjectFields)
+        // {
+        //     var entryClip = clipEntry.value as AnimationClip;
+        //     if (entryClip == clip)
+        //     {
+        //         clipEntry.value = clip;
+        //         Debug.LogWarning("setting internal clip object field");
+        //     }
+        // }
     }
     
     private VisualElement CreateControlsSection(ObjectField sourceField, ObjectField targetField)
@@ -605,7 +692,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         {
             selectionMessage.style.display = DisplayStyle.Flex;
             parentSection.style.display = DisplayStyle.None;
-            childSection.style.display = DisplayStyle.None;
+            nestedAnimatorSection.style.display = DisplayStyle.None;
             controlsSection.style.display = DisplayStyle.None;
             return;
         }
@@ -633,7 +720,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         {
             selectionMessage.style.display = DisplayStyle.Flex;
             parentSection.style.display = DisplayStyle.None;
-            childSection.style.display = DisplayStyle.None;
+            nestedAnimatorSection.style.display = DisplayStyle.None;
             controlsSection.style.display = DisplayStyle.None;
         }
         else
@@ -644,7 +731,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 parentSection.style.display = DisplayStyle.Flex;
             
             if(childAnimator != null)
-                childSection.style.display = DisplayStyle.Flex;
+                nestedAnimatorSection.style.display = DisplayStyle.Flex;
             
             if(parentAnimator != null && childAnimator != null)
                 controlsSection.style.display = DisplayStyle.Flex;
