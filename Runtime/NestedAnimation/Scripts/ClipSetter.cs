@@ -28,6 +28,13 @@ public class ClipSetter : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        var foundAnimators = GetComponentsInChildren<Animator>();
+        if (foundAnimators == null || foundAnimators.Length < 1)
+            return;
+        
+        parentAnimator = foundAnimators[0];
+        nestedAnimator = foundAnimators[1];
+        
         if (parentAnimator == null || nestedAnimator == null)
             return;
         

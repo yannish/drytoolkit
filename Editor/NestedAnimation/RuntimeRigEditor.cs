@@ -50,12 +50,14 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private Texture buttonIconTexture;
     private Texture dupeIconTexture;
     private Texture editIconTexture;
+    private Texture previewIconTexture;
     private Texture2D recordIconTexture;
 
     
     private Color backgroundGrey;
     private Color selectedBackgroundColor;
     private Color recordingBackgroundColor;
+    private Color selectedRecordingBackgroundColor;
     
     private const float clipFieldWidth = 200f;
     private const float indentPadding = 20f;
@@ -76,16 +78,22 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private Dictionary<AnimationClip, VisualElement> nestedClipToElementLookup = new Dictionary<AnimationClip, VisualElement>();
 
 
+    private const string controlsLabel = "CONTROLS :";
+    private const string parentLabel = "PARENT :";
+    private const string nestedLabel = "\u2937 NESTED :";
+    
     public void CreateGUI()
     {
         backgroundGrey = new Color(0.3f, 0.3f, 0.3f, 1f);
         selectedBackgroundColor = new Color(0.4f, 0.4f, 0.6f, 1f);
+        selectedRecordingBackgroundColor = new Color(0.5f, 0.3f, 0.3f, 1f);
         recordingBackgroundColor = new Color(0.295f, 0.145f, 0.145f, 1f);
 
         buttonIconTexture = EditorGUIUtility.IconContent("d_PlayButton").image;
         dupeIconTexture = EditorGUIUtility.IconContent("Animator Icon").image;
         editIconTexture = EditorGUIUtility.IconContent("CollabEdit Icon").image;
         recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image as Texture2D;
+        previewIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
 
         var root = rootVisualElement;
         root.style.flexDirection = FlexDirection.Column;
@@ -105,9 +113,10 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         
         selectedParentClipField = new ObjectField();
         selectedParentClipField.objectType = typeof(AnimationClip);
+        selectedParentClipField.style.display = DisplayStyle.None;
         root.Add(selectedParentClipField);
         
-        var parentHeader = CreateDummyHeader("ANIMATOR:", out parentAnimatorField, typeof(Animator));
+        var parentHeader = CreateHeader(parentLabel, out parentAnimatorField, typeof(Animator), headerPaddingRight);
         rootVisualElement.Add(parentHeader);
         
         //... parent clips are the 'target' into which we might temporarily copy bindings from child clips.
@@ -130,9 +139,10 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         
         selectedNestedClipField = new ObjectField();
         selectedNestedClipField.objectType = typeof(AnimationClip);
+        selectedNestedClipField.style.display = DisplayStyle.None;
         root.Add(selectedNestedClipField);
         
-        var nestedAnimatorHeader = CreateDummyHeader("\u2937 NESTED:", out nestedAnimatorField, typeof(Animator));
+        var nestedAnimatorHeader = CreateHeader(nestedLabel, out nestedAnimatorField, typeof(Animator), headerPaddingRight);
         rootVisualElement.Add(nestedAnimatorHeader);
         
         //... child clips are the 'source' which may get copied in temporarily to parent clips.
@@ -168,6 +178,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     }
 
 
+    
     //... SECTION CREATION:
     private VisualElement CreateDummyList()
     {
@@ -229,7 +240,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return messageBox;
     }
     
-    private VisualElement CreateDummyHeader(string headerLabel, out ObjectField objectField, Type fieldType)
+    private VisualElement CreateHeader(string headerLabel, out ObjectField objectField, Type fieldType, float indent = 0f)
     {
         VisualElement section = new VisualElement();
         section.style.flexDirection = FlexDirection.Row;
@@ -248,7 +259,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         header.style.unityFontStyleAndWeight = FontStyle.Bold;
         header.style.fontSize = 14; 
         header.style.alignSelf = Align.Center;
-        header.style.paddingRight = headerPaddingRight;
+        header.style.paddingRight = indent;
 
         // 🎨 Optional background color
         header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
@@ -268,15 +279,6 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return section;
     }
 
-    void UpdateClipSelectionDisplay(AnimationClip clip, Dictionary<AnimationClip, VisualElement> clipToElementLookup)
-    {
-        foreach(var kvp in clipToElementLookup)
-            kvp.Value.style.backgroundColor = new Color(0, 0, 0, 0);
-                
-        if (clipToElementLookup.TryGetValue(clip, out var foundElement))
-            foundElement.style.backgroundColor = selectedBackgroundColor;
-    }
-    
     private VisualElement CreateAnimatorSection(
         ObjectField animatorField, 
         ObjectField clipField, 
@@ -303,6 +305,15 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 UpdateClipSelectionDisplay(clip, clipToElementLookup);
             });
         }
+
+        if (withSpoofButton)
+        {
+            clipField.RegisterValueChangedCallback(evt =>
+            {
+                AnimationClip clip = evt.newValue as AnimationClip;
+                UpdateSpoofSelectionDisplay(clip, clipToElementLookup);
+            });
+        }
         
         animatorField.RegisterValueChangedCallback(evt =>
         {
@@ -319,7 +330,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                     VisualElement entry = new VisualElement();
                     entry.style.flexDirection = FlexDirection.RowReverse;
                     entry.style.flexGrow = 1;
-                    entry.style.paddingLeft = indentPadding;
+                    entry.style.paddingLeft = indentPadding * (withSpoofButton ? 2f : 1f);
                     
                     var clipListing = new ObjectField();
                     clipListing.style.flexGrow = 1;
@@ -334,33 +345,26 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                     
                     if (withEditButton)
                     {
-                        var iconImage = new Image();
-                        iconImage.style.alignSelf = Align.Center;
-                        iconImage.image = editIconTexture;
-                        iconImage.scaleMode = ScaleMode.ScaleToFit;
-                        iconImage.style.width = 16;
-                        iconImage.style.height = 16;
+                        var selectIconImage = new Image();
+                        selectIconImage.style.alignSelf = Align.Center;
+                        selectIconImage.image = editIconTexture;
+                        selectIconImage.scaleMode = ScaleMode.ScaleToFit;
+                        selectIconImage.style.width = 16;
+                        selectIconImage.style.height = 16;
                         
                         var selectClipButton = new Button();
                         selectClipButton.style.width = buttonWidth;
-                        selectClipButton.Add(iconImage);
+                        selectClipButton.Add(selectIconImage);
                         
-                        selectClipButton.RegisterCallback<FocusInEvent>(e =>
-                        {
-                            e.StopPropagation();  // Prevent focus-related events from propagating
-                        });
-
-                        selectClipButton.RegisterCallback<BlurEvent>(e =>
-                        {
-                            e.StopPropagation();  // Stop the blur events from triggering
-                        });
+                        selectClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+                        selectClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
                         
-                        selectClipButton.clicked -= null; // Clear previous listeners if reused
                         selectClipButton.clicked += () => selectClipButton.Blur();
                         selectClipButton.clicked += () => OnSelectClipButtonClicked(clip, animator);
                         selectClipButton.clicked += () => clipField.value = clip;
 
                         entry.Add(selectClipButton);
+                        
                     }
 
                     if (withSpoofButton)
@@ -381,69 +385,73 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                         recordIconImage.style.height = iconSize;
                         recordIconImage.style.flexShrink = 0;
                         
-                        var dupeIconImage = new Image();
-                        dupeIconImage.style.alignSelf = Align.Center;
-                        dupeIconImage.image = dupeIconTexture;
-                        // dupeIconImage.scaleMode = ScaleMode.ScaleToFit;
-                        dupeIconImage.style.width = iconSize;
-                        dupeIconImage.style.height = iconSize;
+                        var spoofIconImage = new Image();
+                        spoofIconImage.style.alignSelf = Align.Center;
+                        spoofIconImage.image = dupeIconTexture;
+                        spoofIconImage.style.width = iconSize;
+                        spoofIconImage.style.height = iconSize;
                         
                         // dupeButton.style.backgroundImage = new StyleBackground(recordIconTexture);
                         
                         spoofButton.Add(recordIconImage);
-                        entry.Add(dupeIconImage);
                         
-                        spoofButton.RegisterCallback<FocusInEvent>(e =>
-                        {
-                            e.StopPropagation();  // Prevent focus-related events from propagating
-                        });
-
-                        spoofButton.RegisterCallback<BlurEvent>(e =>
-                        {
-                            e.StopPropagation();  // Stop the blur events from triggering
-                        });
+                        spoofButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+                        spoofButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
                         
-                        spoofButton.clicked -= null; // Clear previous listeners if reused
                         spoofButton.clicked += () => spoofButton.Blur();
                         spoofButton.clicked += () => OnDupeButtonClicked(clipField, clip, animator);
+                        spoofButton.clicked += () => clipField.value = clip;
                         
                         entry.Add(spoofButton);
+                        entry.Add(spoofIconImage);
                     }
                     
                     clipList.Add(entry);
                 }
+                
+               
             }
         });
         
         section.Add(clipList);
+
+        if (withEditButton)
+        {
+            var previewControlSection = new VisualElement();
+            previewControlSection.style.flexDirection = FlexDirection.RowReverse;
+            
+            var previewIconImage = new Image();
+            previewIconImage.style.alignSelf = Align.Center;
+            previewIconImage.image = previewIconTexture;
+            previewIconImage.scaleMode = ScaleMode.ScaleToFit;
+            previewIconImage.style.width = 16;
+            previewIconImage.style.height = 16;
+                            
+            var previewClipButton = new Button();
+            previewClipButton.text = "PREVIEW:";
+            previewClipButton.style.width = buttonWidth * 4f;
+            previewClipButton.style.flexDirection = FlexDirection.RowReverse;
+            previewClipButton.Add(previewIconImage);
+                            
+            previewClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+            previewClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
+     
+            previewClipButton.clicked += () => previewClipButton.Blur();
+            previewClipButton.clicked += () => OnPreviewClipButtonClicked();
+            
+            previewControlSection.Add(previewClipButton);
+            section.Add(previewControlSection);
+        }
         
         return section;
     }
 
-    private void OnSelectClipButtonClicked(AnimationClip clip, Animator animator)
-    {
-        if (clip == null || !HasOpenInstances<AnimationWindow>())
-            return;
 
-        if (Selection.activeGameObject == animator.gameObject)
-        {
-            var animationWindow = GetWindow<AnimationWindow>();
-            if (animationWindow.animationClip != clip)
-                animationWindow.animationClip = clip;
-            animationWindow.Repaint();
-        }
-
-        // foreach (var clipElement in allClipVisualElements)
-        // {
-        //     clipElement.style.backgroundColor = new Color(0f, 0f, 0f, 0f);
-        // }
-    }
-    
     private VisualElement CreateControlsSection(ObjectField sourceField, ObjectField targetField)
     {
         VisualElement section = new VisualElement();
         
-        var header = CreateHeaderSection("CONTROLS:");
+        var header = CreateHeaderSection(controlsLabel);
         section.Add(header);
 
         Button recordButton = CreateRecordButton();
@@ -484,6 +492,47 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return header;
     }
     
+    
+    private void UpdateClipSelectionDisplay(AnimationClip clip, Dictionary<AnimationClip, VisualElement> clipToElementLookup)
+    {
+        foreach(var kvp in clipToElementLookup)
+            kvp.Value.style.backgroundColor = new Color(0, 0, 0, 0);
+                
+        if (clipToElementLookup.TryGetValue(clip, out var foundElement))
+            foundElement.style.backgroundColor = selectedBackgroundColor;
+    }
+
+    private void UpdateSpoofSelectionDisplay(AnimationClip clip, Dictionary<AnimationClip, VisualElement> clipToElementLookup)
+    {
+        foreach(var kvp in clipToElementLookup)
+            kvp.Value.style.backgroundColor = new Color(0, 0, 0, 0);
+        
+        if (clipToElementLookup.TryGetValue(clip, out var foundElement))
+            foundElement.style.backgroundColor = selectedRecordingBackgroundColor;
+    }
+
+    private void OnSelectClipButtonClicked(AnimationClip clip, Animator animator)
+    {
+        if (clip == null || !HasOpenInstances<AnimationWindow>())
+            return;
+
+        if (Selection.activeGameObject == animator.gameObject)
+        {
+            var animationWindow = GetWindow<AnimationWindow>();
+            if (animationWindow.animationClip != clip)
+                animationWindow.animationClip = clip;
+            animationWindow.Repaint();
+        }
+    }
+    
+    private void OnPreviewClipButtonClicked()
+    {
+        Debug.LogWarning("Preview with spoofing.");
+        
+        CacheNestedAnimator();
+        EnterRecordingMode();
+    }
+
 
 
     //... BUTTON CREATION:
@@ -495,6 +544,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return spoofButton;
     }
 
+    
     //... ANIMATION WINDOW REFLECTION CONTROLS:
     private bool isRecording;
     private AnimationWindow animWindow;
@@ -517,7 +567,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         Button recordButton = new Button();
         recordButton.text = "RECORD";
         
-        animWindow= GetWindow<AnimationWindow>();
+        animWindow = GetWindow<AnimationWindow>();
         animWindowType = Type.GetType("UnityEditor.AnimationWindow, UnityEditor");
         animWindowStatePropInfo = animWindowType.GetProperty("state", BindingFlags.NonPublic | BindingFlags.Instance);
         animWindowState = animWindowStatePropInfo.GetValue(animWindow);
@@ -594,7 +644,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return recordButton;
     }
 
-    void EnterRecordingMode()
+    private void EnterRecordingMode()
     {
         Debug.LogWarning("Entering recording mode.");
         animWindowState = animWindowStatePropInfo.GetValue(animWindow);
@@ -603,7 +653,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         isRecording = true;
     }
 
-    void ExitRecordingMode()
+    private void ExitRecordingMode()
     {
         Debug.LogWarning("Exiting recording mode.");
         animWindowState = animWindowStatePropInfo.GetValue(animWindow);
@@ -623,7 +673,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         removeButton.style.display = DisplayStyle.Flex;
         // removeButton.style.vis
         removeButton.style.flexGrow = 1;
-        removeButton.clicked += RemoveNestedAnimator;
+        removeButton.clicked += CacheNestedAnimator;
         
         restoreButton = new Button();
         restoreButton.text = "RESTORE";
@@ -637,13 +687,17 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return section;
     }
 
+    
     Button removeButton;
     Button restoreButton;
     
+    
+    //... CACHING NESTED ANIMATOR:
     private bool cachingNestedAnimator;
     private RuntimeAnimatorController cachedNestedAnimator;
     private GameObject cachedNestedAnimatorGameObject;
-    void RemoveNestedAnimator()
+    
+    private void CacheNestedAnimator()
     {
         if (nestedAnimator == null)
         {
@@ -653,24 +707,27 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 
         cachedNestedAnimatorGameObject = nestedAnimator.gameObject;
         cachedNestedAnimator = nestedAnimator.runtimeAnimatorController;
+        
         DestroyImmediate(nestedAnimator);
 
-        cachingNestedAnimator = true;
         removeButton.style.display = DisplayStyle.None;
         restoreButton.style.display = DisplayStyle.Flex;
+        
+        cachingNestedAnimator = true;
     }
 
-    void RestoreNestedAnimator()
+    private void RestoreNestedAnimator()
     {
         if (!cachingNestedAnimator)
             return;
         
-        cachingNestedAnimator = false;
         removeButton.style.display = DisplayStyle.Flex;
         restoreButton.style.display = DisplayStyle.None;
 
         nestedAnimator = cachedNestedAnimatorGameObject.AddComponent<Animator>();
         nestedAnimator.runtimeAnimatorController = cachedNestedAnimator;
+        
+        cachingNestedAnimator = false;
     }
     
     private Button CreateEmbedBindingsButton(ObjectField sourceField, ObjectField targetField)
@@ -758,8 +815,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         stripButton.text = "STRIP SOURCE FROM TARGET";
         stripButton.clicked += () =>
         {
-            targetClip = targetField.value as AnimationClip;
-            sourceClip = sourceField.value as AnimationClip;
+            targetClip = selectedParentClipField.value as AnimationClip;
+            sourceClip = selectedNestedClipField.value as AnimationClip;
 
             if (targetClip == null || sourceClip == null)
                 return;
@@ -784,8 +841,10 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             
             stripButton.Blur();
         };
+        
         return stripButton;
     }
+    
     
     private Button CreateCompareButton()
     {
@@ -856,9 +915,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private void OnDupeButtonClicked(ObjectField clipField, AnimationClip clip, Animator animator)
     {
         clipField.value = clip;
-        
-        // if(animator == childAnimatorField.value)
-        // Debug.LogWarning("DUPING CLIP:");
+
     }
 
     
@@ -911,11 +968,13 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             {
                 Debug.LogWarning("reflecting clip selected in animation window.");
                 var animationWindow = GetWindow<AnimationWindow>();
-                
-                selectedParentClipField.value = animationWindow.animationClip;
-                UpdateClipSelectionDisplay(animationWindow.animationClip, parentClipToElementLookup);
 
-                animationWindow.Repaint();
+                if (animationWindow != null && animationWindow.animationClip != null)
+                {
+                    selectedParentClipField.value = animationWindow.animationClip;
+                    UpdateClipSelectionDisplay(animationWindow.animationClip, parentClipToElementLookup);
+                    animationWindow.Repaint();
+                }
             }
         }
 
@@ -923,6 +982,14 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         {
             nestedAnimatorField.value = foundAnimators[1];
             nestedAnimator = foundAnimators[1];
+
+            var foundClips = nestedAnimator.runtimeAnimatorController.animationClips;
+            if (foundClips.Length > 0)
+            {
+                var firstClip = foundClips[0];
+                selectedNestedClipField.value = firstClip;
+                UpdateSpoofSelectionDisplay(firstClip, nestedClipToElementLookup);   
+            }
         }
 
         if (nestedAnimator == null && parentAnimator == null)
@@ -974,8 +1041,9 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             }
             );
     }
+
     
-    
+    #region SKETCHPAD:
      // private void OnAnimatorChanged(ChangeEvent<Object> evt)
     // {
     //     Debug.LogWarning("Animator changed.");
@@ -1137,4 +1205,5 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     //     
     //     root.Add(section);
     // }
+    #endregion
 }
