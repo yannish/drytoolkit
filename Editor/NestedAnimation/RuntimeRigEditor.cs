@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEditor.Graphs;
 using UnityEditor.Profiling.Memory.Experimental;
+using UnityEditor.ShortcutManagement;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -17,24 +18,44 @@ public static class RuntimeRigEditorUtils
 {
     static RuntimeRigEditorUtils()
     {
-        // AssemblyReloadEvents.beforeAssemblyReload -= OnBeforeAssemblyReload;
         AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
         CompilationPipeline.compilationStarted += OnBeforeCompilationStarted;
     }
 
     private static void OnBeforeCompilationStarted(object obj) => CloseDownPreviewing();
-
+    
     private static void OnBeforeAssemblyReload() => CloseDownPreviewing();
 
     private static void CloseDownPreviewing()
     {
-        var runtimeRigEditor = EditorWindow.GetWindow<RuntimeRigEditor>();
+        // Debug.LogWarning("Handling recompile for RuntimeRigEditor");
+        
+        if (!EditorWindow.HasOpenInstances<RuntimeRigEditor>())
+            return;
+            
+        var foundEditors = Resources.FindObjectsOfTypeAll<RuntimeRigEditor>();
+        
+        // Debug.LogWarning($"found {foundEditors.Length} RuntimeRigEditors...");
+        
+        runtimeRigEditor = EditorWindow.GetWindow<RuntimeRigEditor>();
         if (runtimeRigEditor != null)
         {
-            // runtimeRigEditor.
+            // Debug.LogWarning("Close down previewing of RuntimeRigEditor before compile.");
+            
             runtimeRigEditor.ClearGUI();
-            runtimeRigEditor.CreateGUI();
+            // runtimeRigEditor.Close();
+            // runtimeRigEditor.CreateGUI();
+            AssemblyReloadEvents.afterAssemblyReload -= RebuildGUI;
+            AssemblyReloadEvents.afterAssemblyReload += RebuildGUI;
         }
+    }
+    
+    private static RuntimeRigEditor runtimeRigEditor;
+    private static void RebuildGUI()
+    {
+        runtimeRigEditor.CreateGUI();
+        runtimeRigEditor = null;
+        AssemblyReloadEvents.afterAssemblyReload -= RebuildGUI;
     }
 }
 
@@ -45,10 +66,17 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     {
         
     }
+
+    // [Shortcut("My Tools/Run Command", KeyCode.E, ShortcutModifiers.Shift | ShortcutModifiers.Control)]
+    // public static void RuntimeRigShortcut()
+    // {
+    //     Debug.LogWarning("w'didit");
+    // }
     
-    [MenuItem("Tools/Runtime Rig Editor")]
+    [MenuItem("Tools/Runtime Rig Editor %#e")]
     public static void ShowWindow()
     {
+        Debug.LogWarning("hit the item!");
         if (HasOpenInstances<RuntimeRigEditor>())
         {
             FocusWindowIfItsOpen<RuntimeRigEditor>();
@@ -59,8 +87,6 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         wnd.titleContent = new GUIContent("Runtime Rig Editor");
     }
 
-    
-    
     
     private Animator parentAnimator;
     private Animator nestedAnimator;
@@ -782,6 +808,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         restoreButton.style.display = DisplayStyle.None;
 
         nestedAnimator = cachedNestedAnimatorGameObject.AddComponent<Animator>();
+        nestedAnimatorField.value = nestedAnimator;
         nestedAnimator.runtimeAnimatorController = cachedNestedAnimator;
         
         nestedAnimatorField.style.display = DisplayStyle.Flex;
