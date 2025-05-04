@@ -2,16 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using PlasticPipe.PlasticProtocol.Messages;
 using UnityEditor;
 using UnityEditor.Compilation;
-using UnityEditor.Graphs;
-using UnityEditor.Profiling.Memory.Experimental;
-using UnityEditor.ShortcutManagement;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Object = UnityEngine.Object;
+
 
 [InitializeOnLoad]
 public static class RuntimeRigEditorUtils
@@ -28,19 +24,19 @@ public static class RuntimeRigEditorUtils
 
     private static void CloseDownPreviewing()
     {
-        // Debug.LogWarning("Handling recompile for RuntimeRigEditor");
+        Debug.LogWarning("Handling recompile for RuntimeRigEditor");
         
-        if (!EditorWindow.HasOpenInstances<RuntimeRigEditor>())
+        if (!EditorWindow.HasOpenInstances<RuntimeRigEditor>())  
             return;
             
         var foundEditors = Resources.FindObjectsOfTypeAll<RuntimeRigEditor>();
         
-        // Debug.LogWarning($"found {foundEditors.Length} RuntimeRigEditors...");
+        Debug.LogWarning($"found {foundEditors.Length} RuntimeRigEditors...");
         
         runtimeRigEditor = EditorWindow.GetWindow<RuntimeRigEditor>();
         if (runtimeRigEditor != null)
         {
-            // Debug.LogWarning("Close down previewing of RuntimeRigEditor before compile.");
+            Debug.LogWarning("Close down previewing of RuntimeRigEditor before compile.");
             
             runtimeRigEditor.ClearGUI();
             // runtimeRigEditor.Close();
@@ -61,18 +57,6 @@ public static class RuntimeRigEditorUtils
 
 public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 {
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    void Somethin()
-    {
-        
-    }
-
-    // [Shortcut("My Tools/Run Command", KeyCode.E, ShortcutModifiers.Shift | ShortcutModifiers.Control)]
-    // public static void RuntimeRigShortcut()
-    // {
-    //     Debug.LogWarning("w'didit");
-    // }
-    
     [MenuItem("Tools/Runtime Rig Editor %#e")]
     public static void ShowWindow()
     {
@@ -94,11 +78,11 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private AnimationClip sourceClip;
     private AnimationClip targetClip;
 
-    
     private Dictionary<AnimationClip, VisualElement> parentClipToElementLookup = new Dictionary<AnimationClip, VisualElement>();
     private Dictionary<AnimationClip, VisualElement> nestedClipToElementLookup = new Dictionary<AnimationClip, VisualElement>();
 
 
+    #region ELEMENTS:
     private Toggle logDebugToggle;
     
     private ObjectField parentAnimatorField;
@@ -119,55 +103,67 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     private VisualElement nestedAnimatorSection;
     private VisualElement controlsSection;
 
-    private Button previewClipButton;
-    private Image previewIconImage;
+    private VisualElement modeControlSection;
+    private Button nestedEditClipButton;
+    private Image nestedEditIconImage;
+    
+    
+    private Button nestedPreviewClipButton;
+    private Image nestedPreviewIconImage;
     
     private Button removeButton;
     private Button restoreButton;
-
     
-    private Texture buttonIconTexture;
-    private Texture dupeIconTexture;
-    private Texture editIconTexture;
-    private Texture previewIconTexture;
-    private Texture2D recordIconTexture;
+    private List<VisualElement> elementsToDisable = new List<VisualElement>();
+    #endregion
 
-    private Color backgroundGrey;
-    private Color selectedBackgroundColor;
-    private Color recordingBackgroundColor;
-    private Color selectedRecordingBackgroundColor;
-    
+    #region LAYOUT CONSTANTS :
+    private const string controlsLabel = "CONTROLS :";
+    private const string parentLabel = "PARENT :";
+    private const string nestedLabel = "\u2937 NESTED :";
+    private const string enterEditButtonLabel = "EDIT";
+    private const string exitEditButtonLabel= "... DONE";
+    private const string enterPreviewButtonLabel = "PREVIEW";
+    private const string exitPreviewButtonLabel = "... DONE";
+
     private const float clipFieldWidth = 200f;
     private const float indentPadding = 20f;
     private const float buttonWidth = 32f;
-    private const float previewButtonWidth = 200f;
+    private const float previewButtonWidth = 100f;
     
     private const float headerHeight = 30f;
     private const float headerPaddingRight = 10f;
 
     private const float iconSize = 16f;
     private const float buttonSize = 16f;
+    #endregion
+    
+    private Texture buttonIconTexture;
+    private Texture dupeIconTexture;
+    private Texture editIconTexture;
+    private Texture nestedEditIconTexture;
+    private Texture nestedPreviewIconTexture;
+    private Texture2D recordIconTexture;
+
+    private Color backgroundGrey;
+    private Color selectedBackgroundColor;
+    private Color recordingBackgroundColor;
+    private Color previewingBackgroundColor;
+    private Color selectedRecordingBackgroundColor;
     
 
     //... CACHING NESTED ANIMATOR:
     private bool cachingNestedAnimator;
     private RuntimeAnimatorController cachedNestedAnimator;
     private GameObject cachedNestedAnimatorGameObject;
-
+    
     
     //... LOCK TOGGLE:
     private bool locked = false;
     private GUIStyle lockButtonStyle;
+    private GUIStyle debugButtonStyle;
 
 
-
-    private const string controlsLabel = "CONTROLS :";
-    private const string parentLabel = "PARENT :";
-    private const string nestedLabel = "\u2937 NESTED :";
-    private const string enterPreviewButtonLabel = "EDIT NESTED CLIP";
-    private const string exitPreviewButtonLabel= "... DONE";
-    
-    
     //... ANIMATION WINDOW REFLECTION CONTROLS:
     private AnimationWindow animWindow;
     private Type animWindowType;
@@ -180,6 +176,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
     
     //... BIT OF STATE:
     private bool isRecording;
+    private bool isInNestedEdit;
     private bool isInNestedPreview;
     private bool logDebug;
     
@@ -196,13 +193,25 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         selectedBackgroundColor = new Color(0.4f, 0.4f, 0.6f, 1f);
         selectedRecordingBackgroundColor = new Color(0.5f, 0.3f, 0.3f, 1f);
         recordingBackgroundColor = new Color(0.295f, 0.145f, 0.145f, 1f);
+        previewingBackgroundColor = new Color(0.1568627f, 0.2509804f, 0.2941176f,1f);
 
         buttonIconTexture = EditorGUIUtility.IconContent("d_PlayButton").image;
         dupeIconTexture = EditorGUIUtility.IconContent("Animator Icon").image;
         editIconTexture = EditorGUIUtility.IconContent("CollabEdit Icon").image;
         recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image as Texture2D;
-        previewIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
+        nestedEditIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
+        nestedPreviewIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
 
+        //... ANIM WINDOW CONNECTION:
+        animWindow = GetWindow<AnimationWindow>();
+        animWindowType = Type.GetType("UnityEditor.AnimationWindow, UnityEditor");
+        animWindowStatePropInfo = animWindowType.GetProperty("state", BindingFlags.NonPublic | BindingFlags.Instance);
+        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+        animWindowStateType = animWindowState.GetType();
+        recordingPropInfo = animWindowStateType.GetProperty("recording", BindingFlags.Public | BindingFlags.Instance);
+        previewingPropInfo = animWindowStateType.GetProperty("previewing", BindingFlags.Public | BindingFlags.Instance);
+        
+        
         var root = rootVisualElement;
         root.Clear(); // Helps prevent duplicates
         root.style.flexDirection = FlexDirection.Column;
@@ -215,6 +224,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         //... NOTHING SELECTED:                
         selectionMessage = CreateSelectionNote();
         rootVisualElement.Add(selectionMessage);
+        
+        elementsToDisable = new List<VisualElement>();
 
         
         //... PARENT:
@@ -261,7 +272,6 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             nestedClipToElementLookup,
             withSpoofButton: true
             );
-        //
         
         nestedAnimatorSection.Add(nestedAnimatorHeader);
         nestedAnimatorSection.Add(nestedAnimatorControls);
@@ -271,18 +281,26 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         
         
         //... CONTROLS:
-        controlsSection = CreateControlsSection(sourceClipField, targetClipField);
-        controlsSection.style.display = DisplayStyle.None;
-        // controlsSection.Add(selectedNestedClipField);
-        // controlsSection.Add(selectedNestedClipField);
-        rootVisualElement.Add(controlsSection);
+        // controlsSection = CreateControlsSection(sourceClipField, targetClipField);
+        // controlsSection.style.display = DisplayStyle.None;
+        // // controlsSection.Add(selectedNestedClipField);
+        // // controlsSection.Add(selectedNestedClipField);
+        // rootVisualElement.Add(controlsSection);
 
         Selection.selectionChanged -= UpdateDisplay;
         Selection.selectionChanged += UpdateDisplay;
+
+        EditorApplication.playModeStateChanged -= HandlePlaymodeChanged;
+        EditorApplication.playModeStateChanged += HandlePlaymodeChanged;
         
         UpdateDisplay();
     }
-    
+
+    private void HandlePlaymodeChanged(PlayModeStateChange obj)
+    {
+        
+    }
+
     private void OnDestroy()
     {
         Debug.LogWarning("Destroyed runtime rig editor window.");
@@ -443,7 +461,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                         selectClipButton.clicked += () => clipField.value = clip;
 
                         entry.Add(selectClipButton);
-                        
+                        elementsToDisable.Add(selectClipButton);
                     }
 
                     if (withSpoofButton)
@@ -483,6 +501,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                         
                         entry.Add(spoofButton);
                         entry.Add(spoofIconImage);
+                        
+                        elementsToDisable.Add(spoofButton);
                     }
                     
                     clipList.Add(entry);
@@ -494,38 +514,64 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 
         if (withEditButton)
         {
-            var previewControlSection = new VisualElement();
-            previewControlSection.style.flexDirection = FlexDirection.RowReverse;
+            modeControlSection = new VisualElement();
+            modeControlSection.style.flexDirection = FlexDirection.RowReverse;
+            modeControlSection.style.display = DisplayStyle.None; //... only shown with both parent & nested animator
             
-            previewIconImage = new Image();
-            previewIconImage.style.alignSelf = Align.Center;
-            previewIconImage.image = previewIconTexture;
-            previewIconImage.scaleMode = ScaleMode.ScaleToFit;
-            previewIconImage.style.width = 16;
-            previewIconImage.style.height = 16;
+            //... RECORD BUTTON:
+            nestedEditIconImage = new Image();
+            nestedEditIconImage.style.alignSelf = Align.Center;
+            nestedEditIconImage.image = nestedEditIconTexture;
+            nestedEditIconImage.scaleMode = ScaleMode.ScaleToFit;
+            nestedEditIconImage.style.width = 16;
+            nestedEditIconImage.style.height = 16;
+            
+            nestedEditClipButton = new Button();
+            nestedEditClipButton.text = enterEditButtonLabel;
+            nestedEditClipButton.style.width = previewButtonWidth;
+            nestedEditClipButton.style.flexDirection = FlexDirection.RowReverse;
+            nestedEditClipButton.Add(nestedEditIconImage);
+            // nestedEditClipButton.style.display = DisplayStyle.None; //... only shown with both parent & nested animator
                             
-            previewClipButton = new Button();
-            previewClipButton.text = enterPreviewButtonLabel;
-            previewClipButton.style.width = previewButtonWidth;
-            previewClipButton.style.flexDirection = FlexDirection.RowReverse;
-            previewClipButton.Add(previewIconImage);
-                            
-            previewClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
-            previewClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
+            nestedEditClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+            nestedEditClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
      
-            previewClipButton.clicked += () => previewClipButton.Blur();
-            previewClipButton.clicked += ToggleNestedPreview;
+            nestedEditClipButton.clicked += () => nestedEditClipButton.Blur();
+            nestedEditClipButton.clicked += ToggleNestedEdit;
             
-            previewControlSection.Add(previewClipButton);
-            section.Add(previewControlSection);
+            modeControlSection.Add(nestedEditClipButton);
             
-            previewClipButton.style.display = DisplayStyle.None; //... only shown with both parent & nested animator
+            
+            //... PREVIEW BUTTON:
+            nestedPreviewIconImage = new Image();
+            nestedPreviewIconImage.style.alignSelf = Align.Center;
+            nestedPreviewIconImage.image = nestedPreviewIconTexture;
+            nestedPreviewIconImage.scaleMode = ScaleMode.ScaleToFit;
+            nestedPreviewIconImage.style.width = 16;
+            nestedPreviewIconImage.style.height = 16;
+            
+            nestedPreviewClipButton = new Button();
+            nestedPreviewClipButton.text = enterPreviewButtonLabel;
+            nestedPreviewClipButton.style.width = previewButtonWidth;
+            nestedPreviewClipButton.style.flexDirection = FlexDirection.RowReverse;
+            nestedPreviewClipButton.Add(nestedEditIconImage);
+            // nestedPreviewClipButton.style.display = DisplayStyle.None; //... only shown with both parent & nested animator
+
+            nestedPreviewClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+            nestedPreviewClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
+            
+            nestedPreviewClipButton.clicked += () => nestedPreviewClipButton.Blur();
+            nestedPreviewClipButton.clicked += ToggleNestedPreview;
+            
+            modeControlSection.Add(nestedPreviewClipButton);
+            
+            section.Add(modeControlSection);
+
         }
         
         return section;
     }
 
-    
 
     private VisualElement CreateControlsSection(ObjectField sourceField, ObjectField targetField)
     {
@@ -534,16 +580,16 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         var header = CreateHeaderSection(controlsLabel);
         section.Add(header);
 
-        Button recordButton = CreateRecordButton();
-        Button embedButton = CreateEmbedBindingsButton(sourceField, targetField);
-        Button stripButton = CreateStripBindingsButton();
-        
-        section.Add(embedButton);
-        section.Add(stripButton);
-        section.Add(recordButton);
-
-        var restoreRemoveSection = CreateNestedAnimatorToggleButton();
-        section.Add(restoreRemoveSection);
+        // Button recordButton = CreateRecordButton();
+        // Button embedButton = CreateEmbedBindingsButton(sourceField, targetField);
+        // Button stripButton = CreateStripBindingsButton();
+        //
+        // section.Add(embedButton);
+        // section.Add(stripButton);
+        // section.Add(recordButton);
+        //
+        // var restoreRemoveSection = CreateNestedAnimatorToggleButton();
+        // section.Add(restoreRemoveSection);
 
         logDebugToggle = new Toggle("logDebug");
         logDebugToggle.RegisterValueChangedCallback(evt =>
@@ -612,26 +658,21 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         }
     }
 
-    private void ToggleNestedPreview()
+    private void ToggleNestedEdit()
     {
-        isInNestedPreview = !isInNestedPreview;
+        isInNestedEdit = !isInNestedEdit;
 
-        if (isInNestedPreview)
+        if (isInNestedEdit)
         {
             if(logDebug)
                 Debug.LogWarning("Preview with clip-spoofing.");
             
             EmbedNestedAnimationClipBindings();
             CacheNestedAnimator();
-            /*
-             * ... ^^^ is this necessary...?
-             *  yes, if you click below the nested animator.
-             *  why would you do that? well to adjust something there w/ the clip you're previewing.
-             *  so when we exit, we should copy the embedded curves BACK to the nested clip.
-             */   
             EnterRecordingMode();
-            previewClipButton.text = exitPreviewButtonLabel;
-            previewIconImage.image = recordIconTexture;
+            
+            nestedEditClipButton.text = exitEditButtonLabel;
+            nestedEditIconImage.image = recordIconTexture;
         }
         else
         {
@@ -641,14 +682,82 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             RestoreNestedAnimationClipBindings();
             RestoreNestedAnimator();
             ExitRecordingMode();
-            previewClipButton.text = enterPreviewButtonLabel;
-            previewIconImage.image = previewIconTexture;
+            
+            nestedEditClipButton.text = enterEditButtonLabel;
+            nestedEditIconImage.image = nestedEditIconTexture;
         }
     }
-
-    private void ExitNestedPreview()
+    
+    private void EnterRecordingMode()
     {
-        if (!isInNestedPreview)
+        if(logDebug)
+            Debug.LogWarning("Entering recording mode.");
+        
+        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+        recordingPropInfo.SetValue(animWindowState, true);
+        rootVisualElement.style.backgroundColor = recordingBackgroundColor;
+        isRecording = true;
+    }
+
+    private void ExitRecordingMode()
+    {
+        if(logDebug)
+            Debug.LogWarning("Exiting recording mode.");
+        
+        StripNestedAnimationClip();
+        
+        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+        previewingPropInfo.SetValue(animWindowState, false);
+        rootVisualElement.style.backgroundColor = new Color(0, 0, 0, 0);
+        isRecording = false;
+    }
+
+    private void ToggleNestedPreview()
+    {
+        isInNestedPreview = !isInNestedPreview;
+
+        if (isInNestedPreview)
+        {
+            EmbedNestedAnimationClipBindings();
+            CacheNestedAnimator();
+            EnterPreviewMode();
+        }
+        else
+        {
+            RestoreNestedAnimationClipBindings();
+            RestoreNestedAnimator();
+            ExitPreviewMode();
+        }
+    }
+    
+    private void EnterPreviewMode()
+    {
+        if(logDebug)
+            Debug.LogWarning("Entering recording mode.");
+        
+        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+        previewingPropInfo.SetValue(animWindowState, true);
+        rootVisualElement.style.backgroundColor = previewingBackgroundColor;
+        isRecording = true;
+    }
+
+    private void ExitPreviewMode()
+    {
+        if(logDebug)
+            Debug.LogWarning("Exiting recording mode.");
+        
+        StripNestedAnimationClip();
+        
+        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+        previewingPropInfo.SetValue(animWindowState, false);
+        rootVisualElement.style.backgroundColor = new Color(0, 0, 0, 0);
+        isRecording = false;
+    }
+    
+
+    private void ExitPreviewMode_OLD()
+    {
+        if (!isInNestedEdit)
             return;
         
         StripNestedAnimationClip();
@@ -702,29 +811,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return recordButton;
     }
 
-    private void EnterRecordingMode()
-    {
-        if(logDebug)
-            Debug.LogWarning("Entering recording mode.");
-        
-        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
-        recordingPropInfo.SetValue(animWindowState, true);
-        rootVisualElement.style.backgroundColor = recordingBackgroundColor;
-        isRecording = true;
-    }
 
-    private void ExitRecordingMode()
-    {
-        if(logDebug)
-            Debug.LogWarning("Exiting recording mode.");
-        
-        StripNestedAnimationClip();
-        
-        animWindowState = animWindowStatePropInfo.GetValue(animWindow);
-        previewingPropInfo.SetValue(animWindowState, false);
-        rootVisualElement.style.backgroundColor = new Color(0, 0, 0, 0);
-        isRecording = false;
-    }
 
     private VisualElement CreateNestedAnimatorToggleButton()
     {
@@ -793,8 +880,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         
         DestroyImmediate(nestedAnimator);
 
-        removeButton.style.display = DisplayStyle.None;
-        restoreButton.style.display = DisplayStyle.Flex;
+        // removeButton.style.display = DisplayStyle.None;
+        // restoreButton.style.display = DisplayStyle.Flex;
         
         cachingNestedAnimator = true;
     }
@@ -804,8 +891,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         if (!cachingNestedAnimator)
             return;
         
-        removeButton.style.display = DisplayStyle.Flex;
-        restoreButton.style.display = DisplayStyle.None;
+        // removeButton.style.display = DisplayStyle.Flex;
+        // restoreButton.style.display = DisplayStyle.None;
 
         nestedAnimator = cachedNestedAnimatorGameObject.AddComponent<Animator>();
         nestedAnimatorField.value = nestedAnimator;
@@ -978,7 +1065,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         }
         
         //... only show the preview nested clip button if we've got both animators in place:
-        previewClipButton.style.display = DisplayStyle.None;
+        modeControlSection.style.display = DisplayStyle.None;
+        // nestedEditClipButton.style.display = DisplayStyle.None;
         
         parentAnimatorField.value = null;
         nestedAnimatorField.value = null;
@@ -993,7 +1081,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             selectionMessage.style.display = DisplayStyle.Flex;
             parentSection.style.display = DisplayStyle.None;
             nestedAnimatorSection.style.display = DisplayStyle.None;
-            controlsSection.style.display = DisplayStyle.None;
+            // controlsSection.style.display = DisplayStyle.None;
             return;
         }
         
@@ -1037,7 +1125,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 UpdateSpoofSelectionDisplay(firstClip, nestedClipToElementLookup);   
             }
             
-            previewClipButton.style.display = DisplayStyle.Flex;
+            modeControlSection.style.display = DisplayStyle.Flex;
         }
 
         if (nestedAnimator == null && parentAnimator == null)
@@ -1045,7 +1133,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             selectionMessage.style.display = DisplayStyle.Flex;
             parentSection.style.display = DisplayStyle.None;
             nestedAnimatorSection.style.display = DisplayStyle.None;
-            controlsSection.style.display = DisplayStyle.None;
+            // controlsSection.style.display = DisplayStyle.None;
         }
         else
         {
@@ -1057,8 +1145,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             if(nestedAnimator != null)
                 nestedAnimatorSection.style.display = DisplayStyle.Flex;
             
-            if(parentAnimator != null && nestedAnimator != null)
-                controlsSection.style.display = DisplayStyle.Flex;
+            // if(parentAnimator != null && nestedAnimator != null)
+            //     controlsSection.style.display = DisplayStyle.Flex;
         }
     }
 
@@ -1071,10 +1159,31 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 
     private void ShowButton(Rect rect)
     {
-        if(this.lockButtonStyle == null)
-            this.lockButtonStyle = "IN LockButton";
-        this.locked = GUI.Toggle(rect, this.locked, GUIContent.none, this.lockButtonStyle);
+        if(lockButtonStyle == null)
+            lockButtonStyle = "IN LockButton";
+
+        // if (debugButtonStyle == null)
+        //     debugButtonStyle = "MiniButton";
+
+        using (new GUILayout.HorizontalScope())
+        {
+            locked = GUI.Toggle(rect, locked, GUIContent.none, lockButtonStyle);
+            // logDebug = GUI.Toggle(rect, logDebug, GUIContent.none, debugButtonStyle);
+        }
     }
+    
+    // protected virtual void AddItemsToMenu(GenericMenu menu)
+    // {
+    //     menu.AddItem(new GUIContent("My Option 1"), false, () => Debug.Log("Clicked Option 1"));
+    //     menu.AddItem(new GUIContent("My Option 2"), false, () => Debug.Log("Clicked Option 2"));
+    // }
+    
+    // private void ShowButton(Rect rect)
+    // {
+    //     if(this.lockButtonStyle == null)
+    //         this.lockButtonStyle = "IN LockButton";
+    //     this.locked = GUI.Toggle(rect, this.locked, GUIContent.none, this.lockButtonStyle);
+    // }
 
     public void AddItemsToMenu(GenericMenu menu)
     {
@@ -1087,6 +1196,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 UpdateDisplay();
             }
             );
+        
+        menu.AddItem(new GUIContent("Debug"), this.logDebug, () => logDebug = !logDebug);
     }
 
     
