@@ -19,7 +19,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: {x: 41.119, y: 142.303, z: 8.048}
+        value: {x: -20.035, y: 29.151, z: -16.988}
         inSlope: {x: 0, y: 0, z: 0}
         outSlope: {x: 0, y: 0, z: 0}
         tangentMode: 0
@@ -32,49 +32,7 @@ AnimationClip:
     path: runtimeRigA/rotConstraint/rotTarget
   m_PositionCurves: []
   m_ScaleCurves: []
-  m_FloatCurves:
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0.388
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_Data.m_SourceObjects.m_Item0.weight
-    path: runtimeRigA/multiParent
-    classID: 114
-    script: {fileID: 11500000, guid: 8935e03361a14ec4b8edc872f76bc822, type: 3}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0.768
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_Data.m_SourceObjects.m_Item1.weight
-    path: runtimeRigA/multiParent
-    classID: 114
-    script: {fileID: 11500000, guid: 8935e03361a14ec4b8edc872f76bc822, type: 3}
-    flags: 0
+  m_FloatCurves: []
   m_PPtrCurves: []
   m_SampleRate: 60
   m_WrapMode: 0
@@ -111,49 +69,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.388
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_Data.m_SourceObjects.m_Item0.weight
-    path: runtimeRigA/multiParent
-    classID: 114
-    script: {fileID: 11500000, guid: 8935e03361a14ec4b8edc872f76bc822, type: 3}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 0.768
-        inSlope: 0
-        outSlope: 0
-        tangentMode: 136
-        weightedMode: 0
-        inWeight: 0
-        outWeight: 0
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-    attribute: m_Data.m_SourceObjects.m_Item1.weight
-    path: runtimeRigA/multiParent
-    classID: 114
-    script: {fileID: 11500000, guid: 8935e03361a14ec4b8edc872f76bc822, type: 3}
-    flags: 0
-  - serializedVersion: 2
-    curve:
-      serializedVersion: 2
-      m_Curve:
-      - serializedVersion: 3
-        time: 0
-        value: 41.119
+        value: -20.035
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -174,7 +90,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 142.303
+        value: 29.151
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -195,7 +111,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 8.048
+        value: -16.988
         inSlope: 0
         outSlope: 0
         tangentMode: 0
