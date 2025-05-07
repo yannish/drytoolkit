@@ -22,20 +22,13 @@ namespace drytoolkit.Runtime.Animation
 
         
         const int MAX_STATE_HANDLES = 16; //TODO:... are these maxes necessary? can't we add / subtract inputs at will?
-        
         const int MAX_ONESHOT_HANDLES = 16;
-        
         const float BLEND_EPSILON = 0.001f;
         
-
         public bool logDebug;
-        
         public float currStateSmoothDampTime = -1f;
-
         public float currStateMoveTowardsTime = -1f;
-        
         public bool rewire = false;
-
         public bool rebind = false;
         
         
@@ -53,13 +46,9 @@ namespace drytoolkit.Runtime.Animation
         public List<OneShotClipHandle> additiveOneShotClipHandles = new List<OneShotClipHandle>();
 
         
-        
-        private Animator animator;
-        
         public PlayableGraph graph { get; private set; }
-        
+        private Animator animator;
         private Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
-
         
         private AnimationClipPlayable oneShotPlayable;
         private readonly AnimationLayerMixerPlayable topLevelMixer;
@@ -722,8 +711,6 @@ namespace drytoolkit.Runtime.Animation
         }
         #endregion
         
-        
-
         // playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
         // rebindMethod.Invoke(animator, new object[] { false });
         

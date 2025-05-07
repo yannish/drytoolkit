@@ -912,6 +912,10 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         nestedPreviewClipButton.SetEnabled(true);
         foreach(var element in elementsToDisable)
             element.SetEnabled(true);
+        
+        //... TODO: when clicking away from editor, it will stay in preview mode. tweak here?
+        isInNestedEdit = false;
+        isInNestedPreview = false;
     }
 
     
@@ -1153,10 +1157,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
             targetClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
         }
 
-        
-        /*
-         * include "spoof" clips. these will be copied into parent clip, but won't be copied back out afterwards.
-         */
+
+        //...include "spoof" clips. these will be copied into parent clip, but won't be copied back out afterwards.
         cachedSpoofClipBindings.Clear();
 
         foreach (var clip in spoofedClips)
@@ -1175,7 +1177,8 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                 {
                     if (spoofClipBinding.path == nestedClipBinding.path)
                     {
-                        Debug.LogWarning($"spoof clip path {spoofClipBinding.path} was same as existing nested clip path, discarding...");
+                        if(logDebug)
+                            Debug.LogWarning($"spoof clip path {spoofClipBinding.path} was same as existing nested clip path, discarding...");
                         bindingCollision = true;
                         break;
                     }
@@ -1251,6 +1254,7 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
                     parentAnimatorField.value = nestedAnimator;
                     nestedAnimatorField.value = null;
                     parentAnimator = null;
+                    
                     ExitNestedAnimationContext();
                 }
                 
