@@ -347,7 +347,13 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         return messageBox;
     }
     
-    private VisualElement CreateHeader(string headerLabel, out ObjectField objectField, Type fieldType, float indent = 0f, bool enableObjectField = false)
+    private VisualElement CreateHeader(
+        string headerLabel,
+        out ObjectField objectField,
+        Type fieldType,
+        float indent = 0f,
+        bool enableObjectField = false
+        )
     {
         VisualElement section = new VisualElement();
         section.style.flexDirection = FlexDirection.Row;
@@ -362,7 +368,6 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         objectField.SetEnabled(enableObjectField);
         
         Label header = new Label(headerLabel);
-
         header.style.unityFontStyleAndWeight = FontStyle.Bold;
         header.style.fontSize = 14; 
         header.style.alignSelf = Align.Center;
@@ -371,7 +376,6 @@ public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
         // 🎨 Optional background color
         header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
         header.style.color = Color.white; 
-
         header.style.flexGrow = 1;
         
         // 🧱 Padding and spacing
