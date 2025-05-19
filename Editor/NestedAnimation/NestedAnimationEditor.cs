@@ -1,15 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Object = System.Object;
 
 namespace drytoolkit.Editor.NestedAnimation
 {
     public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
     {
-        [MenuItem("Tools/Nested Animation Editor")]
+        [MenuItem("Tools/Nested Animation Editor %#e")]
         public static void ShowWindow()
         {
             var openInstances = Resources.FindObjectsOfTypeAll<NestedAnimationEditor>();
@@ -37,50 +41,452 @@ namespace drytoolkit.Editor.NestedAnimation
         }
 
         private bool isConnected => connectedAnimatorField.value != null;
+        private Animator connectedAnimator => connectedAnimatorField.value as Animator;
+        private Animator selectedAnimator => selectedAnimatorField.value as Animator;
         
-        private Animator parentAnimator;
+        
         private List<Animator> nestedAnimators;
 
         private AnimationClip selectedParentClip;
         private AnimationClip selectedNestedClip;
 
         
+        //... ELEMENTS:
+        private VisualElement root;
+        private ScrollView scrollView;
+        
         private VisualElement disconnectedElement;
-        private VisualElement selectedAnimatorElement;
-        private VisualElement connectedAnimatorElement;
+        private VisualElement selectedAnimatorHeaderElement;
+        private VisualElement connectionButtonsElement;
+        private VisualElement connectedAnimatorHeaderElement;
+        private VisualElement nestedAnimatorHeaderElement;
+
+        private VisualElement connectedAnimatorHolderElement;
+
+        private VisualElement connectedAnimatorControlsElement;
+        
+        private List<VisualElement> animatorSections;
         
         private ObjectField selectedAnimatorField;
         private ObjectField connectedAnimatorField;
+        private ObjectField nestedAnimatorField;
+
+        private ObjectField selectedClipField;
+
+        private VisualElement allClipElements;
+        // private List<VisualElement> allClipElements = new List<VisualElement>();
+        private List<VisualElement> elementsToDisable = new List<VisualElement>();
+        
+        
+        //... COLORS:
+        private Color backgroundGrey;
+        private Color selectedBackgroundColor;
+        private Color recordingBackgroundColor;
+        private Color previewingBackgroundColor;
+        private Color selectedRecordingBackgroundColor;
+
+        
+        //... TEXTURES:
+        private Texture buttonIconTexture;
+        private Texture dupeIconTexture;
+        private Texture editIconTexture;
+        private Texture nestedEditIconTexture;
+        private Texture nestedPreviewIconTexture;
+        private Texture2D recordIconTexture;
+        
+        
+        //... LABELS:
+        private const string controlsLabel = "CONTROLS :";
+        private const string parentLabel = "PARENT :";
+        private const string nestedLabel = "\u2937 NESTED :";
+        private const string enterEditButtonLabel = "EDIT";
+        private const string exitEditButtonLabel= "... DONE";
+        private const string enterPreviewButtonLabel = "PREVIEW";
+        private const string exitPreviewButtonLabel = "... DONE";
+        
+        
+        //... ANIMATION WINDOW REFLECTION CONTROLS:
+        private AnimationWindow animWindow;
+        private Type animWindowType;
+        private Type animWindowStateType;
+        private PropertyInfo animWindowStatePropInfo;
+        private PropertyInfo recordingPropInfo;
+        private PropertyInfo previewingPropInfo;
+        private object animWindowState;
+        
         
         public void CreateGUI()
         {
-            var root = rootVisualElement;
+            ScrollView scrollView = new ScrollView(ScrollViewMode.Vertical);
+            scrollView.style.flexGrow = 1;
+            rootVisualElement.Add(scrollView);
             
+            root = scrollView;
+
             SetColors();
             SetIcons();
+            SetTextures();
             FetchAnimationWindow();
 
             // selectedAnimatorField = CreateSelectedAnimatorElement();
-            disconnectedElement = CreateDisconnectedElement();
+            // disconnectedElement = CreateDisconnectedElement();
             // connectedAnimatorField = CreateConnectedAnimatorField();
+            
+            selectedClipField = new ObjectField("Selected Clip");
+            selectedClipField.objectType = typeof(AnimationClip);
+            selectedClipField.style.display = DisplayStyle.None;
+            root.Add(selectedClipField);
 
-            selectedAnimatorElement = CreateObjectFieldWithHeader(
-                "Selected Animator",
-                out selectedAnimatorField,
-                typeof(Animator)
-            );
 
-            connectedAnimatorElement = CreateConnectedAnimatorElement(out connectedAnimatorField);
+            selectedAnimatorHeaderElement = CreateObjectFieldWithHeader("Selected Animator", out selectedAnimatorField, typeof(Animator));
+
+            connectionButtonsElement = CreateConnectButtons();
+            selectedAnimatorHeaderElement.Add(connectionButtonsElement);
+            
+            connectedAnimatorHeaderElement = CreateConnectedAnimatorElement(out connectedAnimatorField);
             disconnectedElement = CreateDisconnectedElement();
             
+            nestedAnimatorHeaderElement = CreatedNestedAnimatorElement(out nestedAnimatorField);
+            
+            // var dummyLabel = new Label("Dummy Label");
+            // connectedAnimatorHeaderElement.Add(dummyLabel);
+            
+            // nestedAnimatorField = new ObjectField("Nested Animator");
             // connectedAnimatorElement.Add(disconnectedElement);
             
-            root.Add(selectedAnimatorElement);
-            // root.Add(disconnectedElement);
-            root.Add(connectedAnimatorElement);
+            root.Add(selectedAnimatorHeaderElement);
+            // root.Add(connectionButtonsElement);
+            root.Add(connectedAnimatorHeaderElement);
+            root.Add(disconnectedElement);
+            root.Add(nestedAnimatorHeaderElement);
+            
+            Selection.selectionChanged -= HandleSelectionChange;
+            Selection.selectionChanged += HandleSelectionChange;
+            
+            HandleSelectionChange();
+            
+            // root.Add(connectedAnimatorElement);
+        }
+        
+        private void FetchAnimationWindow()
+        {
+            //... cache some stuff for reflection
+            animWindow = GetWindow<AnimationWindow>();
+            animWindowType = Type.GetType("UnityEditor.AnimationWindow, UnityEditor");
+            animWindowStatePropInfo = animWindowType.GetProperty("state", BindingFlags.NonPublic | BindingFlags.Instance);
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            animWindowStateType = animWindowState.GetType();
+            recordingPropInfo = animWindowStateType.GetProperty("recording", BindingFlags.Public | BindingFlags.Instance);
+            previewingPropInfo = animWindowStateType.GetProperty("previewing", BindingFlags.Public | BindingFlags.Instance);
         }
 
-        private const float headerHeight = 30;
+        private void SetIcons()
+        {
+            
+        }
+
+        private void SetColors()
+        {
+            backgroundGrey = new Color(0.3f, 0.3f, 0.3f, 1f);
+            selectedBackgroundColor = new Color(0.4f, 0.4f, 0.6f, 1f);
+            selectedRecordingBackgroundColor = new Color(0.5f, 0.3f, 0.3f, 1f);
+            recordingBackgroundColor = new Color(0.295f, 0.145f, 0.145f, 1f);
+            previewingBackgroundColor = new Color(0.1568627f, 0.2509804f, 0.2941176f,1f);
+        }
+
+        private void SetTextures()
+        {
+            buttonIconTexture = EditorGUIUtility.IconContent("d_PlayButton").image;
+            dupeIconTexture = EditorGUIUtility.IconContent("Animator Icon").image;
+            editIconTexture = EditorGUIUtility.IconContent("CollabEdit Icon").image;
+            recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image as Texture2D;
+            nestedEditIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
+            nestedPreviewIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
+        }
+        
+
+        
+        //... CONNECT:
+        private Button connectButton;
+        private Button disconnectButton;
+        private const float buttonMargin = 4;
+        private const float buttonMinWidth = 150;
+        private const float buttonWidth = 32f;
+        private const float connectedAnimatorIndentPadding = 20f;
+        
+        private VisualElement CreateConnectButtons()
+        {
+            VisualElement connectButtonSection = new VisualElement();
+            connectButtonSection.style.flexDirection = FlexDirection.Row;
+            connectButtonSection.style.marginTop = buttonMargin;
+            connectButtonSection.style.marginBottom = buttonMargin;
+            
+            connectButton = new Button();
+            connectButton.text = "CONNECT";
+            connectButton.SetEnabled(false);
+            connectButton.style.minWidth = buttonMinWidth;
+            connectButton.style.alignSelf = Align.FlexEnd;
+            connectButton.style.flexDirection = FlexDirection.Row;
+            // connectButton.style.flex
+            connectButton.style.flexGrow = 1;
+
+            connectButton.clicked += () =>
+            {
+                connectButton.Blur();
+                ConnectAnimator();
+            };
+
+            
+            disconnectButton = new Button();
+            disconnectButton.text = "DISCONNECT";
+            disconnectButton.SetEnabled(false);
+            disconnectButton.style.minWidth = buttonMinWidth;
+            disconnectButton.style.alignSelf = Align.FlexEnd;
+            disconnectButton.style.flexDirection = FlexDirection.Row;
+            disconnectButton.style.flexGrow = 1;
+
+            disconnectButton.clicked += () =>
+            {
+                connectButton.Blur();
+                DisconnectAnimator();
+            };
+            
+            
+            connectButtonSection.Add(connectButton);
+            connectButtonSection.Add(disconnectButton);
+            
+            return connectButtonSection;
+        }
+
+        private void ConnectAnimator()
+        {
+            DisconnectAnimator();
+            
+            if (selectedAnimatorField.value == null || animWindow == null)
+                return;
+            
+            if (
+                selectedAnimatorField.value is Animator animator
+                && animator.runtimeAnimatorController == null
+                )
+            {
+                Debug.LogWarning($"Animator {animator.name} has no controller.");
+                return;
+            }
+            
+            connectedAnimatorField.value = selectedAnimatorField.value;
+            disconnectedElement.style.display = DisplayStyle.None;
+            disconnectButton.SetEnabled(true);
+            connectedAnimatorLabel.SetEnabled(true);
+
+            EditorApplication.update -= EditorApplicationUpdate;
+            EditorApplication.update += EditorApplicationUpdate;
+            
+            //... build animator UI:
+            connectedAnimatorControlsElement = new VisualElement();
+            connectedAnimatorControlsElement.style.paddingTop = 6f;
+            connectedAnimatorControlsElement.style.paddingBottom = 20f;
+            connectedAnimatorControlsElement.style.flexDirection = FlexDirection.Column;
+            // connectedAnimatorControlsElement.style.display = DisplayStyle.None;
+            // connectedAnimatorControlsElement.style.overflow = Overflow.Hidden;
+
+            
+            elementsToDisable.Clear();
+            
+            allClipElements = new VisualElement();
+            allClipElements.style.flexDirection = FlexDirection.Column;
+            
+            foreach (var clip in connectedAnimator.runtimeAnimatorController.animationClips)
+            {
+                var clipElement = new VisualElement();
+                clipElement.style.flexDirection = FlexDirection.RowReverse;
+                clipElement.style.flexGrow = 1;
+                clipElement.style.paddingLeft = connectedAnimatorIndentPadding;
+                
+                var clipField = new ObjectField();
+                clipField.style.flexGrow = 1;
+                clipField.objectType = typeof(AnimationClip);
+                clipField.value = clip;
+                
+                var selectIconImage = new Image();
+                selectIconImage.style.alignSelf = Align.Center;
+                selectIconImage.image = editIconTexture;
+                selectIconImage.scaleMode = ScaleMode.ScaleToFit;
+                selectIconImage.style.width = 16;
+                selectIconImage.style.height = 16;
+
+                var selectClipButton = new Button();
+                selectClipButton.style.width = buttonWidth;
+                selectClipButton.Add(selectIconImage);
+                        
+                // selectClipButton.RegisterCallback<FocusInEvent>(e => e.StopPropagation());
+                // selectClipButton.RegisterCallback<BlurEvent>(e => e.StopPropagation());
+
+                selectClipButton.clicked += () =>
+                {
+                    selectClipButton.Blur();
+                    selectedClipField.value = clip;
+                    
+                    if (HasOpenInstances<AnimationWindow>())
+                    {
+                        if (connectedAnimator.gameObject != Selection.activeGameObject)
+                        {
+                            Debug.LogWarning("setting selected animator for animWindow's sake!");
+                            Selection.activeGameObject = connectedAnimator.gameObject;
+                        }
+                        
+                        var animationWindow = GetWindow<AnimationWindow>();
+                        if(animationWindow.animationClip != clip)
+                            animationWindow.animationClip = clip;
+                        animationWindow.Repaint();
+                        
+                        UpdateSelectedAnimationClip(allClipElements, clip);
+                    }
+                };
+                
+                clipElement.Add(clipField);
+                clipElement.Add(selectClipButton);
+                
+                //...
+                allClipElements.Add(clipElement);
+                
+                //... track so that we can disable in edit mode:
+                elementsToDisable.Add(clipElement);
+            }
+            
+            connectedAnimatorControlsElement.Add(allClipElements);
+
+            //... try set selected clip to whatever we stashed in selectedClipField:
+            if (
+                selectedClipField.value != null 
+                && selectedClipField.value is AnimationClip selectedClip
+                && connectedAnimator.runtimeAnimatorController.animationClips.Contains(selectedClip)
+                )
+            {
+                // Debug.LogWarning("this animator has the last clip we set as selected");                    
+            }
+            //... otherwise set the selected clip to whatever's first in the animator controller:
+            else
+            {
+                // Debug.LogWarning("setting to what was in the window");
+                selectedClipField.value = animWindow.animationClip;
+            }
+            
+            //... then update our visuals to match:
+            UpdateSelectedAnimationClip(allClipElements, selectedClipField.value as AnimationClip);
+            
+            //... finally add to the root (which is atm a scrollview)
+            //... TODO: maybe scrollview should only cover the clips section...
+            connectedAnimatorHeaderElement.Add(connectedAnimatorControlsElement);
+            // root.Add(connectedAnimatorControlsElement);
+            
+            
+            //... now do the nested animator if we have one:
+            if (nestedAnimatorField.value == null)
+                return;
+        }
+
+        private void DisconnectAnimator()
+        {
+            connectedAnimatorField.value = null;
+            disconnectedElement.style.display = DisplayStyle.Flex;
+            disconnectButton?.SetEnabled(false);
+            connectedAnimatorLabel?.SetEnabled(false);
+            EditorApplication.update -= EditorApplicationUpdate;
+
+            //... shut down UI:
+            if (connectedAnimatorControlsElement != null)
+            {
+                connectedAnimatorControlsElement.Clear();
+                connectedAnimatorHeaderElement.Remove(connectedAnimatorControlsElement);
+                connectedAnimatorControlsElement = null;
+            }
+        }
+
+        private void UpdateSelectedAnimationClip(VisualElement clipsElement, AnimationClip selectedClip)
+        {
+            foreach (var element in clipsElement.Children())
+            {
+                element.style.backgroundColor = new Color(0, 0, 0, 0);
+                foreach (var subChild in element.Children())
+                {
+                    if (subChild is ObjectField objectField && objectField.value == selectedClip)
+                    {
+                        element.style.backgroundColor = selectedBackgroundColor;
+                    }
+                }
+            }
+        }
+
+        private void EditorApplicationUpdate()
+        {
+            if (isConnected)
+            {
+                Animator animator = connectedAnimatorField.value as Animator;
+                if (animator != null)
+                {
+                    if (animator.runtimeAnimatorController == null)
+                    {
+                        Debug.LogWarning("connected animator lost its runtimeAnimatorController, disconnecting.");
+                        DisconnectAnimator();
+                    }
+                }
+            }
+        }
+        
+
+        //... SELECTED ANIMATOR:
+        private const float headerPadding = 20;
+        private const float headerHeight = 26;
+        private const float selectedAnimatorMarginTop = 6;
+        private const float selectedAnimatorMarginBottom = 10;
+
+        private VisualElement CreateSelectedAnimatorElement(out ObjectField objectField)
+        {
+            VisualElement columnSection = new VisualElement();
+            columnSection.style.flexDirection = FlexDirection.Column;
+            columnSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            columnSection.style.marginBottom = selectedAnimatorMarginBottom;
+            columnSection.style.marginTop = selectedAnimatorMarginTop;
+            
+            VisualElement rowSection = new VisualElement();
+            rowSection.style.flexDirection = FlexDirection.Row;
+            rowSection.style.height = headerHeight;
+            // section.style.paddingBottom = headerPadding;
+
+            objectField = new ObjectField();
+            objectField.objectType = typeof(Animator);
+            objectField.style.flexDirection = FlexDirection.Row;
+            objectField.style.flexGrow = 1;
+            objectField.style.alignSelf = Align.Center;
+            objectField.SetEnabled(true);
+            
+            Label header = new Label("SELECTED ANIMATOR");
+            header.style.unityFontStyleAndWeight = FontStyle.Bold;
+            header.style.fontSize = 14; 
+            // header.style.alignSelf = Align.Center;
+            // header.style.paddingRight = indent;
+
+            // 🎨 Optional background color
+            header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            header.style.color = Color.white; 
+            header.style.flexGrow = 1;
+        
+            // 🧱 Padding and spacing
+            header.style.paddingLeft = 6;
+            header.style.paddingTop = 4;
+            header.style.paddingBottom = 4;
+            header.style.marginBottom = 4;
+
+            rowSection.Add(header);
+            rowSection.Add(objectField);
+            
+            columnSection.Add(rowSection);
+            // section.Add(connectButton);
+
+            return columnSection;
+        }
+        
         private VisualElement CreateObjectFieldWithHeader(
             string headerLabel,
             out ObjectField objectField,
@@ -90,10 +496,16 @@ namespace drytoolkit.Editor.NestedAnimation
             bool allowSceneObjects = true
         )
         {
-            VisualElement section = new VisualElement();
-            section.style.flexDirection = FlexDirection.Row;
-            section.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
-            section.style.height = headerHeight;
+            VisualElement columnSection = new VisualElement();
+            columnSection.style.flexDirection = FlexDirection.Column;
+            columnSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            columnSection.style.marginBottom = selectedAnimatorMarginBottom;
+            columnSection.style.marginTop = selectedAnimatorMarginTop;
+            
+            VisualElement rowSection = new VisualElement();
+            rowSection.style.flexDirection = FlexDirection.Row;
+            rowSection.style.height = headerHeight;
+            // section.style.paddingBottom = headerPadding;
 
             objectField = new ObjectField();
             objectField.objectType = fieldType;
@@ -105,7 +517,7 @@ namespace drytoolkit.Editor.NestedAnimation
             Label header = new Label(headerLabel);
             header.style.unityFontStyleAndWeight = FontStyle.Bold;
             header.style.fontSize = 14; 
-            header.style.alignSelf = Align.Center;
+            // header.style.alignSelf = Align.Center;
             header.style.paddingRight = indent;
 
             // 🎨 Optional background color
@@ -118,11 +530,14 @@ namespace drytoolkit.Editor.NestedAnimation
             header.style.paddingTop = 4;
             header.style.paddingBottom = 4;
             header.style.marginBottom = 4;
-            
-            section.Add(header);
-            section.Add(objectField);
 
-            return section;
+            rowSection.Add(header);
+            rowSection.Add(objectField);
+            
+            columnSection.Add(rowSection);
+            // section.Add(connectButton);
+
+            return columnSection;
         }
 
         private VisualElement CreateHeaderSection(string headerLabel, float indent = 0f)
@@ -132,33 +547,44 @@ namespace drytoolkit.Editor.NestedAnimation
             headerSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
             headerSection.style.height = headerHeight;
             
-            Label header = new Label(headerLabel);
-            header.style.unityFontStyleAndWeight = FontStyle.Bold;
-            header.style.fontSize = 14; 
-            header.style.alignSelf = Align.Center;
-            header.style.paddingRight = indent;
+            Label label = new Label(headerLabel);
+            label.style.unityFontStyleAndWeight = FontStyle.Bold;
+            label.style.fontSize = 14; 
+            label.style.alignSelf = Align.Center;
+            label.style.paddingRight = indent;
 
             // 🎨 Optional background color
-            header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
-            header.style.color = Color.white; 
-            header.style.flexGrow = 1;
+            label.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            label.style.color = Color.white; 
+            label.style.flexGrow = 1;
         
             // 🧱 Padding and spacing
-            header.style.paddingLeft = 6;
-            header.style.paddingTop = 4;
-            header.style.paddingBottom = 4;
-            header.style.marginBottom = 4;
+            label.style.paddingLeft = 6;
+            label.style.paddingTop = 4;
+            label.style.paddingBottom = 4;
+            label.style.marginBottom = 4;
+            
+            headerSection.Add(label);
             
             return headerSection;
         }
 
-        private Button connectButton;
+        
+        //... CONNECTED ANIMATOR:
+        Label connectedAnimatorLabel;
         private VisualElement CreateConnectedAnimatorElement(out ObjectField objectField)
         {
+            VisualElement holderSection = new VisualElement();
+            holderSection.style.flexDirection = FlexDirection.Column;
+            holderSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            holderSection.style.marginBottom = selectedAnimatorMarginBottom;
+            
             VisualElement headerSection = CreateHeaderSection("Connected Animator");
-            headerSection.style.flexDirection = FlexDirection.Column;
+            // headerSection.style.flexDirection = FlexDirection.Row;
+            // headerSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            // headerSection.style.height = headerHeight;
             // headerSection.style.flexGrow = 1;
-            // headerSection.style.paddingTop = 20;
+            // headerSection.style.marginTop = 20;
             
             // VisualElement objectSection = new VisualElement();
             // objectSection.style.flexDirection = FlexDirection.Row;
@@ -166,56 +592,55 @@ namespace drytoolkit.Editor.NestedAnimation
             objectField = new ObjectField();
             objectField.objectType = typeof(Animator);
             objectField.style.flexDirection = FlexDirection.Row;
-            // objectField.style.flexGrow = 1;
-            // objectField.style.alignSelf = Align.FlexEnd;
+            objectField.style.flexGrow = 1;
+            objectField.style.alignSelf = Align.Center;
             objectField.SetEnabled(false);
 
-            Button connectButton = new Button();
-            connectButton.text = "Connect";
-            connectButton.SetEnabled(false);
-            connectButton.style.alignSelf = Align.FlexEnd;
+            connectedAnimatorLabel = new Label("Connected Animator");
+            connectedAnimatorLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            connectedAnimatorLabel.style.fontSize = 14; 
+            // header.style.alignSelf = Align.Center;
+            // header.style.paddingRight = indent;
 
-                    
+            // 🎨 Optional background color
+            connectedAnimatorLabel.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            connectedAnimatorLabel.style.color = Color.white; 
+            connectedAnimatorLabel.style.flexGrow = 1;
+        
+            // 🧱 Padding and spacing
+            connectedAnimatorLabel.style.paddingLeft = 6;
+            connectedAnimatorLabel.style.paddingTop = 4;
+            connectedAnimatorLabel.style.paddingBottom = 4;
+            connectedAnimatorLabel.style.marginBottom = 4;
+
+            // headerSection.Add(connectedAnimatorLabel);
             headerSection.Add(objectField);
-            headerSection.Add(connectButton);
+            holderSection.Add(headerSection);
+
+            // headerSection.Add(objectField);
+            // headerSection.Add(connectButton);
             
             // headerSection.Add(objectSection);
             
-            return headerSection;
-        }
-        
-        private ObjectField CreateConnectedAnimatorField()
-        {
-            connectedAnimatorField = new ObjectField("Connected Animator");
-            connectedAnimatorField.objectType = typeof(Animator);
-            connectedAnimatorField.style.flexDirection = FlexDirection.Row;
-            connectedAnimatorField.allowSceneObjects = true;
-            connectedAnimatorField.SetEnabled(false);
-            
-            connectedAnimatorField.RegisterValueChangedCallback(evt =>
-            {
-                Debug.LogWarning("Changed connected animator.");
-            });
-            
-            return connectedAnimatorField;
+            return holderSection;
         }
 
-        private ObjectField CreateSelectedAnimatorElement()
+        private VisualElement CreatedNestedAnimatorElement(out ObjectField objectField)
         {
-            selectedAnimatorField = new ObjectField("Selected Animator");
-            selectedAnimatorField.objectType = typeof(Animator);
-            selectedAnimatorField.style.flexDirection = FlexDirection.Row;
-            // selectedAnimatorField.style.flexGrow = 1;
-            // selectedAnimatorField.style.alignSelf = Align.Center;
-            selectedAnimatorField.allowSceneObjects = true;
+            VisualElement headerSection = CreateHeaderSection(nestedLabel);
             
-            selectedAnimatorField.RegisterValueChangedCallback(evt =>
-            {
-                Debug.LogWarning("Changed selected animator.");
-            });
+            objectField = new ObjectField();
+            objectField.objectType = typeof(Animator);
+            objectField.style.flexDirection = FlexDirection.Row;
+            objectField.style.flexGrow = 1;
+            objectField.style.alignSelf = Align.Center;
+            objectField.SetEnabled(false);
+
+            headerSection.Add(objectField);
             
-            // currSelectedAnimator.SetEnabled(false);
-            return selectedAnimatorField;
+            // var nestedAnimatorLabel = new Label("Nested Animator");
+            
+            return headerSection;
         }
 
         private VisualElement CreateDisconnectedElement()
@@ -240,7 +665,7 @@ namespace drytoolkit.Editor.NestedAnimation
             disconnectedMessage.style.unityFontStyleAndWeight = FontStyle.Italic;
             disconnectedMessage.style.display = DisplayStyle.Flex;
 
-            var messageLabel = new Label("Connect to an Animator.");
+            var messageLabel = new Label("Select an Animator and hit connect to start editing.");
             messageLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             disconnectedMessage.Add(messageLabel);
             
@@ -250,39 +675,42 @@ namespace drytoolkit.Editor.NestedAnimation
         }
 
 
-        AnimationWindow animationWindow;
-        private void FetchAnimationWindow()
+        private bool locked = false;
+        private void HandleSelectionChange()
         {
-            animationWindow = GetWindow<AnimationWindow>();
-            //.. cache some stuff for reflection
-        }
+            if (locked)
+                return;
 
-        private void SetIcons()
-        {
+            if (Selection.activeGameObject == null)
+            {
+                selectedAnimatorField.value = null;
+                connectButton.SetEnabled(false);
+                return;
+            }
             
+            var foundAnimators = Selection.activeGameObject.GetComponents<Animator>();
+            if (foundAnimators.Length == 0)
+                return;
+            
+            selectedAnimatorField.value = foundAnimators[0];
+            connectButton.SetEnabled(true);
+
+            if (foundAnimators.Length <= 1)
+                return;
+            
+            nestedAnimatorField.value = foundAnimators[1];
         }
 
-        
-        private Color backgroundGrey;
-        private Color selectedBackgroundColor;
-        private Color recordingBackgroundColor;
-        private Color previewingBackgroundColor;
-        private Color selectedRecordingBackgroundColor;
-
-        private void SetColors()
-        {
-            backgroundGrey = new Color(0.3f, 0.3f, 0.3f, 1f);
-            selectedBackgroundColor = new Color(0.4f, 0.4f, 0.6f, 1f);
-            selectedRecordingBackgroundColor = new Color(0.5f, 0.3f, 0.3f, 1f);
-            recordingBackgroundColor = new Color(0.295f, 0.145f, 0.145f, 1f);
-            previewingBackgroundColor = new Color(0.1568627f, 0.2509804f, 0.2941176f,1f);
-
-        }
-
-        
         public void AddItemsToMenu(GenericMenu menu)
         {
             
         }
+        
+        
+        #region SCRATCH SPACE:
+
+
+        #endregion
+
     }
 }

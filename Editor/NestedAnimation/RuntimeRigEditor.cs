@@ -60,7 +60,7 @@ public static class RuntimeRigEditorUtils
 
 public class RuntimeRigEditor : EditorWindow, IHasCustomMenu
 {
-    [MenuItem("Tools/Runtime Rig Editor %#e")]
+    [MenuItem("Tools/Runtime Rig Editor")]
     public static void ShowWindow()
     {
         Debug.LogWarning("hit the item!");
