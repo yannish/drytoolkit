@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using PlasticGui;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -43,12 +44,13 @@ namespace drytoolkit.Editor.NestedAnimation
         private bool isConnected => connectedAnimatorField.value != null;
         private Animator connectedAnimator => connectedAnimatorField.value as Animator;
         private Animator selectedAnimator => selectedAnimatorField.value as Animator;
-        
+        private Animator nestedAnimator => connectedNestedAnimatorField.value as Animator;
         
         private List<Animator> nestedAnimators;
 
-        private AnimationClip selectedParentClip;
-        private AnimationClip selectedNestedClip;
+        private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
+        
+        private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
 
         
         //... ELEMENTS:
@@ -62,18 +64,28 @@ namespace drytoolkit.Editor.NestedAnimation
         private VisualElement nestedAnimatorHeaderElement;
 
         private VisualElement connectedAnimatorHolderElement;
+        private ScrollView connectedAnimatorScrollView;
 
         private VisualElement connectedAnimatorControlsElement;
+        private VisualElement nestedAnimatorControlsElement;
         
         private List<VisualElement> animatorSections;
         
         private ObjectField selectedAnimatorField;
         private ObjectField connectedAnimatorField;
-        private ObjectField nestedAnimatorField;
+        private ObjectField selectedNestedAnimatorField;
+        private ObjectField connectedNestedAnimatorField;
 
         private ObjectField selectedClipField;
+        private ObjectField selectedNestedClipField;
 
-        private VisualElement allClipElements;
+        private EnumField currModeField;
+        
+        private Label connectedAnimatorLabelElement;
+
+
+        private VisualElement allParentClipElements;
+        private VisualElement allNestedClipElements;
         // private List<VisualElement> allClipElements = new List<VisualElement>();
         private List<VisualElement> elementsToDisable = new List<VisualElement>();
         
@@ -84,6 +96,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private Color recordingBackgroundColor;
         private Color previewingBackgroundColor;
         private Color selectedRecordingBackgroundColor;
+        private Color headerBackgroundColor;
 
         
         //... TEXTURES:
@@ -96,6 +109,8 @@ namespace drytoolkit.Editor.NestedAnimation
         
         
         //... LABELS:
+        private const string selectedAnimatorLabel = "SELECTED:";
+        private const string connectedAnimatorLabel = "CONNECTED:";
         private const string controlsLabel = "CONTROLS :";
         private const string parentLabel = "PARENT :";
         private const string nestedLabel = "\u2937 NESTED :";
@@ -134,19 +149,33 @@ namespace drytoolkit.Editor.NestedAnimation
             
             selectedClipField = new ObjectField("Selected Clip");
             selectedClipField.objectType = typeof(AnimationClip);
-            selectedClipField.style.display = DisplayStyle.None;
+            // selectedClipField.style.display = DisplayStyle.None;
             root.Add(selectedClipField);
+            
+            selectedNestedClipField = new ObjectField("Selected Nested Clip");
+            selectedNestedClipField.objectType = typeof(AnimationClip);
+            // selectedNestedClipField.style.display = DisplayStyle.None;
+            root.Add(selectedNestedClipField);
 
 
-            selectedAnimatorHeaderElement = CreateObjectFieldWithHeader("Selected Animator", out selectedAnimatorField, typeof(Animator));
-
+            selectedAnimatorHeaderElement = CreateObjectFieldWithHeader(selectedAnimatorLabel, out selectedAnimatorField, typeof(Animator));
+            
             connectionButtonsElement = CreateConnectButtons();
             selectedAnimatorHeaderElement.Add(connectionButtonsElement);
+            
+            selectedAnimatorField.RegisterValueChangedCallback(evt =>
+            {
+                connectButton.SetEnabled(evt != null);
+            });
             
             connectedAnimatorHeaderElement = CreateConnectedAnimatorElement(out connectedAnimatorField);
             disconnectedElement = CreateDisconnectedElement();
             
-            nestedAnimatorHeaderElement = CreatedNestedAnimatorElement(out nestedAnimatorField);
+            selectedNestedAnimatorField = new ObjectField("Selected Nested Animator");
+            selectedNestedAnimatorField.objectType = typeof(Animator);
+            
+            nestedAnimatorHeaderElement = CreatedNestedAnimatorElement(out connectedNestedAnimatorField);
+            nestedAnimatorHeaderElement.style.display = DisplayStyle.None;
             
             // var dummyLabel = new Label("Dummy Label");
             // connectedAnimatorHeaderElement.Add(dummyLabel);
@@ -192,6 +221,7 @@ namespace drytoolkit.Editor.NestedAnimation
             selectedRecordingBackgroundColor = new Color(0.5f, 0.3f, 0.3f, 1f);
             recordingBackgroundColor = new Color(0.295f, 0.145f, 0.145f, 1f);
             previewingBackgroundColor = new Color(0.1568627f, 0.2509804f, 0.2941176f,1f);
+            headerBackgroundColor = new Color(0.17f, 0.17f, 0.17f, 1f);
         }
 
         private void SetTextures()
@@ -213,6 +243,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private const float buttonMinWidth = 150;
         private const float buttonWidth = 32f;
         private const float connectedAnimatorIndentPadding = 20f;
+        private const float connectedAnimatorMarginBottom = 6f;
         
         private VisualElement CreateConnectButtons()
         {
@@ -258,6 +289,18 @@ namespace drytoolkit.Editor.NestedAnimation
             return connectButtonSection;
         }
 
+        
+        private VisualElement modeControlElement;
+        private Button nestedEditClipButton;
+        private Image nestedEditIconImage;
+        
+        private Button nestedPreviewClipButton;
+        private Image nestedPreviewIconImage;
+        
+        private const float previewButtonWidth = 100f;
+        private const float iconSize = 16f;
+
+        
         private void ConnectAnimator()
         {
             DisconnectAnimator();
@@ -277,15 +320,17 @@ namespace drytoolkit.Editor.NestedAnimation
             connectedAnimatorField.value = selectedAnimatorField.value;
             disconnectedElement.style.display = DisplayStyle.None;
             disconnectButton.SetEnabled(true);
-            connectedAnimatorLabel.SetEnabled(true);
+            connectedAnimatorLabelElement.SetEnabled(true);
 
+            //... subscribe to continuously validate animators:
             EditorApplication.update -= EditorApplicationUpdate;
             EditorApplication.update += EditorApplicationUpdate;
+            
             
             //... build animator UI:
             connectedAnimatorControlsElement = new VisualElement();
             connectedAnimatorControlsElement.style.paddingTop = 6f;
-            connectedAnimatorControlsElement.style.paddingBottom = 20f;
+            connectedAnimatorControlsElement.style.paddingBottom = connectedAnimatorMarginBottom;
             connectedAnimatorControlsElement.style.flexDirection = FlexDirection.Column;
             // connectedAnimatorControlsElement.style.display = DisplayStyle.None;
             // connectedAnimatorControlsElement.style.overflow = Overflow.Hidden;
@@ -293,8 +338,8 @@ namespace drytoolkit.Editor.NestedAnimation
             
             elementsToDisable.Clear();
             
-            allClipElements = new VisualElement();
-            allClipElements.style.flexDirection = FlexDirection.Column;
+            allParentClipElements = new VisualElement();
+            allParentClipElements.style.flexDirection = FlexDirection.Column;
             
             foreach (var clip in connectedAnimator.runtimeAnimatorController.animationClips)
             {
@@ -340,7 +385,7 @@ namespace drytoolkit.Editor.NestedAnimation
                             animationWindow.animationClip = clip;
                         animationWindow.Repaint();
                         
-                        UpdateSelectedAnimationClip(allClipElements, clip);
+                        UpdateSelectedAnimationClip(allParentClipElements, clip, selectedBackgroundColor);
                     }
                 };
                 
@@ -348,14 +393,67 @@ namespace drytoolkit.Editor.NestedAnimation
                 clipElement.Add(selectClipButton);
                 
                 //...
-                allClipElements.Add(clipElement);
+                allParentClipElements.Add(clipElement);
                 
                 //... track so that we can disable in edit mode:
                 elementsToDisable.Add(clipElement);
             }
             
-            connectedAnimatorControlsElement.Add(allClipElements);
+            connectedAnimatorControlsElement.Add(allParentClipElements);
+            
+            
+            //... MODAL CONTROLS:
+            modeControlElement = new VisualElement();
+            modeControlElement.style.flexDirection = FlexDirection.RowReverse;
+            modeControlElement.style.paddingTop = 6f;
+            
+            //... RECORD BUTTON:
+            nestedEditIconImage = new Image();
+            nestedEditIconImage.style.alignSelf = Align.Center;
+            nestedEditIconImage.image = nestedEditIconTexture;
+            nestedEditIconImage.scaleMode = ScaleMode.ScaleToFit;
+            nestedEditIconImage.style.width = 16;
+            nestedEditIconImage.style.height = 16;
+            nestedEditIconImage.style.display = DisplayStyle.None;
+            
+            nestedEditClipButton = new Button();
+            nestedEditClipButton.text = enterEditButtonLabel;
+            nestedEditClipButton.style.width = previewButtonWidth;
+            nestedEditClipButton.style.flexDirection = FlexDirection.RowReverse;
 
+            nestedEditClipButton.clicked += () =>
+            {
+                nestedEditClipButton.Blur();
+                ToggleNestedEdit();
+            };
+
+            
+            //... PREVIEW BUTTON:
+            nestedPreviewIconImage = new Image();
+            nestedPreviewIconImage.style.alignSelf = Align.Center;
+            nestedPreviewIconImage.image = nestedPreviewIconTexture;
+            nestedPreviewIconImage.scaleMode = ScaleMode.ScaleToFit;
+            nestedPreviewIconImage.style.width = 16;
+            nestedPreviewIconImage.style.height = 16;
+            
+            nestedPreviewClipButton = new Button();
+            nestedPreviewClipButton.text = enterPreviewButtonLabel;
+            nestedPreviewClipButton.style.width = previewButtonWidth;
+            nestedPreviewClipButton.style.flexDirection = FlexDirection.RowReverse;
+
+            nestedPreviewClipButton.clicked += () =>
+            {
+                nestedPreviewClipButton.Blur();
+                ToggleNestedPreview();
+            };
+            
+            modeControlElement.Add(nestedEditClipButton);
+            modeControlElement.Add(nestedPreviewClipButton);
+            modeControlElement.Add(nestedEditIconImage);
+            
+            connectedAnimatorControlsElement.Add(modeControlElement);
+            
+            
             //... try set selected clip to whatever we stashed in selectedClipField:
             if (
                 selectedClipField.value != null 
@@ -373,7 +471,7 @@ namespace drytoolkit.Editor.NestedAnimation
             }
             
             //... then update our visuals to match:
-            UpdateSelectedAnimationClip(allClipElements, selectedClipField.value as AnimationClip);
+            UpdateSelectedAnimationClip(allParentClipElements, selectedClipField.value as AnimationClip, selectedBackgroundColor);
             
             //... finally add to the root (which is atm a scrollview)
             //... TODO: maybe scrollview should only cover the clips section...
@@ -381,19 +479,168 @@ namespace drytoolkit.Editor.NestedAnimation
             // root.Add(connectedAnimatorControlsElement);
             
             
-            //... now do the nested animator if we have one:
-            if (nestedAnimatorField.value == null)
+
+            // ... NESTED:
+            
+            if (selectedNestedAnimatorField.value == null)
                 return;
+
+            connectedNestedAnimatorField.value = selectedNestedAnimatorField.value;
+            
+            // if (!(selectedNestedAnimatorField.value is Animator))
+            //     return;
+
+            if (nestedAnimator.runtimeAnimatorController == null)
+                return;
+            
+            nestedAnimatorHeaderElement.style.display = DisplayStyle.Flex;
+
+            nestedAnimatorControlsElement = new VisualElement();
+            nestedAnimatorControlsElement.style.paddingTop = 6f;
+            nestedAnimatorControlsElement.style.paddingBottom = connectedAnimatorMarginBottom;
+            nestedAnimatorControlsElement.style.flexDirection = FlexDirection.Column;
+
+            allNestedClipElements = new VisualElement();
+            allNestedClipElements.style.flexDirection = FlexDirection.Column;
+            
+            foreach (var clip in nestedAnimator.runtimeAnimatorController.animationClips)
+            {
+                var clipElement = new VisualElement();
+                clipElement.style.flexDirection = FlexDirection.RowReverse;
+                clipElement.style.flexGrow = 1;
+                clipElement.style.paddingLeft = connectedAnimatorIndentPadding * 2f;
+                
+                var clipField = new ObjectField();
+                clipField.style.flexGrow = 1;
+                clipField.objectType = typeof(AnimationClip);
+                clipField.value = clip;
+
+                var spoofButton = new Button();
+                spoofButton.style.flexDirection = FlexDirection.Row;
+                spoofButton.style.width = buttonWidth;// * 2f;
+                spoofButton.style.alignContent = Align.Center;
+                spoofButton.style.alignItems = Align.Center;
+                
+                var recordIconImage = new Image();
+                recordIconImage.style.flexGrow = 1;
+                recordIconImage.style.flexDirection = FlexDirection.Column;
+                recordIconImage.style.alignSelf = Align.Center;
+                recordIconImage.image = recordIconTexture;
+                recordIconImage.scaleMode = ScaleMode.ScaleToFit;
+                recordIconImage.style.width = iconSize;
+                recordIconImage.style.height = iconSize;
+                recordIconImage.style.flexShrink = 0;
+                        
+                var spoofIconImage = new Image();
+                spoofIconImage.style.alignSelf = Align.Center;
+                spoofIconImage.image = dupeIconTexture;
+                spoofIconImage.style.width = iconSize;
+                spoofIconImage.style.height = iconSize;
+                
+                //... TODO: set spoof toggle initial value on creation.
+                var spoofToggle = new Toggle();
+                // if(spoofedClips.Contains(clip))
+                //     spoofToggle.value = true;
+                // else
+                //     spoofToggle.value = false;
+                
+                spoofToggle.RegisterValueChangedCallback(evt =>
+                {
+                    // Debug.LogWarning("toggle value changed.");
+
+                    if (evt.newValue)
+                    {
+                        // if(!spoofedClips.Contains(clip))
+                        //     spoofedClips.Add(clip);
+                    }
+                    else
+                    {
+                        // if(spoofedClips.Contains(clip))
+                        //     spoofedClips.Remove(clip);
+                    }
+                });
+                
+                spoofButton.Add(recordIconImage);
+                spoofButton.clicked += () =>
+                {
+                    Debug.LogWarning("Clicked spoof button!");
+                    spoofButton.Blur();
+                    selectedNestedClipField.value = clip;
+
+                    if (HasOpenInstances<AnimationWindow>())
+                    {
+                        if (nestedAnimator.gameObject != Selection.activeGameObject)
+                        {
+                            Debug.LogWarning("setting selected animator for animWindow's sake!");
+                            Selection.activeGameObject = nestedAnimator.gameObject;
+                        }
+                        
+                        var animationWindow = GetWindow<AnimationWindow>();
+                        if(animationWindow.animationClip != clip)
+                            animationWindow.animationClip = clip;
+                        animationWindow.Repaint();
+
+                        UpdateSelectedAnimationClip(allNestedClipElements, clip, selectedRecordingBackgroundColor);
+                    }
+                };
+                
+                clipElement.Add(clipField);
+                clipElement.Add(spoofButton);
+                clipElement.Add(spoofIconImage);
+                clipElement.Add(spoofToggle);
+                
+                allNestedClipElements.Add(clipElement);
+                
+                elementsToDisable.Add(clipElement);
+            }
+            
+            //... try set selected clip to whatever we stashed in selectedClipField:
+            if (
+                selectedNestedClipField.value != null 
+                // && selectedClipField.value is AnimationClip selectedNestedClip
+                && nestedAnimator.runtimeAnimatorController.animationClips.Contains(selectedNestedClip)
+            )
+            {
+                // Debug.LogWarning("this animator has the last clip we set as selected");                    
+            }
+            //... otherwise set the selected clip to whatever's first in the animator controller:
+            else
+            {
+                // Debug.LogWarning("setting to what was in the window");
+                selectedNestedClipField.value = nestedAnimator.runtimeAnimatorController.animationClips[0];
+            }
+            
+            UpdateSelectedAnimationClip(allNestedClipElements, selectedNestedClip, selectedRecordingBackgroundColor);
+            
+            nestedAnimatorControlsElement.Add(allNestedClipElements);
+            
+            nestedAnimatorHeaderElement.Add(nestedAnimatorControlsElement);
+        }
+
+        private void ToggleNestedPreview()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void ToggleNestedEdit()
+        {
+           
         }
 
         private void DisconnectAnimator()
         {
             connectedAnimatorField.value = null;
+            connectedNestedAnimatorField.value = null;
+            
             disconnectedElement.style.display = DisplayStyle.Flex;
+            
             disconnectButton?.SetEnabled(false);
-            connectedAnimatorLabel?.SetEnabled(false);
+            connectedAnimatorLabelElement?.SetEnabled(false);
+            
             EditorApplication.update -= EditorApplicationUpdate;
 
+            //... TODO: why Clear some, & not others...
+            
             //... shut down UI:
             if (connectedAnimatorControlsElement != null)
             {
@@ -401,9 +648,18 @@ namespace drytoolkit.Editor.NestedAnimation
                 connectedAnimatorHeaderElement.Remove(connectedAnimatorControlsElement);
                 connectedAnimatorControlsElement = null;
             }
+            
+            if (nestedAnimatorControlsElement != null)
+            {
+                nestedAnimatorControlsElement.Clear();
+                nestedAnimatorHeaderElement.Remove(nestedAnimatorControlsElement);
+                nestedAnimatorControlsElement = null;
+            }
+                
+            nestedAnimatorHeaderElement.style.display = DisplayStyle.None;
         }
 
-        private void UpdateSelectedAnimationClip(VisualElement clipsElement, AnimationClip selectedClip)
+        private void UpdateSelectedAnimationClip(VisualElement clipsElement, AnimationClip selectedClip, Color selectedColor)
         {
             foreach (var element in clipsElement.Children())
             {
@@ -412,7 +668,7 @@ namespace drytoolkit.Editor.NestedAnimation
                 {
                     if (subChild is ObjectField objectField && objectField.value == selectedClip)
                     {
-                        element.style.backgroundColor = selectedBackgroundColor;
+                        element.style.backgroundColor = selectedColor;
                     }
                 }
             }
@@ -440,6 +696,8 @@ namespace drytoolkit.Editor.NestedAnimation
         private const float headerHeight = 26;
         private const float selectedAnimatorMarginTop = 6;
         private const float selectedAnimatorMarginBottom = 10;
+        private const float connectedAnimatorMarginBotton = 6;
+        // private const float nestedAnimatorMarginBotton = 2;
 
         private VisualElement CreateSelectedAnimatorElement(out ObjectField objectField)
         {
@@ -505,6 +763,7 @@ namespace drytoolkit.Editor.NestedAnimation
             VisualElement rowSection = new VisualElement();
             rowSection.style.flexDirection = FlexDirection.Row;
             rowSection.style.height = headerHeight;
+            rowSection.style.backgroundColor = headerBackgroundColor;
             // section.style.paddingBottom = headerPadding;
 
             objectField = new ObjectField();
@@ -512,6 +771,7 @@ namespace drytoolkit.Editor.NestedAnimation
             objectField.style.flexDirection = FlexDirection.Row;
             objectField.style.flexGrow = 1;
             objectField.style.alignSelf = Align.Center;
+            // objectField.style.backgroundColor = new Color(0.1f, 0.1f, 0.1f, 1f); 
             objectField.SetEnabled(enableObjectField);
             
             Label header = new Label(headerLabel);
@@ -521,7 +781,7 @@ namespace drytoolkit.Editor.NestedAnimation
             header.style.paddingRight = indent;
 
             // 🎨 Optional background color
-            header.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            // header.style.backgroundColor = new Color(0.1f, 0.1f, 0.1f, 1f); 
             header.style.color = Color.white; 
             header.style.flexGrow = 1;
         
@@ -544,7 +804,7 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             VisualElement headerSection = new VisualElement();
             headerSection.style.flexDirection = FlexDirection.Row;
-            headerSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            headerSection.style.backgroundColor = headerBackgroundColor; 
             headerSection.style.height = headerHeight;
             
             Label label = new Label(headerLabel);
@@ -554,7 +814,7 @@ namespace drytoolkit.Editor.NestedAnimation
             label.style.paddingRight = indent;
 
             // 🎨 Optional background color
-            label.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            // label.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
             label.style.color = Color.white; 
             label.style.flexGrow = 1;
         
@@ -571,15 +831,14 @@ namespace drytoolkit.Editor.NestedAnimation
 
         
         //... CONNECTED ANIMATOR:
-        Label connectedAnimatorLabel;
         private VisualElement CreateConnectedAnimatorElement(out ObjectField objectField)
         {
             VisualElement holderSection = new VisualElement();
             holderSection.style.flexDirection = FlexDirection.Column;
             holderSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
-            holderSection.style.marginBottom = selectedAnimatorMarginBottom;
+            holderSection.style.marginBottom = connectedAnimatorMarginBotton;
             
-            VisualElement headerSection = CreateHeaderSection("Connected Animator");
+            VisualElement headerSection = CreateHeaderSection(connectedAnimatorLabel);
             // headerSection.style.flexDirection = FlexDirection.Row;
             // headerSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
             // headerSection.style.height = headerHeight;
@@ -596,22 +855,22 @@ namespace drytoolkit.Editor.NestedAnimation
             objectField.style.alignSelf = Align.Center;
             objectField.SetEnabled(false);
 
-            connectedAnimatorLabel = new Label("Connected Animator");
-            connectedAnimatorLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            connectedAnimatorLabel.style.fontSize = 14; 
+            connectedAnimatorLabelElement = new Label(connectedAnimatorLabel);
+            connectedAnimatorLabelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
+            connectedAnimatorLabelElement.style.fontSize = 14; 
             // header.style.alignSelf = Align.Center;
             // header.style.paddingRight = indent;
 
             // 🎨 Optional background color
-            connectedAnimatorLabel.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
-            connectedAnimatorLabel.style.color = Color.white; 
-            connectedAnimatorLabel.style.flexGrow = 1;
+            connectedAnimatorLabelElement.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f); 
+            connectedAnimatorLabelElement.style.color = Color.white; 
+            connectedAnimatorLabelElement.style.flexGrow = 1;
         
             // 🧱 Padding and spacing
-            connectedAnimatorLabel.style.paddingLeft = 6;
-            connectedAnimatorLabel.style.paddingTop = 4;
-            connectedAnimatorLabel.style.paddingBottom = 4;
-            connectedAnimatorLabel.style.marginBottom = 4;
+            connectedAnimatorLabelElement.style.paddingLeft = 6;
+            connectedAnimatorLabelElement.style.paddingTop = 4;
+            connectedAnimatorLabelElement.style.paddingBottom = 4;
+            connectedAnimatorLabelElement.style.marginBottom = 4;
 
             // headerSection.Add(connectedAnimatorLabel);
             headerSection.Add(objectField);
@@ -627,6 +886,12 @@ namespace drytoolkit.Editor.NestedAnimation
 
         private VisualElement CreatedNestedAnimatorElement(out ObjectField objectField)
         {
+            VisualElement holderSection = new VisualElement();
+            holderSection.style.flexDirection = FlexDirection.Column;
+            holderSection.style.backgroundColor = new Color(0.2f, 0.2f, 0.2f, 1f);
+            holderSection.style.marginTop = 
+            holderSection.style.marginBottom = connectedAnimatorMarginBotton;
+            
             VisualElement headerSection = CreateHeaderSection(nestedLabel);
             
             objectField = new ObjectField();
@@ -638,9 +903,11 @@ namespace drytoolkit.Editor.NestedAnimation
 
             headerSection.Add(objectField);
             
+            holderSection.Add(headerSection);
+            
             // var nestedAnimatorLabel = new Label("Nested Animator");
             
-            return headerSection;
+            return holderSection;
         }
 
         private VisualElement CreateDisconnectedElement()
@@ -660,13 +927,13 @@ namespace drytoolkit.Editor.NestedAnimation
             disconnectedMessage.style.paddingBottom = 6;
             disconnectedMessage.style.paddingLeft = 8;
             disconnectedMessage.style.paddingRight = 8;
-            disconnectedMessage.style.marginTop = 8;
+            disconnectedMessage.style.marginTop = 0;
             disconnectedMessage.style.marginBottom = 8;
             disconnectedMessage.style.unityFontStyleAndWeight = FontStyle.Italic;
             disconnectedMessage.style.display = DisplayStyle.Flex;
 
             var messageLabel = new Label("Select an Animator and hit connect to start editing.");
-            messageLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            // messageLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             disconnectedMessage.Add(messageLabel);
             
             // disconnectedMessage.Add(selectedAnimatorField);
@@ -681,24 +948,29 @@ namespace drytoolkit.Editor.NestedAnimation
             if (locked)
                 return;
 
-            if (Selection.activeGameObject == null)
-            {
-                selectedAnimatorField.value = null;
-                connectButton.SetEnabled(false);
-                return;
-            }
             
-            var foundAnimators = Selection.activeGameObject.GetComponents<Animator>();
+            // if (Selection.activeGameObject == null)
+            // {
+            //     selectedAnimatorField.value = null;
+            //     connectButton.SetEnabled(false);
+            //     return;
+            // }
+
+            if (Selection.activeGameObject == null)
+                return;
+            
+            var foundAnimators = Selection.activeGameObject.GetComponentsInChildren<Animator>();
             if (foundAnimators.Length == 0)
                 return;
             
+            //... TODO: set connect button reactivity to the selected animator field value:
             selectedAnimatorField.value = foundAnimators[0];
-            connectButton.SetEnabled(true);
+            // connectButton.SetEnabled(true);
 
             if (foundAnimators.Length <= 1)
                 return;
             
-            nestedAnimatorField.value = foundAnimators[1];
+            selectedNestedAnimatorField.value = foundAnimators[1];
         }
 
         public void AddItemsToMenu(GenericMenu menu)
