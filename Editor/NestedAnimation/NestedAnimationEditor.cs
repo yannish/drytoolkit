@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using PlasticGui;
+using Sirenix.Reflection.Editor;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using Object = System.Object;
 
@@ -45,12 +47,14 @@ namespace drytoolkit.Editor.NestedAnimation
         private Animator connectedAnimator => connectedAnimatorField.value as Animator;
         private Animator selectedAnimator => selectedAnimatorField.value as Animator;
         private Animator nestedAnimator => connectedNestedAnimatorField.value as Animator;
+        private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
+        private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
+        
+        private NestedAnimatorEditorState currMode => (NestedAnimatorEditorState)currModeField.value;
         
         private List<Animator> nestedAnimators;
+        private List<AnimationClip> spoofedClips = new List<AnimationClip>();
 
-        private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
-        
-        private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
 
         
         //... ELEMENTS:
@@ -146,6 +150,10 @@ namespace drytoolkit.Editor.NestedAnimation
             // selectedAnimatorField = CreateSelectedAnimatorElement();
             // disconnectedElement = CreateDisconnectedElement();
             // connectedAnimatorField = CreateConnectedAnimatorField();
+
+            currModeField = new EnumField("currMode", NestedAnimatorEditorState.VIEW);
+            currModeField.SetEnabled(false);
+            root.Add(currModeField);
             
             selectedClipField = new ObjectField("Selected Clip");
             selectedClipField.objectType = typeof(AnimationClip);
@@ -191,12 +199,28 @@ namespace drytoolkit.Editor.NestedAnimation
             
             Selection.selectionChanged -= HandleSelectionChange;
             Selection.selectionChanged += HandleSelectionChange;
+
+            SceneManager.activeSceneChanged -= HandleSceneChange;
+            SceneManager.activeSceneChanged += HandleSceneChange;
             
             HandleSelectionChange();
             
             // root.Add(connectedAnimatorElement);
         }
-        
+
+        private void HandleSceneChange(Scene arg0, Scene arg1)
+        {
+            Debug.LogWarning("handling scene change for nested animation editor");
+            DisconnectAnimator();
+            DeselectSceneObjects();
+        }
+
+        private void DeselectSceneObjects()
+        {
+            selectedAnimatorField.value = null;
+            selectedNestedAnimatorField.value = null;
+        }
+
         private void FetchAnimationWindow()
         {
             //... cache some stuff for reflection
@@ -239,6 +263,7 @@ namespace drytoolkit.Editor.NestedAnimation
         //... CONNECT:
         private Button connectButton;
         private Button disconnectButton;
+        
         private const float buttonMargin = 4;
         private const float buttonMinWidth = 150;
         private const float buttonWidth = 32f;
@@ -301,6 +326,8 @@ namespace drytoolkit.Editor.NestedAnimation
         private const float iconSize = 16f;
 
         
+        //... CONNECT / DISCONNECT:
+        //... TODO: migrate some of this work out to other methods for ease of viewing.
         private void ConnectAnimator()
         {
             DisconnectAnimator();
@@ -323,8 +350,8 @@ namespace drytoolkit.Editor.NestedAnimation
             connectedAnimatorLabelElement.SetEnabled(true);
 
             //... subscribe to continuously validate animators:
-            EditorApplication.update -= EditorApplicationUpdate;
-            EditorApplication.update += EditorApplicationUpdate;
+            EditorApplication.update -= ValidateConnection;
+            EditorApplication.update += ValidateConnection;
             
             
             //... build animator UI:
@@ -380,10 +407,12 @@ namespace drytoolkit.Editor.NestedAnimation
                             Selection.activeGameObject = connectedAnimator.gameObject;
                         }
                         
-                        var animationWindow = GetWindow<AnimationWindow>();
-                        if(animationWindow.animationClip != clip)
-                            animationWindow.animationClip = clip;
-                        animationWindow.Repaint();
+                        SetAnimationWindowsCurrentClip(clip);
+                        
+                        // var animationWindow = GetWindow<AnimationWindow>();
+                        // if(animationWindow.animationClip != clip)
+                        //     animationWindow.animationClip = clip;
+                        // animationWindow.Repaint();
                         
                         UpdateSelectedAnimationClip(allParentClipElements, clip, selectedBackgroundColor);
                     }
@@ -424,7 +453,7 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedEditClipButton.clicked += () =>
             {
                 nestedEditClipButton.Blur();
-                ToggleNestedEdit();
+                ToggleNestedEditMode();
             };
 
             
@@ -444,7 +473,7 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedPreviewClipButton.clicked += () =>
             {
                 nestedPreviewClipButton.Blur();
-                ToggleNestedPreview();
+                ToggleNestedPreviewMode();
             };
             
             modeControlElement.Add(nestedEditClipButton);
@@ -616,17 +645,7 @@ namespace drytoolkit.Editor.NestedAnimation
             
             nestedAnimatorHeaderElement.Add(nestedAnimatorControlsElement);
         }
-
-        private void ToggleNestedPreview()
-        {
-            throw new NotImplementedException();
-        }
-
-        private void ToggleNestedEdit()
-        {
-           
-        }
-
+        
         private void DisconnectAnimator()
         {
             connectedAnimatorField.value = null;
@@ -637,7 +656,7 @@ namespace drytoolkit.Editor.NestedAnimation
             disconnectButton?.SetEnabled(false);
             connectedAnimatorLabelElement?.SetEnabled(false);
             
-            EditorApplication.update -= EditorApplicationUpdate;
+            EditorApplication.update -= ValidateConnection;
 
             //... TODO: why Clear some, & not others...
             
@@ -659,6 +678,511 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedAnimatorHeaderElement.style.display = DisplayStyle.None;
         }
 
+
+        
+        //... PREVIEW :
+        private void TransitionToNestedPreview()
+        {
+            //... exit prev state:
+            switch ((NestedAnimatorEditorState)currModeField.value)
+            {
+                case NestedAnimatorEditorState.VIEW:
+                    Debug.LogWarning("leaving view state.");
+                    ExitViewMode();
+                    break;
+                case NestedAnimatorEditorState.PREVIEW:
+                    Debug.LogWarning("already in preview, somehow");
+                    return;
+                case NestedAnimatorEditorState.EDIT:
+                    Debug.LogWarning("leaving edit state.");
+                    ExitNestedEditMode();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            CacheNestedAnimator();
+            CacheParentClipBindings();
+            EmbedClipBindings();
+
+            //... put animation window into desired state:
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            previewingPropInfo.SetValue(animWindowState, true);
+        
+            //... & disable controls:
+            nestedEditClipButton.SetEnabled(false);
+            foreach(var element in elementsToDisable)
+                element.SetEnabled(false);
+            connectButton.SetEnabled(false);
+            disconnectButton.SetEnabled(false);
+             
+            //... update editor visuals:
+            nestedPreviewClipButton.text = exitPreviewButtonLabel;
+            nestedEditIconImage.image = nestedPreviewIconTexture;
+            nestedEditIconImage.style.display = DisplayStyle.Flex;
+            
+            rootVisualElement.style.backgroundColor = previewingBackgroundColor;
+            
+            //... should select the parent animator and set the clip of the animation window to clip w/ embedded bindings:
+            
+            currModeField.value = NestedAnimatorEditorState.PREVIEW;
+
+            EditorApplication.delayCall += () =>
+            {
+                EditorApplication.update -= ValidatePreviewMode;
+                EditorApplication.update += ValidatePreviewMode;
+            };
+        }
+        
+        private void ExitPreviewMode()
+        {
+            EditorApplication.update -= ValidatePreviewMode;
+            
+            RestoreParentClipBindings();
+            // RestoreNestedClipBindings();
+            RestoreNestedAnimator();
+            
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            previewingPropInfo.SetValue(animWindowState, false);
+            rootVisualElement.style.backgroundColor = new Color(0, 0, 0, 0);
+        
+            nestedEditClipButton.SetEnabled(true);
+            foreach(var element in elementsToDisable)
+                element.SetEnabled(true);
+            connectButton.SetEnabled(true);
+            disconnectButton.SetEnabled(true);
+         
+            nestedPreviewClipButton.text = enterPreviewButtonLabel;
+            nestedEditIconImage.style.display = DisplayStyle.None;
+        }
+        
+        private void ToggleNestedPreviewMode()
+        {
+            if ((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
+                TransitionToNestedPreview();
+            else
+                TransitionToViewState();
+        }
+        
+        private void ValidatePreviewMode()
+        {
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            var isPreviewing = (bool)previewingPropInfo.GetValue(animWindowState);
+            if (!isPreviewing)
+            {
+                Debug.LogWarning("anim window's previewing mode was exited");
+                TransitionToViewState();
+            }
+        }
+
+        
+        //... EDIT:
+        private void TransitionToNestedEdit()
+        {
+            switch ((NestedAnimatorEditorState)currModeField.value)
+            {
+                case NestedAnimatorEditorState.VIEW:
+                    Debug.LogWarning("leaving view state.");
+                    ExitViewMode();
+                    break;
+                case NestedAnimatorEditorState.PREVIEW:
+                    Debug.LogWarning("leaving preview state");
+                    ExitPreviewMode();
+                    break;
+                case NestedAnimatorEditorState.EDIT:
+                    Debug.LogWarning("already in edit state, somehow");
+                    return;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            currModeField.value = NestedAnimatorEditorState.EDIT;
+            
+            Selection.activeGameObject = connectedAnimator.gameObject;
+            SetAnimationWindowsCurrentClip(selectedParentClip);
+            
+            CacheNestedAnimator();
+            CacheParentClipBindings();
+            // CachedNestedClipBindings();
+            // TODO: embed / cache are separate calls..?
+            EmbedClipBindings();
+            
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            recordingPropInfo.SetValue(animWindowState, true);
+            rootVisualElement.style.backgroundColor = recordingBackgroundColor;
+        
+            nestedPreviewClipButton.SetEnabled(false);
+            foreach(var element in elementsToDisable)
+                element.SetEnabled(false);
+            connectButton.SetEnabled(false);
+            disconnectButton.SetEnabled(false);
+            
+            nestedEditClipButton.text = exitEditButtonLabel;
+            nestedEditIconImage.image = recordIconTexture;
+            nestedEditIconImage.style.display = DisplayStyle.Flex;
+
+            EditorApplication.delayCall += () =>
+            {
+                EditorApplication.update -= ValidateEditMode;
+                EditorApplication.update += ValidateEditMode;
+            };
+        }
+        
+        private void ExitNestedEditMode()
+        {
+            EditorApplication.update -= ValidateEditMode; 
+            
+            RestoreParentClipBindings();
+            // RestoreNestedClipBindings();
+            RestoreNestedAnimator();
+            
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            previewingPropInfo.SetValue(animWindowState, false);
+            rootVisualElement.style.backgroundColor = new Color(0, 0, 0, 0);
+        
+            nestedPreviewClipButton.SetEnabled(true);
+            foreach(var element in elementsToDisable)
+                element.SetEnabled(true);
+            connectButton.SetEnabled(true);
+            disconnectButton.SetEnabled(true);
+            
+            nestedEditClipButton.text = enterEditButtonLabel;
+            // nestedEditIconImage.image = nestedEditIconTexture;
+            nestedEditIconImage.style.display = DisplayStyle.None;
+        }
+        
+        private void ToggleNestedEditMode()
+        {
+            if((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
+                TransitionToNestedEdit();
+            else
+                TransitionToViewState();
+        }
+        
+        private void ValidateEditMode()
+        {
+            animWindowState = animWindowStatePropInfo.GetValue(animWindow);
+            var isRecording = (bool)recordingPropInfo.GetValue(animWindowState);
+            if (!isRecording)
+            {
+                Debug.LogWarning("anim window's recording mode was exited");
+                TransitionToViewState();
+            }
+        }
+
+
+        //... VIEW:
+        private void TransitionToViewState()
+        {
+            switch ((NestedAnimatorEditorState)currModeField.value)
+            {
+                case NestedAnimatorEditorState.VIEW:
+                    Debug.LogWarning("already in view state, somehow");
+                    return;
+                case NestedAnimatorEditorState.PREVIEW:
+                    Debug.LogWarning("leaving preview state");
+                    ExitPreviewMode();
+                    break;
+                case NestedAnimatorEditorState.EDIT:
+                    Debug.LogWarning("leaving edit state");
+                    ExitNestedEditMode();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            currModeField.value = NestedAnimatorEditorState.VIEW;
+        }
+        
+        private void ExitViewMode()
+        {
+                
+        }
+        
+        
+        //... BINDINGS:
+        private void EmbedClipBindings()
+        {
+            var destinationClip = selectedParentClip;
+            var sourceClip = selectedNestedClip;
+
+            if (destinationClip == null || sourceClip == null)
+            {
+                Debug.LogWarning("a clip was null during embed attempt.");
+                return;
+            }
+
+            var rootPath = AnimationUtility.CalculateTransformPath(
+                cachedNestedAnimatorGameObject.transform,
+                connectedAnimator.transform
+                );
+
+            var nestedClipBindings = AnimationUtility.GetCurveBindings(sourceClip);
+
+            //... embed nested clip's bindings into parent clip:
+            foreach (var binding in nestedClipBindings)
+            {
+                var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
+                destinationClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
+            }
+            
+            //... include "spoof" clips. these are represented in the flattened clip, but won't have changes written back out to them.
+            foreach (var clip in spoofedClips)
+            {
+                
+            }
+            
+            //... TODO: should this be happening here? we've just embedded. we're not "done". 
+            EditorUtility.SetDirty(destinationClip);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            
+            RefreshAnimationWindow();
+        }
+
+        private void CacheParentClipBindings()
+        {
+            if (selectedParentClip == null)
+            {
+                Debug.LogWarning("went to cache parent clip, but it was null.");
+                return;
+            }
+            
+            parentCurveBindingCache = AnimationUtility.GetCurveBindings(selectedParentClip);
+            parentBindingToCurveLookup = new Dictionary<EditorCurveBinding, AnimationCurve>();
+            foreach (var binding in parentCurveBindingCache)
+            {
+                var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+                parentBindingToCurveLookup[binding] = new AnimationCurve(curve.keys);
+                // parentBindingToCurveLookup.Add(binding, curve);
+            }
+        }
+
+        private void RestoreParentClipBindings()
+        {
+            //... loop through bindings, checking to see if they're part of nested hierarchy
+         
+            var currCurveBindings = AnimationUtility.GetCurveBindings(selectedParentClip);
+
+            var nestedRootPath = AnimationUtility.CalculateTransformPath(
+                    cachedNestedAnimatorGameObject.transform,
+                    connectedAnimator.transform
+                    );
+            
+            foreach (var binding in currCurveBindings)
+            {
+                var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+                if (!parentBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                {
+                    Debug.LogWarning($"binding by name {binding.propertyName} is new.");
+                    AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
+                }
+            }
+            
+            EditorUtility.SetDirty(selectedParentClip);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            
+            //... if they are not, write them back to parent clip if they're
+            //      a) new or
+            //      b) altered.
+            
+            //... if they are, write them back to nestedClip if they're
+            //      a) new, ie. not present in original nestedClip or any spoof clip, or
+            //      b) altered from a spoof clip
+        }
+        
+        private void StripNestedAnimationClip()
+        {
+            
+        }
+         
+
+        
+        //... CACHING CLIPS / NESTED ANIMATOR:
+        private bool cachingNestedAnimator;
+        private RuntimeAnimatorController cachedNestedAnimator;
+        private GameObject cachedNestedAnimatorGameObject;
+        private AnimationClip cachedNestedAnimatorClip;
+        
+        private EditorCurveBinding[] parentCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> parentBindingToCurveLookup;
+        
+        EditorCurveBinding[] nestedCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> nestedBindingToCurveLookup;
+        
+        private void CacheNestedAnimator()
+        {
+            if (cachingNestedAnimator)
+            {
+                Debug.LogWarning("already caching nested animator.");
+                return;
+            }
+            
+            if (nestedAnimator == null)
+            {
+                Debug.LogWarning("Tried to cache nested animator, but it was null");
+                return;
+            }
+            
+            cachedNestedAnimatorGameObject = nestedAnimator.gameObject;
+            cachedNestedAnimator = nestedAnimator.runtimeAnimatorController;
+            cachedNestedAnimatorClip = selectedNestedClip;
+            
+            connectedNestedAnimatorField.style.display = DisplayStyle.None;
+            
+            DestroyImmediate(nestedAnimator);
+            
+            //... TODO: causes editor to flip back out of record-mode
+            //... set animation window clip & selected object
+            // Selection.activeGameObject = connectedAnimator.gameObject;
+            
+            // SetAnimationWindowsCurrentClip(selectedParentClip);
+            
+            cachingNestedAnimator = true;
+        }
+        
+        private void RestoreNestedAnimator()
+        {
+            if (!cachingNestedAnimator)
+            {
+                Debug.LogWarning("Tried to restore nested animator, but we weren't caching it.");
+                return;
+            }
+            
+            connectedNestedAnimatorField.style.display = DisplayStyle.Flex;
+
+            connectedNestedAnimatorField.value = cachedNestedAnimatorGameObject.AddComponent<Animator>();
+            nestedAnimator.runtimeAnimatorController = cachedNestedAnimator;
+            selectedNestedClipField.value = cachedNestedAnimatorClip;
+            
+            cachingNestedAnimator = false;
+        }
+
+       
+        
+        private void CachedNestedClipBindings()
+        {
+            if (selectedNestedClip == null)
+            {
+                Debug.LogWarning("went to cache nested clip, but it was null.");
+                return;
+            }
+            
+            nestedCurveBindingCache = AnimationUtility.GetCurveBindings(selectedNestedClip);
+            nestedBindingToCurveLookup = new Dictionary<EditorCurveBinding, AnimationCurve>();
+            
+            foreach (var binding in nestedCurveBindingCache)
+            {
+                var curve = AnimationUtility.GetEditorCurve(selectedNestedClip, binding);
+                nestedBindingToCurveLookup[binding] = new AnimationCurve(curve.keys);
+                // nestedBindingToCurveLookup.Add(binding, curve);
+            }
+        }
+
+        private void RestoreNestedClipBindings()
+        {
+            var currCurveBindings = AnimationUtility.GetCurveBindings(selectedNestedClip);
+            // var currObjectBindings = AnimationUtility.GetObjectReferenceCurveBindings(selectedNestedClip);
+
+            foreach (var binding in currCurveBindings)
+            {
+                var curve = AnimationUtility.GetEditorCurve(selectedNestedClip, binding);
+                if (!nestedBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                {
+                    Debug.LogWarning($"New binding detected: {binding.propertyName}");
+                    continue;
+                }
+
+                if (!CompareCurves(curve, foundCurve))
+                {
+                    Debug.LogWarning($"Curve was altered: {binding.propertyName} on {binding.path}");
+                }
+            }
+
+            //... clear out:
+            foreach (var binding in currCurveBindings)
+            {
+                AnimationUtility.SetEditorCurve(selectedNestedClip, binding, null);
+            }
+            
+            //... re-write from cache:
+            foreach (var binding in nestedCurveBindingCache)
+            {
+                if(nestedBindingToCurveLookup.TryGetValue(binding, out var curve))
+                    AnimationUtility.SetEditorCurve(selectedNestedClip, binding, curve);
+            }
+
+            EditorUtility.SetDirty(selectedNestedClip);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            
+            RefreshAnimationWindow();
+            
+            bool CompareCurves(AnimationCurve a, AnimationCurve b)
+            {
+                if (a.length != b.length) 
+                    return false;
+
+                for (int i = 0; i < a.length; i++)
+                {
+                    var ka = a[i];
+                    var kb = b[i];
+                    if (
+                        ka.time != kb.time 
+                        || ka.value != kb.value 
+                        || ka.inTangent != kb.inTangent
+                        || ka.outTangent != kb.outTangent
+                        )
+                        return false;
+                }
+                
+                return true;
+            }
+        }
+
+        
+        //... UTILITY:
+        private void RefreshAnimationWindow()
+        {
+            if (HasOpenInstances<AnimationWindow>())
+            {
+                var animationWindow = GetWindow<AnimationWindow>();
+        
+                // animationWindow.animationClip = targetClip;
+            
+                Type animWindowType = Type.GetType("UnityEditor.AnimationWindow, UnityEditor");
+            
+                FieldInfo animEditorField = animWindowType.GetField("m_AnimEditor", BindingFlags.NonPublic | BindingFlags.Instance);
+            
+                object animEditor = animEditorField?.GetValue(animationWindow);
+                if (animEditor == null)
+                {
+                    Debug.LogWarning("Could not access m_AnimEditor.");
+                    return;
+                }
+
+                MethodInfo forceRefreshMethod = animWindowType.GetMethod("ForceRefresh", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (forceRefreshMethod != null)
+                {
+                    forceRefreshMethod.Invoke(animationWindow, null);
+                    Debug.Log("✅ AnimationWindow ForceRefresh invoked.");
+                }
+            
+                animationWindow.Repaint();
+            }
+        }
+        
+        private void SetAnimationWindowsCurrentClip(AnimationClip clip)
+        {
+            var animationWindow = GetWindow<AnimationWindow>();
+            if(animationWindow.animationClip != clip)
+                animationWindow.animationClip = clip;
+            animationWindow.Repaint();
+        }
+
+       
+
         private void UpdateSelectedAnimationClip(VisualElement clipsElement, AnimationClip selectedClip, Color selectedColor)
         {
             foreach (var element in clipsElement.Children())
@@ -674,7 +1198,7 @@ namespace drytoolkit.Editor.NestedAnimation
             }
         }
 
-        private void EditorApplicationUpdate()
+        private void ValidateConnection()
         {
             if (isConnected)
             {
@@ -689,6 +1213,8 @@ namespace drytoolkit.Editor.NestedAnimation
                 }
             }
         }
+
+
         
 
         //... SELECTED ANIMATOR:
@@ -945,27 +1471,26 @@ namespace drytoolkit.Editor.NestedAnimation
         private bool locked = false;
         private void HandleSelectionChange()
         {
+            //.. TODO: if altering the activeGameObject for preview / edit mode, need to check here
+            //...        - seems to cause a break, kicks back out of edit mode if i set the selected object
+            //...           while caching the nested animator...
+            
             if (locked)
                 return;
 
+            if (currMode == NestedAnimatorEditorState.EDIT || currMode == NestedAnimatorEditorState.PREVIEW)
+                return;
             
-            // if (Selection.activeGameObject == null)
-            // {
-            //     selectedAnimatorField.value = null;
-            //     connectButton.SetEnabled(false);
-            //     return;
-            // }
-
             if (Selection.activeGameObject == null)
                 return;
+            
+            selectedNestedAnimatorField.value = null;
             
             var foundAnimators = Selection.activeGameObject.GetComponentsInChildren<Animator>();
             if (foundAnimators.Length == 0)
                 return;
             
-            //... TODO: set connect button reactivity to the selected animator field value:
             selectedAnimatorField.value = foundAnimators[0];
-            // connectButton.SetEnabled(true);
 
             if (foundAnimators.Length <= 1)
                 return;
