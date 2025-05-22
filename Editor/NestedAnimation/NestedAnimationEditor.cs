@@ -2,16 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using PlasticGui;
-using Sirenix.Reflection.Editor;
-using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEditor.Compilation;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
-using Object = System.Object;
 
 namespace drytoolkit.Editor.NestedAnimation
 {
@@ -384,7 +380,7 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
         //... TODO: migrate some of this work out to other methods for ease of viewing.
         private void ConnectAnimator()
         {
-            DisconnectAnimator();m
+            DisconnectAnimator();
             
             if (selectedAnimatorField.value == null || animWindow == null)
                 return;
