@@ -8,6 +8,7 @@ using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
+// ReSharper disable InconsistentNaming
 
 namespace drytoolkit.Editor.NestedAnimation
 {
@@ -16,9 +17,11 @@ namespace drytoolkit.Editor.NestedAnimation
     {
         static NestedAnimationEditorUtils()
         {
-            // AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
-            // CompilationPipeline.compilationStarted += OnBeforeCompilationStarted;
+            AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
+            CompilationPipeline.compilationStarted += OnBeforeCompilationStarted;
         }
+        
+        private static NestedAnimationEditor nestedAnimationEditor;
 
         private static void OnBeforeCompilationStarted(object obj) => ShutDownEditor();
 
@@ -26,7 +29,7 @@ namespace drytoolkit.Editor.NestedAnimation
 
         private static void ShutDownEditor()
         {
-            Debug.LogWarning("Handling recompile for NestedRigEditor");
+            Debug.LogWarning("Handling recompile for NestedRigEditor, shutting down...");
             
             if (!EditorWindow.HasOpenInstances<NestedAnimationEditor>())
                 return;
@@ -44,7 +47,6 @@ namespace drytoolkit.Editor.NestedAnimation
             AssemblyReloadEvents.afterAssemblyReload += RebuildGUI;
         }
         
-        private static NestedAnimationEditor nestedAnimationEditor;
         private static void RebuildGUI()
         {
             nestedAnimationEditor.CreateGUI();
@@ -53,7 +55,7 @@ namespace drytoolkit.Editor.NestedAnimation
         }
     }
 
-public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
+    public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
     {
         [MenuItem("Tools/Nested Animation Editor %#e")]
         public static void ShowWindow()
@@ -135,6 +137,55 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
         private VisualElement allNestedClipElements;
         // private List<VisualElement> allClipElements = new List<VisualElement>();
         private List<VisualElement> elementsToDisable = new List<VisualElement>();
+        
+        
+        //... CONNECT CONTROLS:
+        private Button connectButton;
+        private Button disconnectButton;
+        
+        private const float buttonMargin = 4;
+        private const float buttonMinWidth = 150;
+        private const float buttonWidth = 32f;
+        private const float connectedAnimatorIndentPadding = 20f;
+        private const float connectedAnimatorMarginBottom = 6f;
+        
+
+        //... MODE CONTROLS:
+        private VisualElement modeControlElement;
+        private Button nestedEditClipButton;
+        private Image nestedEditIconImage;
+        
+        private Button nestedPreviewClipButton;
+        private Image nestedPreviewIconImage;
+        
+        private const float previewButtonWidth = 100f;
+        private const float iconSize = 16f;
+        
+        
+        //... CACHING CLIPS / NESTED ANIMATOR:
+        private bool cachingNestedAnimator;
+        private RuntimeAnimatorController cachedNestedAnimator;
+        private GameObject cachedNestedAnimatorGameObject;
+        private AnimationClip cachedNestedAnimatorClip;
+        private GameObject cachedSelectedGameObject;
+        
+        private EditorCurveBinding[] parentCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> parentBindingToCurveLookup;
+        
+        EditorCurveBinding[] nestedCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> nestedBindingToCurveLookup;
+        
+        private EditorCurveBinding[] flattenedCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> flattenedBindingToCurveLookup;
+        
+        
+        //... SELECTED ANIMATOR:
+        private const float headerPadding = 20;
+        private const float headerHeight = 26;
+        private const float selectedAnimatorMarginTop = 6;
+        private const float selectedAnimatorMarginBottom = 10;
+        private const float connectedAnimatorMarginBotton = 6;
+        // private const float nestedAnimatorMarginBotton = 2;
         
         
         //... COLORS:
@@ -309,17 +360,6 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
         }
         
 
-        
-        //... CONNECT:
-        private Button connectButton;
-        private Button disconnectButton;
-        
-        private const float buttonMargin = 4;
-        private const float buttonMinWidth = 150;
-        private const float buttonWidth = 32f;
-        private const float connectedAnimatorIndentPadding = 20f;
-        private const float connectedAnimatorMarginBottom = 6f;
-        
         private VisualElement CreateConnectButtons()
         {
             VisualElement connectButtonSection = new VisualElement();
@@ -363,17 +403,6 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             
             return connectButtonSection;
         }
-
-        
-        private VisualElement modeControlElement;
-        private Button nestedEditClipButton;
-        private Image nestedEditIconImage;
-        
-        private Button nestedPreviewClipButton;
-        private Image nestedPreviewIconImage;
-        
-        private const float previewButtonWidth = 100f;
-        private const float iconSize = 16f;
 
         
         //... CONNECT / DISCONNECT:
@@ -854,6 +883,7 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             // CachedNestedClipBindings();
             // TODO: embed / cache are separate calls..?
             EmbedClipBindings();
+            CacheFlattenedClipBindings();
             
             animWindowState = animWindowStatePropInfo.GetValue(animWindow);
             recordingPropInfo.SetValue(animWindowState, true);
@@ -1033,6 +1063,23 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             }
         }
 
+        private void CacheFlattenedClipBindings()
+        {
+            if (selectedParentClip == null)
+            {
+                Debug.LogWarning("went to cache flattened clip, but it was null.");
+                return;
+            }
+            
+            flattenedCurveBindingCache = AnimationUtility.GetCurveBindings(selectedParentClip);
+            flattenedBindingToCurveLookup = new Dictionary<EditorCurveBinding, AnimationCurve>();
+            foreach (var binding in flattenedCurveBindingCache)
+            {
+                var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+                flattenedBindingToCurveLookup[binding] = new AnimationCurve(curve.keys);
+            }
+        }
+        
         private void RestoreParentClipBindings()
         {
             //... loop through bindings, checking to see if they're part of nested hierarchy
@@ -1046,13 +1093,42 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             
             foreach (var binding in currCurveBindings)
             {
-                var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
-                if (!parentBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                bool bindingShouldBeRemoved = false;
+                
+                if (binding.path.StartsWith(nestedRootPath))
                 {
-                    Debug.LogWarning($"binding by name {binding.propertyName} is new.");
+                    Debug.LogWarning($"binding for {binding.propertyName} is under nested root.");
+                    RemoveBinding();
+                    continue;
+                    // bindingShouldBeRemoved = true;
+                }
+                
+                if (!flattenedBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                {
+                    Debug.LogWarning($"binding by name {binding.propertyName} wasn't part of flattened cache.");
+                    RemoveBinding();
+                    continue;
+                    // bindingShouldBeRemoved = true;
+                }
+                else
+                {
+                    var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+                    if (!CompareCurves(curve, foundCurve))
+                    {
+                        Debug.LogWarning($"binding by name {binding.propertyName} was altered since flattening.");
+                    }
+                }
+                
+                // if(bindingShouldBeRemoved)
+                //     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
+                
+                void RemoveBinding()
+                {
                     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
                 }
             }
+
+            
             
             EditorUtility.SetDirty(selectedParentClip);
             AssetDatabase.SaveAssets();
@@ -1071,22 +1147,9 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
         {
             
         }
-         
 
         
-        //... CACHING CLIPS / NESTED ANIMATOR:
-        private bool cachingNestedAnimator;
-        private RuntimeAnimatorController cachedNestedAnimator;
-        private GameObject cachedNestedAnimatorGameObject;
-        private AnimationClip cachedNestedAnimatorClip;
-        private GameObject cachedSelectedGameObject;
-        
-        private EditorCurveBinding[] parentCurveBindingCache;
-        private Dictionary<EditorCurveBinding, AnimationCurve> parentBindingToCurveLookup;
-        
-        EditorCurveBinding[] nestedCurveBindingCache;
-        private Dictionary<EditorCurveBinding, AnimationCurve> nestedBindingToCurveLookup;
-        
+        //... CACHE / RESTORE:
         private void CacheNestedAnimator()
         {
             if (cachingNestedAnimator)
@@ -1142,8 +1205,6 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             cachingNestedAnimator = false;
         }
 
-       
-        
         private void CachedNestedClipBindings()
         {
             if (selectedNestedClip == null)
@@ -1202,28 +1263,54 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             
             RefreshAnimationWindow();
             
-            bool CompareCurves(AnimationCurve a, AnimationCurve b)
-            {
-                if (a.length != b.length) 
-                    return false;
-
-                for (int i = 0; i < a.length; i++)
-                {
-                    var ka = a[i];
-                    var kb = b[i];
-                    if (
-                        ka.time != kb.time 
-                        || ka.value != kb.value 
-                        || ka.inTangent != kb.inTangent
-                        || ka.outTangent != kb.outTangent
-                        )
-                        return false;
-                }
-                
-                return true;
-            }
+            // bool CompareCurves(AnimationCurve a, AnimationCurve b)
+            // {
+            //     if (a.length != b.length) 
+            //         return false;
+            //
+            //     for (int i = 0; i < a.length; i++)
+            //     {
+            //         var ka = a[i];
+            //         var kb = b[i];
+            //         if (
+            //             ka.time != kb.time 
+            //             || ka.value != kb.value 
+            //             || ka.inTangent != kb.inTangent
+            //             || ka.outTangent != kb.outTangent
+            //             )
+            //             return false;
+            //     }
+            //     
+            //     return true;
+            // }
         }
 
+        /// <summary>
+        /// Returns true if two animation curves are equal.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        private bool CompareCurves(AnimationCurve a, AnimationCurve b)
+        {
+            if (a.length != b.length) 
+                return false;
+
+            for (int i = 0; i < a.length; i++)
+            {
+                var ka = a[i];
+                var kb = b[i];
+                if (
+                    ka.time != kb.time 
+                    || ka.value != kb.value 
+                    || ka.inTangent != kb.inTangent
+                    || ka.outTangent != kb.outTangent
+                )
+                    return false;
+            }
+                
+            return true;
+        }
         
         //... UTILITY:
         private void RefreshAnimationWindow()
@@ -1264,8 +1351,6 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
             animationWindow.Repaint();
         }
 
-       
-
         private void UpdateSelectedAnimationClip(VisualElement clipsElement, AnimationClip selectedClip, Color selectedColor)
         {
             foreach (var element in clipsElement.Children())
@@ -1298,15 +1383,6 @@ public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
         }
 
 
-        
-
-        //... SELECTED ANIMATOR:
-        private const float headerPadding = 20;
-        private const float headerHeight = 26;
-        private const float selectedAnimatorMarginTop = 6;
-        private const float selectedAnimatorMarginBottom = 10;
-        private const float connectedAnimatorMarginBotton = 6;
-        // private const float nestedAnimatorMarginBotton = 2;
 
         private VisualElement CreateSelectedAnimatorElement(out ObjectField objectField)
         {

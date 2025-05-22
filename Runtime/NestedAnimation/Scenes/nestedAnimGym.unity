@@ -2689,7 +2689,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1992581935}
   - component: {fileID: 1992581936}
-  - component: {fileID: 1992581937}
   - component: {fileID: 1992581938}
   m_Layer: 0
   m_Name: parentAnimator
@@ -2737,22 +2736,6 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
---- !u!114 &1992581937
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1992581934}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fff0960ef4ea6e04eac66b4a7fd2189d, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_RigLayers:
-  - m_Rig: {fileID: 315717262}
-    m_Active: 1
-  m_Effectors: []
 --- !u!114 &1992581938
 MonoBehaviour:
   m_ObjectHideFlags: 0
