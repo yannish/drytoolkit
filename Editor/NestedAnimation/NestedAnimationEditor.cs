@@ -6,6 +6,7 @@ using PlasticGui;
 using Sirenix.Reflection.Editor;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
+using UnityEditor.Compilation;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -14,7 +15,49 @@ using Object = System.Object;
 
 namespace drytoolkit.Editor.NestedAnimation
 {
-    public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
+    [InitializeOnLoad]
+    public static class NestedAnimationEditorUtils
+    {
+        static NestedAnimationEditorUtils()
+        {
+            // AssemblyReloadEvents.beforeAssemblyReload += OnBeforeAssemblyReload;
+            // CompilationPipeline.compilationStarted += OnBeforeCompilationStarted;
+        }
+
+        private static void OnBeforeCompilationStarted(object obj) => ShutDownEditor();
+
+        private static void OnBeforeAssemblyReload() => ShutDownEditor();
+
+        private static void ShutDownEditor()
+        {
+            Debug.LogWarning("Handling recompile for NestedRigEditor");
+            
+            if (!EditorWindow.HasOpenInstances<NestedAnimationEditor>())
+                return;
+            
+            var foundEditor = Resources.FindObjectsOfTypeAll<NestedAnimationEditor>();
+            
+            Debug.LogWarning($"Found {foundEditor.Length} NestedAnimationEditors");
+            
+            var nestedAnimationEditor = EditorWindow.GetWindow<NestedAnimationEditor>();
+            
+            nestedAnimationEditor.TransitionToView();
+            nestedAnimationEditor.ClearGUI();
+            
+            AssemblyReloadEvents.afterAssemblyReload -= RebuildGUI;
+            AssemblyReloadEvents.afterAssemblyReload += RebuildGUI;
+        }
+        
+        private static NestedAnimationEditor nestedAnimationEditor;
+        private static void RebuildGUI()
+        {
+            nestedAnimationEditor.CreateGUI();
+            nestedAnimationEditor = null;
+            AssemblyReloadEvents.afterAssemblyReload -= RebuildGUI;
+        }
+    }
+
+public class NestedAnimationEditor : EditorWindow, IHasCustomMenu
     {
         [MenuItem("Tools/Nested Animation Editor %#e")]
         public static void ShowWindow()
@@ -53,8 +96,10 @@ namespace drytoolkit.Editor.NestedAnimation
         private NestedAnimatorEditorState currMode => (NestedAnimatorEditorState)currModeField.value;
         
         private List<Animator> nestedAnimators;
-        private List<AnimationClip> spoofedClips = new List<AnimationClip>();
+        // private List<AnimationClip> spoofedClips = new List<AnimationClip>();
 
+        private Dictionary<RuntimeAnimatorController, List<AnimationClip>> spoofClipHistory
+            = new Dictionary<RuntimeAnimatorController, List<AnimationClip>>();
 
         
         //... ELEMENTS:
@@ -86,6 +131,8 @@ namespace drytoolkit.Editor.NestedAnimation
         private EnumField currModeField;
         
         private Label connectedAnimatorLabelElement;
+
+        private ListView spoofClipElements;
 
 
         private VisualElement allParentClipElements;
@@ -164,7 +211,9 @@ namespace drytoolkit.Editor.NestedAnimation
             selectedNestedClipField.objectType = typeof(AnimationClip);
             // selectedNestedClipField.style.display = DisplayStyle.None;
             root.Add(selectedNestedClipField);
-
+            
+            spoofClipElements = new ListView();
+            
 
             selectedAnimatorHeaderElement = CreateObjectFieldWithHeader(selectedAnimatorLabel, out selectedAnimatorField, typeof(Animator));
             
@@ -208,6 +257,11 @@ namespace drytoolkit.Editor.NestedAnimation
             // root.Add(connectedAnimatorElement);
         }
 
+        public void ClearGUI()
+        {
+            rootVisualElement.Clear();
+        }
+        
         private void HandleSceneChange(Scene arg0, Scene arg1)
         {
             Debug.LogWarning("handling scene change for nested animation editor");
@@ -330,7 +384,7 @@ namespace drytoolkit.Editor.NestedAnimation
         //... TODO: migrate some of this work out to other methods for ease of viewing.
         private void ConnectAnimator()
         {
-            DisconnectAnimator();
+            DisconnectAnimator();m
             
             if (selectedAnimatorField.value == null || animWindow == null)
                 return;
@@ -408,12 +462,7 @@ namespace drytoolkit.Editor.NestedAnimation
                         }
                         
                         SetAnimationWindowsCurrentClip(clip);
-                        
-                        // var animationWindow = GetWindow<AnimationWindow>();
-                        // if(animationWindow.animationClip != clip)
-                        //     animationWindow.animationClip = clip;
-                        // animationWindow.Repaint();
-                        
+
                         UpdateSelectedAnimationClip(allParentClipElements, clip, selectedBackgroundColor);
                     }
                 };
@@ -568,31 +617,34 @@ namespace drytoolkit.Editor.NestedAnimation
                 
                 //... TODO: set spoof toggle initial value on creation.
                 var spoofToggle = new Toggle();
-                // if(spoofedClips.Contains(clip))
-                //     spoofToggle.value = true;
-                // else
-                //     spoofToggle.value = false;
+
                 
+                if(!spoofClipHistory.ContainsKey(nestedAnimator.runtimeAnimatorController))
+                    spoofClipHistory.Add(nestedAnimator.runtimeAnimatorController, new List<AnimationClip>());
+                    
+                if (spoofClipHistory.TryGetValue(nestedAnimator.runtimeAnimatorController, out var foundSpoofClips))
+                    spoofToggle.value = foundSpoofClips.Contains(clip);
+
                 spoofToggle.RegisterValueChangedCallback(evt =>
                 {
                     // Debug.LogWarning("toggle value changed.");
-
+                    
                     if (evt.newValue)
-                    {
-                        // if(!spoofedClips.Contains(clip))
-                        //     spoofedClips.Add(clip);
-                    }
+                        spoofClipHistory[nestedAnimator.runtimeAnimatorController].Add(clip);
                     else
-                    {
-                        // if(spoofedClips.Contains(clip))
-                        //     spoofedClips.Remove(clip);
-                    }
+                        spoofClipHistory[nestedAnimator.runtimeAnimatorController].Remove(clip);
+                    
+                    // foreach(var spoofClip in spoofClipHistory[nestedAnimator.runtimeAnimatorController])
+                    //     Debug.LogWarning($"...{spoofClip.name}");
+                    
+                    spoofToggle.Blur();
                 });
                 
                 spoofButton.Add(recordIconImage);
                 spoofButton.clicked += () =>
                 {
-                    Debug.LogWarning("Clicked spoof button!");
+                    // Debug.LogWarning("Clicked spoof button!");
+                    
                     spoofButton.Blur();
                     selectedNestedClipField.value = clip;
 
@@ -681,7 +733,7 @@ namespace drytoolkit.Editor.NestedAnimation
 
         
         //... PREVIEW :
-        private void TransitionToNestedPreview()
+        private void TransitionToPreview()
         {
             //... exit prev state:
             switch ((NestedAnimatorEditorState)currModeField.value)
@@ -759,9 +811,9 @@ namespace drytoolkit.Editor.NestedAnimation
         private void ToggleNestedPreviewMode()
         {
             if ((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
-                TransitionToNestedPreview();
+                TransitionToPreview();
             else
-                TransitionToViewState();
+                TransitionToView();
         }
         
         private void ValidatePreviewMode()
@@ -771,13 +823,13 @@ namespace drytoolkit.Editor.NestedAnimation
             if (!isPreviewing)
             {
                 Debug.LogWarning("anim window's previewing mode was exited");
-                TransitionToViewState();
+                TransitionToView();
             }
         }
 
         
         //... EDIT:
-        private void TransitionToNestedEdit()
+        private void TransitionToEdit()
         {
             switch ((NestedAnimatorEditorState)currModeField.value)
             {
@@ -854,9 +906,9 @@ namespace drytoolkit.Editor.NestedAnimation
         private void ToggleNestedEditMode()
         {
             if((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
-                TransitionToNestedEdit();
+                TransitionToEdit();
             else
-                TransitionToViewState();
+                TransitionToView();
         }
         
         private void ValidateEditMode()
@@ -866,13 +918,13 @@ namespace drytoolkit.Editor.NestedAnimation
             if (!isRecording)
             {
                 Debug.LogWarning("anim window's recording mode was exited");
-                TransitionToViewState();
+                TransitionToView();
             }
         }
 
 
         //... VIEW:
-        private void TransitionToViewState()
+        public void TransitionToView()
         {
             switch ((NestedAnimatorEditorState)currModeField.value)
             {
@@ -927,10 +979,37 @@ namespace drytoolkit.Editor.NestedAnimation
             }
             
             //... include "spoof" clips. these are represented in the flattened clip, but won't have changes written back out to them.
-            foreach (var clip in spoofedClips)
+            if (spoofClipHistory.TryGetValue(cachedNestedAnimator, out var foundSpoofClips))
             {
-                
+                foreach (var spoofClip in foundSpoofClips)
+                {
+                    bool bindingCollision = false;
+                    var spoofClipBindings = AnimationUtility.GetCurveBindings(spoofClip);
+                    foreach (var spoofClipBinding in spoofClipBindings)
+                    {
+                        foreach (var nestedClipBinding in nestedClipBindings)
+                        {
+                            if (spoofClipBinding.path == nestedClipBinding.path)
+                            {
+                                bindingCollision = true;
+                                break;
+                            }
+                        }
+
+                        if (bindingCollision)
+                            continue;
+                        
+                        var curve = AnimationUtility.GetEditorCurve(spoofClip, spoofClipBinding);
+                        destinationClip.SetCurve(
+                            $"{rootPath}/{spoofClipBinding.path}",
+                            spoofClipBinding.type,
+                            spoofClipBinding.propertyName,
+                            curve
+                            );
+                    }
+                }
             }
+
             
             //... TODO: should this be happening here? we've just embedded. we're not "done". 
             EditorUtility.SetDirty(destinationClip);
@@ -1004,6 +1083,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private RuntimeAnimatorController cachedNestedAnimator;
         private GameObject cachedNestedAnimatorGameObject;
         private AnimationClip cachedNestedAnimatorClip;
+        private GameObject cachedSelectedGameObject;
         
         private EditorCurveBinding[] parentCurveBindingCache;
         private Dictionary<EditorCurveBinding, AnimationCurve> parentBindingToCurveLookup;
@@ -1028,8 +1108,11 @@ namespace drytoolkit.Editor.NestedAnimation
             cachedNestedAnimatorGameObject = nestedAnimator.gameObject;
             cachedNestedAnimator = nestedAnimator.runtimeAnimatorController;
             cachedNestedAnimatorClip = selectedNestedClip;
+            cachedSelectedGameObject = selectedAnimator.gameObject;
             
             connectedNestedAnimatorField.style.display = DisplayStyle.None;
+            selectedAnimatorField.style.display = DisplayStyle.None;
+            // connectedAnimatorField.style.display = DisplayStyle.None;
             
             DestroyImmediate(nestedAnimator);
             
@@ -1049,12 +1132,16 @@ namespace drytoolkit.Editor.NestedAnimation
                 Debug.LogWarning("Tried to restore nested animator, but we weren't caching it.");
                 return;
             }
-            
-            connectedNestedAnimatorField.style.display = DisplayStyle.Flex;
 
             connectedNestedAnimatorField.value = cachedNestedAnimatorGameObject.AddComponent<Animator>();
             nestedAnimator.runtimeAnimatorController = cachedNestedAnimator;
             selectedNestedClipField.value = cachedNestedAnimatorClip;
+            
+            selectedAnimatorField.value = cachedSelectedGameObject.GetComponent<Animator>();
+
+            connectedNestedAnimatorField.style.display = DisplayStyle.Flex;
+            selectedAnimatorField.style.display = DisplayStyle.Flex;
+            // connectedAnimatorField.style.display = DisplayStyle.Flex;
             
             cachingNestedAnimator = false;
         }
