@@ -146,6 +146,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private const float buttonMargin = 4;
         private const float buttonMinWidth = 150;
         private const float buttonWidth = 32f;
+        private const float smallerButtonWidth = 22f;
         private const float connectedAnimatorIndentPadding = 20f;
         private const float connectedAnimatorMarginBottom = 6f;
         
@@ -204,6 +205,10 @@ namespace drytoolkit.Editor.NestedAnimation
         private Texture nestedEditIconTexture;
         private Texture nestedPreviewIconTexture;
         private Texture2D recordIconTexture;
+        private Texture toolbarPlusTexture;
+        private Texture toolbarMinusTexture;
+        private Texture collabCreateTexture;
+        private Texture collabDeleteTexture;
         
         
         //... LABELS:
@@ -357,6 +362,11 @@ namespace drytoolkit.Editor.NestedAnimation
             recordIconTexture = EditorGUIUtility.IconContent("Animation.Record").image as Texture2D;
             nestedEditIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
             nestedPreviewIconTexture = EditorGUIUtility.IconContent("SkinnedMeshRenderer Icon").image;
+            
+            collabCreateTexture = EditorGUIUtility.IconContent("CollabCreate Icon").image;
+            collabDeleteTexture = EditorGUIUtility.IconContent("CollabDeleted Icon").image;
+            toolbarPlusTexture = EditorGUIUtility.IconContent("Toolbar Plus").image;
+            toolbarMinusTexture = EditorGUIUtility.IconContent("Toolbar Minus").image;
         }
         
 
@@ -582,16 +592,12 @@ namespace drytoolkit.Editor.NestedAnimation
             // root.Add(connectedAnimatorControlsElement);
             
             
-
-            // ... NESTED:
             
+            // ... NESTED:
             if (selectedNestedAnimatorField.value == null)
                 return;
 
             connectedNestedAnimatorField.value = selectedNestedAnimatorField.value;
-            
-            // if (!(selectedNestedAnimatorField.value is Animator))
-            //     return;
 
             if (nestedAnimator.runtimeAnimatorController == null)
                 return;
@@ -618,12 +624,13 @@ namespace drytoolkit.Editor.NestedAnimation
                 clipField.objectType = typeof(AnimationClip);
                 clipField.value = clip;
 
-                var spoofButton = new Button();
-                spoofButton.style.flexDirection = FlexDirection.Row;
-                spoofButton.style.width = buttonWidth;// * 2f;
-                spoofButton.style.alignContent = Align.Center;
-                spoofButton.style.alignItems = Align.Center;
                 
+                var recordButton = new Button();
+                recordButton.style.flexDirection = FlexDirection.Row;
+                recordButton.style.width = buttonWidth;// * 2f;
+                recordButton.style.alignContent = Align.Center;
+                recordButton.style.alignItems = Align.Center;
+
                 var recordIconImage = new Image();
                 recordIconImage.style.flexGrow = 1;
                 recordIconImage.style.flexDirection = FlexDirection.Column;
@@ -634,13 +641,36 @@ namespace drytoolkit.Editor.NestedAnimation
                 recordIconImage.style.height = iconSize;
                 recordIconImage.style.flexShrink = 0;
                         
+                
                 var spoofIconImage = new Image();
                 spoofIconImage.style.alignSelf = Align.Center;
-                spoofIconImage.image = dupeIconTexture;
+                spoofIconImage.style.alignContent = Align.Center;
+                spoofIconImage.style.alignItems = Align.Center;
+                spoofIconImage.style.flexShrink = 0f;
+                spoofIconImage.image = collabCreateTexture;
+                // spoofIconImage.image = dupeIconTexture;
                 spoofIconImage.style.width = iconSize;
                 spoofIconImage.style.height = iconSize;
+                // spoofIconImage.style.paddingRight = 10f;
+                
+                var copyInButton = new Button();
+                copyInButton.style.flexDirection = FlexDirection.Row;
+                copyInButton.style.width = buttonWidth;
+                copyInButton.style.alignContent = Align.Center;
+                copyInButton.style.alignItems = Align.Center;
+                copyInButton.style.alignSelf = Align.Center;
+                
+                copyInButton.clicked += () =>
+                {
+                    copyInButton.Blur();
+                    Debug.LogWarning($"Copying {clip.name} into {selectedParentClip.name}");
+                    
+                };
+                
+                copyInButton.Add(spoofIconImage);
                 
                 //... TODO: set spoof toggle initial value on creation.
+                
                 var spoofToggle = new Toggle();
 
                 
@@ -665,12 +695,12 @@ namespace drytoolkit.Editor.NestedAnimation
                     spoofToggle.Blur();
                 });
                 
-                spoofButton.Add(recordIconImage);
-                spoofButton.clicked += () =>
+                recordButton.Add(recordIconImage);
+                recordButton.clicked += () =>
                 {
                     // Debug.LogWarning("Clicked spoof button!");
                     
-                    spoofButton.Blur();
+                    recordButton.Blur();
                     selectedNestedClipField.value = clip;
 
                     if (HasOpenInstances<AnimationWindow>())
@@ -691,8 +721,9 @@ namespace drytoolkit.Editor.NestedAnimation
                 };
                 
                 clipElement.Add(clipField);
-                clipElement.Add(spoofButton);
-                clipElement.Add(spoofIconImage);
+                clipElement.Add(recordButton);
+                clipElement.Add(copyInButton);
+                // clipElement.Add(spoofIconImage);
                 clipElement.Add(spoofToggle);
                 
                 allNestedClipElements.Add(clipElement);
@@ -778,9 +809,17 @@ namespace drytoolkit.Editor.NestedAnimation
                     throw new ArgumentOutOfRangeException();
             }
             
+            //... should select the parent animator and set the clip of the animation window to clip w/ embedded bindings:
+            
+            currModeField.value = NestedAnimatorEditorState.PREVIEW;
+            
+            Selection.activeGameObject = connectedAnimator.gameObject;
+            SetAnimationWindowsCurrentClip(selectedParentClip);
+            
             CacheNestedAnimator();
             CacheParentClipBindings();
             EmbedClipBindings();
+            CacheEmbeddedClipBindings();
 
             //... put animation window into desired state:
             animWindowState = animWindowStatePropInfo.GetValue(animWindow);
@@ -800,10 +839,6 @@ namespace drytoolkit.Editor.NestedAnimation
             
             rootVisualElement.style.backgroundColor = previewingBackgroundColor;
             
-            //... should select the parent animator and set the clip of the animation window to clip w/ embedded bindings:
-            
-            currModeField.value = NestedAnimatorEditorState.PREVIEW;
-
             EditorApplication.delayCall += () =>
             {
                 EditorApplication.update -= ValidatePreviewMode;
@@ -883,7 +918,7 @@ namespace drytoolkit.Editor.NestedAnimation
             // CachedNestedClipBindings();
             // TODO: embed / cache are separate calls..?
             EmbedClipBindings();
-            CacheFlattenedClipBindings();
+            CacheEmbeddedClipBindings();
             
             animWindowState = animWindowStatePropInfo.GetValue(animWindow);
             recordingPropInfo.SetValue(animWindowState, true);
@@ -1063,7 +1098,7 @@ namespace drytoolkit.Editor.NestedAnimation
             }
         }
 
-        private void CacheFlattenedClipBindings()
+        private void CacheEmbeddedClipBindings()
         {
             if (selectedParentClip == null)
             {
@@ -1094,30 +1129,102 @@ namespace drytoolkit.Editor.NestedAnimation
             foreach (var binding in currCurveBindings)
             {
                 bool bindingShouldBeRemoved = false;
+                bool wasModified = false;
+                bool isNewBinding = false;
+                bool isNestedBinding = binding.path.StartsWith(nestedRootPath);
                 
-                if (binding.path.StartsWith(nestedRootPath))
-                {
-                    Debug.LogWarning($"binding for {binding.propertyName} is under nested root.");
-                    RemoveBinding();
-                    continue;
-                    // bindingShouldBeRemoved = true;
-                }
+                Debug.LogWarning($"binding for {binding.propertyName} is under {(isNestedBinding ? "nested" : "parent")} root.");
                 
-                if (!flattenedBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+
+                if (flattenedBindingToCurveLookup.TryGetValue(binding, out var flattenedCurve))
                 {
-                    Debug.LogWarning($"binding by name {binding.propertyName} wasn't part of flattened cache.");
-                    RemoveBinding();
-                    continue;
-                    // bindingShouldBeRemoved = true;
+                    Debug.LogWarning("this is an existing binding");
+                    
+                    if (!CompareCurves(curve, flattenedCurve))
+                    {
+                        Debug.LogWarning($"... and it was altered since flattening.");
+                        wasModified = true;
+                        
+                        // if (isNestedBinding)
+                        // {
+                        //     
+                        // }
+                        // else
+                        // {
+                        //     //... otherwise keep it in parent clip.
+                        // }
+                    }
                 }
                 else
                 {
-                    var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
-                    if (!CompareCurves(curve, foundCurve))
+                    Debug.LogWarning("this is a brand new binding");
+                    isNewBinding = true;
+                    
+                    // if (isNestedBinding)
+                    // {
+                    //     //... remove from parent clip:
+                    //     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
+                    //     //... write back with modified path to nested clip:
+                    //     var nestedPath = binding.path.Remove(0, nestedRootPath.Length + 1);
+                    //     selectedNestedClip.SetCurve(nestedPath, binding.type, binding.propertyName, curve);
+                    // }
+                    //... else, keep it.
+                }
+
+                if (isNestedBinding)
+                {
+                    Debug.LogWarning($"...... it's nested, removing from parent..");
+                    //... remove from parent clip:
+                    AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
+
+                    if (wasModified || isNewBinding)
                     {
-                        Debug.LogWarning($"binding by name {binding.propertyName} was altered since flattening.");
+                        //... write back with modified path to nested clip:
+                        var nestedPath = binding.path.Remove(0, nestedRootPath.Length + 1);
+                        selectedNestedClip.SetCurve(nestedPath, binding.type, binding.propertyName, curve);
                     }
                 }
+                
+                // if (binding.path.StartsWith(nestedRootPath))
+                // {
+                //     Debug.LogWarning($"binding for {binding.propertyName} is under nested root.");
+                //     // RemoveBinding();
+                //     // continue;
+                //     bindingShouldBeRemoved = true;
+                // }
+                // else
+                // {
+                //     Debug.LogWarning($"binding for {binding.propertyName} is under parent root.");
+                //     if (flattenedBindingToCurveLookup.TryGetValue(binding, out var flattenedCurve))
+                //     {
+                //         
+                //     }
+                // }
+                
+                // if (!flattenedBindingToCurveLookup.TryGetValue(binding, out var foundCurve))
+                // {
+                //     Debug.LogWarning($"binding by name {binding.propertyName} wasn't part of flattened cache.");
+                //     // RemoveBinding();
+                //     // continue;
+                //     // bindingShouldBeRemoved = true;
+                // }
+                // else
+                // {
+                //     
+                // }
+
+                // if (flattenedBindingToCurveLookup.TryGetValue(binding, out var flattenedCurve))
+                // {
+                //     var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
+                //     if (!CompareCurves(curve, flattenedCurve))
+                //     {
+                //         Debug.LogWarning($"binding by name {binding.propertyName} was altered since flattening.");
+                //     }
+                // }
+                
+                // if(bindingShouldBeRemoved)
+                //     RemoveBinding();
                 
                 // if(bindingShouldBeRemoved)
                 //     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
