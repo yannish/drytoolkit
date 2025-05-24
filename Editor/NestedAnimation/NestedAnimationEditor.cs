@@ -99,6 +99,15 @@ namespace drytoolkit.Editor.NestedAnimation
         private Dictionary<RuntimeAnimatorController, List<AnimationClip>> spoofClipHistory
             = new Dictionary<RuntimeAnimatorController, List<AnimationClip>>();
 
+        private List<AnimationClip> spoofClips
+        {
+            get
+            {
+                if(spoofClipHistory.TryGetValue(cachedNestedRuntimeAnimatorController, out var foundClips))
+                    return foundClips;
+                return new List<AnimationClip>();
+            }
+        }
         
         //... ELEMENTS:
         private VisualElement root;
@@ -165,7 +174,7 @@ namespace drytoolkit.Editor.NestedAnimation
         
         //... CACHING CLIPS / NESTED ANIMATOR:
         private bool cachingNestedAnimator;
-        private RuntimeAnimatorController cachedNestedAnimator;
+        private RuntimeAnimatorController cachedNestedRuntimeAnimatorController;
         private GameObject cachedNestedAnimatorGameObject;
         private AnimationClip cachedNestedAnimatorClip;
         private GameObject cachedSelectedGameObject;
@@ -178,6 +187,9 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private EditorCurveBinding[] flattenedCurveBindingCache;
         private Dictionary<EditorCurveBinding, AnimationCurve> flattenedBindingToCurveLookup;
+
+        private EditorCurveBinding[] spoofCurveBindingCache;
+        private Dictionary<EditorCurveBinding, AnimationCurve> spoofBindingToCurveLookup;
         
         
         //... SELECTED ANIMATOR:
@@ -818,6 +830,7 @@ namespace drytoolkit.Editor.NestedAnimation
             
             CacheNestedAnimator();
             CacheParentClipBindings();
+            CacheSpoofClipBindings();
             EmbedClipBindings();
             CacheEmbeddedClipBindings();
 
@@ -915,6 +928,7 @@ namespace drytoolkit.Editor.NestedAnimation
             
             CacheNestedAnimator();
             CacheParentClipBindings();
+            CacheSpoofClipBindings();
             // CachedNestedClipBindings();
             // TODO: embed / cache are separate calls..?
             EmbedClipBindings();
@@ -1032,15 +1046,9 @@ namespace drytoolkit.Editor.NestedAnimation
 
             var nestedClipBindings = AnimationUtility.GetCurveBindings(sourceClip);
 
-            //... embed nested clip's bindings into parent clip:
-            foreach (var binding in nestedClipBindings)
-            {
-                var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
-                destinationClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
-            }
             
             //... include "spoof" clips. these are represented in the flattened clip, but won't have changes written back out to them.
-            if (spoofClipHistory.TryGetValue(cachedNestedAnimator, out var foundSpoofClips))
+            if (spoofClipHistory.TryGetValue(cachedNestedRuntimeAnimatorController, out var foundSpoofClips))
             {
                 foreach (var spoofClip in foundSpoofClips)
                 {
@@ -1070,6 +1078,13 @@ namespace drytoolkit.Editor.NestedAnimation
                     }
                 }
             }
+            
+            //... then embed nested clip's bindings into parent clip. they might overwrite spoof clip bindings:
+            foreach (var binding in nestedClipBindings)
+            {
+                var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
+                destinationClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
+            }
 
             
             //... TODO: should this be happening here? we've just embedded. we're not "done". 
@@ -1098,6 +1113,29 @@ namespace drytoolkit.Editor.NestedAnimation
             }
         }
 
+        private void CacheSpoofClipBindings()
+        {
+            spoofCurveBindingCache = new EditorCurveBinding[] { };
+            
+            var totalHashSet = new HashSet<EditorCurveBinding>();
+            // Array.Clear(spoofCurveBindingCache);
+            foreach (var clip in spoofClips)
+            {
+                var curveBindings = AnimationUtility.GetCurveBindings(clip);
+                var curveSet = new HashSet<EditorCurveBinding>(curveBindings);
+                totalHashSet = totalHashSet.Union(curveSet) as HashSet<EditorCurveBinding>;
+            }
+            
+            spoofCurveBindingCache = totalHashSet.ToArray();
+            
+            Debug.LogWarning($"total in spoof cache : {spoofCurveBindingCache.Length}");
+            
+            foreach (var binding in spoofCurveBindingCache)
+            {
+                Debug.LogWarning($"cached spoof binding: {binding.propertyName}");    
+            }
+        }
+        
         private void CacheEmbeddedClipBindings()
         {
             if (selectedParentClip == null)
@@ -1272,7 +1310,7 @@ namespace drytoolkit.Editor.NestedAnimation
             }
             
             cachedNestedAnimatorGameObject = nestedAnimator.gameObject;
-            cachedNestedAnimator = nestedAnimator.runtimeAnimatorController;
+            cachedNestedRuntimeAnimatorController = nestedAnimator.runtimeAnimatorController;
             cachedNestedAnimatorClip = selectedNestedClip;
             cachedSelectedGameObject = selectedAnimator.gameObject;
             
@@ -1300,7 +1338,7 @@ namespace drytoolkit.Editor.NestedAnimation
             }
 
             connectedNestedAnimatorField.value = cachedNestedAnimatorGameObject.AddComponent<Animator>();
-            nestedAnimator.runtimeAnimatorController = cachedNestedAnimator;
+            nestedAnimator.runtimeAnimatorController = cachedNestedRuntimeAnimatorController;
             selectedNestedClipField.value = cachedNestedAnimatorClip;
             
             selectedAnimatorField.value = cachedSelectedGameObject.GetComponent<Animator>();
