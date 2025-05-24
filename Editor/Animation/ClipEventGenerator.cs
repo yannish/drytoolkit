@@ -83,7 +83,7 @@ public static class ClipEventGenerator
             clipEventDefinitions.Add(clipEventDef);
         }
 
-        string classContent = "";
+        // string classContent = "";
         
         WriteCacheClass(clipEventDefinitions);
         WriteGetterClass(clipEventDefinitions);
