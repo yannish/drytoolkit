@@ -5,7 +5,10 @@
         "Unity.VisualScripting.Core",
         "Unity.Mathematics",
         "Unity.Burst",
-        "Unity.PlayableGraphVisualizer"
+        "Unity.PlayableGraphVisualizer",
+        "Unity.Animation.Rigging",
+        "Unity.Collections",
+        "Unity.Timeline"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

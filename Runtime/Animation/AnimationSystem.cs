@@ -40,6 +40,7 @@ namespace drytoolkit.Runtime.Animation
         
         [Header("HANDLES:")]
         public List<StateClipHandle> stateClipHandles = new List<StateClipHandle>();
+        
         //... this seems like quite a lot of somewhat ill-defined overhead just to smooth out the 
         //... situation where code is calling to play multiple one-shots.
         public List<OneShotClipHandle> oneShotClipHandles = new List<OneShotClipHandle>();
@@ -648,7 +649,8 @@ namespace drytoolkit.Runtime.Animation
                 blendInTime = blendInTime,
                 blendOutTime = blendOutTime,
                 targetWeight = 1f,
-                clipPlayable = AnimationClipPlayable.Create(graph, clip)
+                clipPlayable = AnimationClipPlayable.Create(graph, clip),
+                currWeight = blendInTime > 0f ? 0f : 1f
             };
 
             if(callback != null)
@@ -661,7 +663,8 @@ namespace drytoolkit.Runtime.Animation
             newAdditiveOneShotClip.clipPlayable.Play();
             
             additiveOneShotMixer.ConnectInput(additiveOneShotClipHandles.Count, newAdditiveOneShotClip.clipPlayable, 0);
-            additiveOneShotMixer.SetInputWeight(additiveOneShotClipHandles.Count, 0f);
+            additiveOneShotMixer.SetInputWeight(additiveOneShotClipHandles.Count, newAdditiveOneShotClip.currWeight);
+            // additiveOneShotMixer.SetInputWeight(additiveOneShotClipHandles.Count, 0f);
             
             additiveOneShotClipHandles.Add(newAdditiveOneShotClip);
 
