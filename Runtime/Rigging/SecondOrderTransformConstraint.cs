@@ -138,8 +138,11 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
             currRot.w = wDyn.Tick(effectiveDt, currTargetRot.w, rotK1, rotK2, rotK3);
             currRot.Normalize();
 
-            currVel += impulseVel.Value;
-            impulseVel.Value = Vector3.zero;
+            if (impulseVel.IsCreated)
+            {
+                currVel += impulseVel.Value;
+                impulseVel.Value = Vector3.zero;
+            }
             
             var xDeriv = (currTargetPos - prevTargetPos) / effectiveDt;
             currPos += effectiveDt * currVel;
