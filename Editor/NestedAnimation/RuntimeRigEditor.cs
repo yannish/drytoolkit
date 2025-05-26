@@ -25,14 +25,14 @@ public static class RuntimeRigEditorUtils
 
     private static void CloseDownPreviewing()
     {
-        Debug.LogWarning("Handling recompile for RuntimeRigEditor");
+        // Debug.LogWarning("Handling recompile for RuntimeRigEditor");
         
         if (!EditorWindow.HasOpenInstances<RuntimeRigEditor>())  
             return;
             
         var foundEditors = Resources.FindObjectsOfTypeAll<RuntimeRigEditor>();
         
-        Debug.LogWarning($"found {foundEditors.Length} RuntimeRigEditors...");
+        // Debug.LogWarning($"found {foundEditors.Length} RuntimeRigEditors...");
         
         runtimeRigEditor = EditorWindow.GetWindow<RuntimeRigEditor>();
         if (runtimeRigEditor != null)
