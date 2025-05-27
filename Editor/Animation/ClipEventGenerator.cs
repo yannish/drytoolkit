@@ -180,7 +180,7 @@ public static class ClipEventGenerator
         
         CompilationPipeline.assemblyCompilationFinished -= InstantiateSwatchAfterCompilation;
         
-        return;
+        // return;
         
         Type generatedType = FindGeneratedType(CLASS_NAME);
         if (generatedType == null)

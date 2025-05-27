@@ -1280,10 +1280,10 @@ namespace drytoolkit.Editor.NestedAnimation
                 // if(bindingShouldBeRemoved)
                 //     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
                 
-                void RemoveBinding()
-                {
-                    AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
-                }
+                // void RemoveBinding()
+                // {
+                //     AnimationUtility.SetEditorCurve(selectedParentClip, binding, null);
+                // }
             }
 
             

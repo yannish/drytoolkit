@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Codice.CM.Common.Checkin.Partial;
 using Unity.Mathematics;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -51,11 +50,19 @@ namespace drytoolkit.Runtime.Animation
         private Animator animator;
         private Dictionary<ClipEventDefinition, Action> eventLookup = new Dictionary<ClipEventDefinition, Action>();
         
+        
         private AnimationClipPlayable oneShotPlayable;
+        
         private readonly AnimationLayerMixerPlayable topLevelMixer;
+        
         private readonly AnimationMixerPlayable stateMixer;
+
+        private readonly AnimationLayerMixerPlayable stateLayerMixer;
+        
         private readonly AnimationMixerPlayable oneShotMixer;
+        
         private readonly AnimationMixerPlayable additiveOneShotMixer;
+        
         private readonly AnimationPlayableOutput playableOutput;
 
         private MethodInfo rebindMethod;

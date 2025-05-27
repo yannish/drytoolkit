@@ -43,7 +43,7 @@ namespace drytoolkit.Runtime.Animation
             animator.runtimeAnimatorController = null;
             animSystem = new AnimationSystem(animator);
             
-            GraphVisualizerClient.Show(animSystem.graph);
+            // GraphVisualizerClient.Show(animSystem.graph);
         }
 
         private void Update()
