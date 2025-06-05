@@ -14,18 +14,28 @@ public static class TransformUtils
     {
         if (property.propertyType == SerializedPropertyType.Vector3)
         {
-            menu.AddItem(new GUIContent("Zero"), false, () =>
+            menu.AddItem(new GUIContent("Zero out"), false, () =>
             {
-                // Undo.RecordObject(property, "Zero'd vector");
                 property.vector3Value = Vector3.zero;
                 property.serializedObject.ApplyModifiedProperties();
             });
             
             menu.AddItem(new GUIContent("Reflect in X"), false, () =>
             {
-                // Vector3 test;
-                // test = test.Wit
                 property.vector3Value = property.vector3Value.With(x: -property.vector3Value.x);
+                property.serializedObject.ApplyModifiedProperties();
+            });
+            
+            menu.AddItem(new GUIContent("Reflect in Y"), false, () =>
+            {
+                property.vector3Value = property.vector3Value.With(y: -property.vector3Value.y);
+                property.serializedObject.ApplyModifiedProperties();
+            });
+            
+            menu.AddItem(new GUIContent("Reflect in Z"), false, () =>
+            {
+                property.vector3Value = property.vector3Value.With(z: -property.vector3Value.z);
+                property.serializedObject.ApplyModifiedProperties();
             });
         }
 
