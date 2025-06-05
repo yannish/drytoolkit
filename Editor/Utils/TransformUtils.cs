@@ -16,24 +16,28 @@ public static class TransformUtils
         {
             menu.AddItem(new GUIContent("Zero out"), false, () =>
             {
+                RecordUndo();
                 property.vector3Value = Vector3.zero;
                 property.serializedObject.ApplyModifiedProperties();
             });
             
             menu.AddItem(new GUIContent("Reflect in X"), false, () =>
             {
+                RecordUndo();
                 property.vector3Value = property.vector3Value.With(x: -property.vector3Value.x);
                 property.serializedObject.ApplyModifiedProperties();
             });
             
             menu.AddItem(new GUIContent("Reflect in Y"), false, () =>
             {
+                RecordUndo();
                 property.vector3Value = property.vector3Value.With(y: -property.vector3Value.y);
                 property.serializedObject.ApplyModifiedProperties();
             });
             
             menu.AddItem(new GUIContent("Reflect in Z"), false, () =>
             {
+                RecordUndo();
                 property.vector3Value = property.vector3Value.With(z: -property.vector3Value.z);
                 property.serializedObject.ApplyModifiedProperties();
             });
@@ -43,17 +47,24 @@ public static class TransformUtils
         {
             menu.AddItem(new GUIContent("Zero"), false, () =>
             {
+                RecordUndo();
                 property.quaternionValue = Quaternion.identity;
                 property.serializedObject.ApplyModifiedProperties();
             });
             
             menu.AddItem(new GUIContent("Reflect Rotation in X"), false, () =>
             {
+                RecordUndo();
                 var reflectedRot = ReflectRotation(property.quaternionValue, Vector3.right);
                 property.quaternionValue = reflectedRot;
                 property.serializedObject.ApplyModifiedProperties();
             });
         }
+
+        void RecordUndo()
+        {
+            Undo.RecordObject(property.serializedObject.targetObject,"Transform Util Change");
+        }  
     }
 
     static Quaternion ReflectRotation(Quaternion rotation, Vector3 normal)
@@ -69,10 +80,14 @@ public static class TransformUtils
         return reflectedRot;
     }
     
+    
+    
     [MenuItem("CONTEXT/Transform/Mirror Rotation Across X Axis")]
     static void MirrorRotation(MenuCommand command)
     {
         Transform transform = (Transform)command.context;
+        
+        Undo.RecordObject(transform,"Transform Util Change");
         
         transform.localPosition = transform.localPosition.With(x : -transform.localPosition.x);
         transform.rotation = ReflectRotation(transform.rotation, Vector3.right);
@@ -99,4 +114,5 @@ public static class TransformUtils
         // transform.rotation = mirrored.rotation;
     }
     
+ 
 }
