@@ -25,6 +25,8 @@ public class ClipHandlerInspector : Editor
         DrawDefaultInspector();
     }
 
+    private int[] layerPicks;
+    
     private void DrawPlayControls()
     {
         if (!Application.isPlaying)
@@ -37,6 +39,13 @@ public class ClipHandlerInspector : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("STATE CLIPS:", EditorStyles.boldLabel);
+            if (layerPicks == null || layerPicks.Length != clipHandler.stateClips.Count)
+            {
+                layerPicks = new int[clipHandler.stateClips.Count];
+                for (int i = 0; i < clipHandler.stateClips.Count; i++)
+                    layerPicks[i] = 0;
+            }// COMMONE
+            
             for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {
                 var clipConfig = clipHandler.stateClips[i];
@@ -49,8 +58,8 @@ public class ClipHandlerInspector : Editor
                         //     ? clipConfig.blendInTime
                         //     : clipHandler.blendInTime;
                         
-                        clipHandler.animSystem.TransitionToState(clipConfig);
-                        
+                        clipHandler.animSystem.TransitionToState(clipConfig, layerPicks[i]);
+                        //
                         // if(clipHandler.logDebug)
                         //     Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
                     }
@@ -62,6 +71,11 @@ public class ClipHandlerInspector : Editor
                         false, 
                         null
                         );
+                    
+                    EditorGUI.BeginChangeCheck();
+                    var result = EditorGUILayout.IntField(layerPicks[i], GUILayout.Width(objectFieldWidth));
+                    if(EditorGUI.EndChangeCheck())
+                        layerPicks[i] = result;
                 }
             }
         }

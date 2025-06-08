@@ -9,6 +9,8 @@ namespace drytoolkit.Runtime.Animation
     public class ClipHandler : MonoBehaviour
     {
         public bool logDebug;
+
+        public int layerCount = 1;
         
         public AnimationSystem.ClipBlendStyle blendStyle;
         
@@ -20,6 +22,8 @@ namespace drytoolkit.Runtime.Animation
         public ClipConfig anotherOneShotWithEvent;
         
         public List<ClipConfig> stateClips;
+        public List<AvatarMask> stateMasks;
+        
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> additiveOneShotClips;
         public List<ClipConfig> sequenceClips;
@@ -41,7 +45,8 @@ namespace drytoolkit.Runtime.Animation
         {
             animator = GetComponent<Animator>();
             animator.runtimeAnimatorController = null;
-            animSystem = new AnimationSystem(animator);
+            
+            animSystem = new AnimationSystem(animator, layerCount: layerCount, avatarMasks: stateMasks);
             
             // GraphVisualizerClient.Show(animSystem.graph);
         }
