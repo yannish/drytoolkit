@@ -14,7 +14,7 @@ using AffineTransform = UnityEngine.Animations.Rigging.AffineTransform;
 public struct SecondOrderTransformJob : IWeightedAnimationJob
 {
     public NativeReference<Vector3> impulseVel;
-
+    public NativeReference<Vector3> impulseTorque;
     
     const float k_FixedDt = 0.01666667f;
 
@@ -25,7 +25,9 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
 
     public BoolProperty useLocalSpace;
     public ReadWriteTransformHandle localSpaceTransform;
-    
+
+    public BoolProperty constrainPosition;
+    public BoolProperty constrainRotation;
     
     //... POS:
     public FloatProperty maxPositionDistance;
@@ -80,15 +82,17 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
 
         if (streamDt <= 0f)
             return;
+
+        bool constrainingPosition = constrainPosition.Get(stream);
+        bool constrainingRotation = constrainRotation.Get(stream);
         
         // if(w <= 0f || streamDt <= 0f)
         //     return;
 
-        // var posDamping = damping.Get(stream);
-        // var posFrequency = frequency.Get(stream);
-        // var posResponse = response.Get(stream);
+        var posDamping = damping.Get(stream);
+        var posFrequency = frequency.Get(stream);
+        var posResponse = response.Get(stream);
         
-
         k1 = damping.Get(stream) / (math.PI * frequency.Get(stream));
         k2 = 1f / math.pow(2f * math.PI * frequency.Get(stream), 2f);
         k3 = response.Get(stream) * damping.Get(stream) / (2 * math.PI * frequency.Get(stream));
@@ -113,53 +117,69 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         
         currTargetRot = source.GetRotation(stream);
         if (useLocalSpace)
-        {
             currTargetRot = Quaternion.Inverse(localSpaceTransform.GetRotation(stream)) * currTargetRot;
-        }
 
-        var effectiveDt = Mathf.Abs(streamDt);
         
-        // var perAxisFreq = perAxisFrequency.Get(stream);
-        // var perAxisDamp = perAxisDamping.Get(stream);
-        // var perAxisResp = perAxisResponse.Get(stream);
-        // var perAxisParams = GetPerAxisParams(perAxisFreq, perAxisDamp, perAxisResp);
-        //
-        // var xRotParams = perAxisParams.GetRow(0);
-        // var yRotParams = perAxisParams.GetRow(1);
-        // var zRotParams = perAxisParams.GetRow(2);
+        var effectiveDt = Mathf.Abs(streamDt);
+
+        //... integrate rotation:
+        if (impulseTorque.IsCreated)
+        {
+            Quaternion impulseQuat = new Quaternion(impulseTorque.Value.x, impulseTorque.Value.y, impulseTorque.Value.z, 0);
+            Quaternion deltaVel =MultiplyQuaternion(0.5f, currRot * impulseQuat);
+            // modify the quaternion velocity
+            yDyn.Impulse(deltaVel.y);
+            xDyn.Impulse(deltaVel.x);
+            zDyn.Impulse(deltaVel.z);
+            wDyn.Impulse(deltaVel.w);
+            impulseTorque.Value = Vector3.zero;
+        }
+        
+        Quaternion MultiplyQuaternion(float scalar, Quaternion q)
+        {
+            return new Quaternion(q.x * scalar, q.y * scalar, q.z * scalar, q.w * scalar);
+        }
+        
+        currRot.y = yDyn.Tick(effectiveDt, currTargetRot.y, rotK1, rotK2, rotK3);
+        currRot.x = xDyn.Tick(effectiveDt, currTargetRot.x, rotK1, rotK2, rotK3);
+        currRot.z = zDyn.Tick(effectiveDt, currTargetRot.z, rotK1, rotK2, rotK3);
+        currRot.w = wDyn.Tick(effectiveDt, currTargetRot.w, rotK1, rotK2, rotK3);
+        
+        currRot.Normalize();
+
+        //... integrate position:
+        if (impulseVel.IsCreated)
+        {
+            currVel += impulseVel.Value;
+            impulseVel.Value = Vector3.zero;
+        }
+            
+        var xDeriv = (currTargetPos - prevTargetPos) / effectiveDt;
+        currPos += effectiveDt * currVel;
+        currVel += effectiveDt * (currTargetPos + k3 * xDeriv - currPos - k1 * currVel) / k2;
+
         
         //.. TODO: 
-        
         // while (streamDt > 0f)
         // {
-            currRot.y = yDyn.Tick(effectiveDt, currTargetRot.y, rotK1, rotK2, rotK3);
-            currRot.x = xDyn.Tick(effectiveDt, currTargetRot.x, rotK1, rotK2, rotK3);
-            currRot.z = zDyn.Tick(effectiveDt, currTargetRot.z, rotK1, rotK2, rotK3);
-            currRot.w = wDyn.Tick(effectiveDt, currTargetRot.w, rotK1, rotK2, rotK3);
-            currRot.Normalize();
-
-            if (impulseVel.IsCreated)
-            {
-                currVel += impulseVel.Value;
-                impulseVel.Value = Vector3.zero;
-            }
-            
-            var xDeriv = (currTargetPos - prevTargetPos) / effectiveDt;
-            currPos += effectiveDt * currVel;
-            currVel += effectiveDt * (currTargetPos + k3 * xDeriv - currPos - k1 * currVel) / k2;
-            
             // streamDt -= k_FixedDt;
         // }
 
         if (useLocalSpace)
         {
-            constrained.SetLocalRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
-            constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, currTargetPos, 1f - w));
+            if(constrainingRotation)
+                constrained.SetLocalRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
+            if(constrainingPosition)
+                constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, currTargetPos, 1f - w));
         }
         else
         {
-            constrained.SetRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
-            constrained.SetPosition(stream, Vector3.Lerp(currPos, currTargetPos, 1f - w));
+            if(constrainingRotation)
+                constrained.SetRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
+            
+            if(constrainingPosition)
+                constrained.SetPosition(stream, Vector3.Lerp(currPos, currTargetPos, 1f - w));
+            
             // constrained.SetRotation(stream, currRot);
             // constrained.SetPosition(stream, currPos);
         }
@@ -207,6 +227,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
 public struct SecondOrderTransformData : IAnimationJobData
 {
     public NativeReference<Vector3> velocityRef;
+    public NativeReference<Vector3> torqueRef;
     
     public const float saneFrequency = 1f;
     public const float saneDamping = 0.5f;
@@ -229,6 +250,8 @@ public struct SecondOrderTransformData : IAnimationJobData
     
     
     [Header("CONFIG:")]
+    [SyncSceneToStream] public bool constrainPosition;
+    [SyncSceneToStream] public bool constrainRotation;
     [SyncSceneToStream] public float maxPositionDistance;
     
     
@@ -268,6 +291,9 @@ public struct SecondOrderTransformData : IAnimationJobData
         
         maxPositionDistance = saneMaxPositionDistance;
         maxRotationAngle = saneMaxRotationAngle;
+        
+        constrainPosition = true;
+        constrainRotation = true;
     }
 }
 
@@ -277,7 +303,29 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
     {
         var job = new SecondOrderTransformJob();
 
+        //.. FROM MULTIPARENT, TRY TO ADD IN OFFSET OPTION..?
+        // var drivenTx = new AffineTransform(data.constrainedObject.position, data.constrainedObject.rotation);
+        // for (int i = 0; i < sourceObjects.Count; ++i)
+        // {
+        //     var sourceTransform = sourceObjects[i].transform;
+        //
+        //     var srcTx = new AffineTransform(sourceTransform.position, sourceTransform.rotation);
+        //     var srcOffset = AffineTransform.identity;
+        //     var tmp = srcTx.InverseMul(drivenTx);
+        //
+        //     if (data.maintainPositionOffset)
+        //         srcOffset.translation = tmp.translation;
+        //     if (data.maintainRotationOffset)
+        //         srcOffset.rotation = tmp.rotation;
+        //
+        //     job.sourceOffsets[i] = srcOffset;
+        // }
+        
         job.impulseVel = data.velocityRef;
+        job.impulseTorque = data.torqueRef;
+        
+        job.constrainPosition = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainPosition)));
+        job.constrainRotation = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainRotation)));
         
         job.isPreviewing = !Application.isPlaying;
         

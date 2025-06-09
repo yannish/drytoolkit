@@ -14,6 +14,8 @@ public struct SecondOrderFloat
     }
 
     public void Flick(float flick) => currVel += flick;
+    
+    public void Impulse(float impulse) => currVel += impulse;
 
     public float Tick(
         float dt, 
