@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEditor.Compilation;
+using UnityEditor.SceneManagement;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -322,10 +323,38 @@ namespace drytoolkit.Editor.NestedAnimation
             Selection.selectionChanged -= HandleSelectionChange;
             Selection.selectionChanged += HandleSelectionChange;
 
+            EditorSceneManager.sceneClosing -= HandleSceneClose;
+            EditorSceneManager.sceneClosing += HandleSceneClose;
+
+            EditorSceneManager.sceneUnloaded -= HandleSceneUnloaded;
+            EditorSceneManager.sceneUnloaded += HandleSceneUnloaded;
+
+            EditorSceneManager.activeSceneChanged -= HandleActiveSceneChanged;
+            EditorSceneManager.activeSceneChanged += HandleActiveSceneChanged;
+            
             SceneManager.activeSceneChanged -= HandleSceneChange;
             SceneManager.activeSceneChanged += HandleSceneChange;
             
             HandleSelectionChange();
+        }
+
+        private void HandleActiveSceneChanged(Scene arg0, Scene arg1)
+        {
+            // Debug.LogWarning("handling active scene change.");
+            DisconnectAnimator();
+            DeselectSceneObjects();
+        }
+
+        private void HandleSceneUnloaded(Scene arg0)
+        {
+            // Debug.LogWarning("handling scene unloading.");
+        }
+
+        private void HandleSceneClose(Scene scene, bool removingscene)
+        {
+            // Debug.LogWarning("handling scene close for nested animation editor");
+            DisconnectAnimator();
+            DeselectSceneObjects();
         }
 
         public void ClearGUI()
@@ -344,6 +373,8 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             selectedAnimatorField.value = null;
             selectedNestedAnimatorField.value = null;
+            selectedNestedAnimatorField.MarkDirtyRepaint();
+            selectedAnimatorField.MarkDirtyRepaint();
         }
 
         private void FetchAnimationWindow()
@@ -1936,6 +1967,7 @@ namespace drytoolkit.Editor.NestedAnimation
             selectedNestedAnimatorField.value = foundAnimators[1];
         }
 
+        
         //... LOCK TOGGLE:
         private bool logDebug;
         private bool locked = false;
