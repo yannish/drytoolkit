@@ -73,7 +73,7 @@ namespace drytoolkit.Runtime.Animation
         
         private readonly AnimationMixerPlayable additiveOneShotMixer;
         
-        private readonly AnimationPlayableOutput playableOutput;
+        public AnimationPlayableOutput playableOutput { get; private set; }
 
         private MethodInfo rebindMethod;
         private bool stateClipCountChanged = false;
@@ -81,9 +81,12 @@ namespace drytoolkit.Runtime.Animation
         [ReadOnly] public float heaviestOneShot = 0f;
 
 
-
-        public AnimationSystem(Animator animator, DirectorUpdateMode mode = DirectorUpdateMode.GameTime,
-            int layerCount = 1, List<AvatarMask> avatarMasks = null)
+        public AnimationSystem(
+            Animator animator, 
+            DirectorUpdateMode mode = DirectorUpdateMode.GameTime,
+            int layerCount = 1, 
+            List<AvatarMask> avatarMasks = null
+            )
         {
             this.animator = animator;
 
@@ -317,6 +320,8 @@ namespace drytoolkit.Runtime.Animation
             int layer = 0
         )
         {
+            Debug.LogWarning("TRANSITIONING TO STATE");
+            
             //... search to see if this clip is already among those being blended between.
             bool stateClipAlreadyExists = false;
             for (int i = 0; i < stateClipMixers[layer].clipHandles.Count; i++)
@@ -472,6 +477,7 @@ namespace drytoolkit.Runtime.Animation
                 {
                     if(logDebug)
                         Debug.LogWarning("clip done by blending weight down.");
+                    
                     clipIsComplete = true;
                 }
                 
@@ -500,11 +506,17 @@ namespace drytoolkit.Runtime.Animation
             //... re-wire our playables if any clips have been discarded:
             if (oneShotClipCountChanged)
             {
+                // if (rebind)
+                // rebindMethod.Invoke(animator, new object[] { false });
+                playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
+                
                 for (int i = 0; i < oneShotMixer.GetInputCount(); i++)
                     oneShotMixer.DisconnectInput(i);
                 
                 for (int i = 0; i < oneShotClipHandles.Count; i++)
                     oneShotMixer.ConnectInput(i, oneShotClipHandles[i].clipPlayable, 0);
+                
+                playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
             }
 
             for (int i = 0; i < oneShotClipHandles.Count; i++)
@@ -530,6 +542,9 @@ namespace drytoolkit.Runtime.Animation
                 callback
             );
 
+            if(newOneShotClipHandle == null)
+                return null;
+            
             newOneShotClipHandle.config = clipConfig;
 
             return newOneShotClipHandle;

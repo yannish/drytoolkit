@@ -6,7 +6,7 @@ using UnityEngine;
 public class AnimatorControllerExtension : Editor
 {
     // Adds a right-click option to generate an animation clip for an Animator Controller asset
-    [MenuItem("Assets/Generate Clip", false, 2000)]
+    [MenuItem("Assets/Generate Clip #&c", false, 2000)]
     private static void GenerateClip()
     {
         // Get the selected Animator Controller
@@ -43,7 +43,7 @@ public class AnimatorControllerExtension : Editor
         }
         else
         {
-            Debug.LogError("Selected asset is not an Animator Controller.");
+            Debug.LogWarning("Select an animator before trying to generate a clip for it.");
         }
     }
 

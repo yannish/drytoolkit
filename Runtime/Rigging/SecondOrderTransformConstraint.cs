@@ -16,6 +16,8 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
     public NativeReference<Vector3> impulseVel;
     public NativeReference<Vector3> impulseTorque;
     
+
+    
     const float k_FixedDt = 0.01666667f;
 
     public ReadWriteTransformHandle constrained;
@@ -69,11 +71,30 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
     
     public void ProcessAnimation(AnimationStream stream)
     {
+        bool constrainingPosition = constrainPosition.Get(stream);
+        bool constrainingRotation = constrainRotation.Get(stream);
+        bool useLocalSpace = this.useLocalSpace.Get(stream) && localSpaceTransform.IsValid(stream);
+
         if (isPreviewing)
         {
-            constrained.SetPosition(stream, source.GetPosition(stream));
-            constrained.SetRotation(stream, source.GetRotation(stream));
+            if (constrainingPosition)
+            {
+                if(!useLocalSpace)
+                    constrained.SetPosition(stream, source.GetPosition(stream));
+                else
+                    constrained.SetLocalPosition(stream, source.GetLocalPosition(stream));
+            }
+
+            if (constrainingRotation)
+            {
+                if(!useLocalSpace)
+                    constrained.SetLocalRotation(stream, source.GetLocalRotation(stream));
+                else
+                    constrained.SetRotation(stream, source.GetRotation(stream));
+            }
+            
             AnimationRuntimeUtils.PassThrough(stream, constrained);
+            
             return;
         }
 
@@ -83,9 +104,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         if (streamDt <= 0f)
             return;
 
-        bool constrainingPosition = constrainPosition.Get(stream);
-        bool constrainingRotation = constrainRotation.Get(stream);
-        
+
         // if(w <= 0f || streamDt <= 0f)
         //     return;
 
@@ -101,7 +120,6 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         rotK2 = 1f / math.pow(2f * math.PI * rotFrequency.Get(stream), 2f);
         rotK3 = rotResponse.Get(stream) * rotDamping.Get(stream) / (2 * math.PI * rotFrequency.Get(stream));
         
-        bool useLocalSpace = this.useLocalSpace.Get(stream) && localSpaceTransform.IsValid(stream);
 
         // prevTargetRot = currTargetRot;
         var targetPos = source.GetPosition(stream);
@@ -150,9 +168,17 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         //... integrate position:
         if (impulseVel.IsCreated)
         {
+            // Debug.LogWarning($"impulse: {impulseVel.Value}");
+            //
+            // if(impulseVel.Value.sqrMagnitude > 0f)
+            //     Debug.Log($"IMPULSE: {impulseVel.Value}");
             currVel += impulseVel.Value;
             impulseVel.Value = Vector3.zero;
         }
+        // else
+        // {
+        //     // Debug.LogWarning("impulse not created.");
+        // }
             
         var xDeriv = (currTargetPos - prevTargetPos) / effectiveDt;
         currPos += effectiveDt * currVel;
@@ -169,6 +195,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         {
             if(constrainingRotation)
                 constrained.SetLocalRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
+            
             if(constrainingPosition)
                 constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, currTargetPos, 1f - w));
         }
@@ -228,7 +255,7 @@ public struct SecondOrderTransformData : IAnimationJobData
 {
     public NativeReference<Vector3> velocityRef;
     public NativeReference<Vector3> torqueRef;
-    
+
     public const float saneFrequency = 1f;
     public const float saneDamping = 0.5f;
     public const float saneResponse = 1f; //TODO: check this behaviour
@@ -303,6 +330,8 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
     {
         var job = new SecondOrderTransformJob();
 
+        Debug.LogWarning("Created second order transform job");
+        
         //.. FROM MULTIPARENT, TRY TO ADD IN OFFSET OPTION..?
         // var drivenTx = new AffineTransform(data.constrainedObject.position, data.constrainedObject.rotation);
         // for (int i = 0; i < sourceObjects.Count; ++i)
@@ -323,7 +352,7 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
         
         job.impulseVel = data.velocityRef;
         job.impulseTorque = data.torqueRef;
-        
+
         job.constrainPosition = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainPosition)));
         job.constrainRotation = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainRotation)));
         

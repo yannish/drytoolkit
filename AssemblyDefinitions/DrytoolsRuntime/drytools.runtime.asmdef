@@ -8,7 +8,8 @@
         "Unity.PlayableGraphVisualizer",
         "Unity.Animation.Rigging",
         "Unity.Collections",
-        "Unity.Timeline"
+        "Unity.Timeline",
+        ""
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
