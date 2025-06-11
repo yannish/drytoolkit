@@ -263,6 +263,8 @@ namespace drytoolkit.Editor.NestedAnimation
         private PropertyInfo previewingPropInfo;
         private object animWindowState;
 
+        private bool isGUICreated;
+
         
         private void OnEnable() => AnimatorControllerExtension.OnClipAssetsChanged += HandleClipAssetChange;
 
@@ -270,6 +272,9 @@ namespace drytoolkit.Editor.NestedAnimation
 
         private void HandleClipAssetChange()
         {
+            if (!isGUICreated)
+                return;
+
             TransitionToView();
             DisconnectAnimator();
             ConnectAnimator();
@@ -351,6 +356,8 @@ namespace drytoolkit.Editor.NestedAnimation
             SceneManager.activeSceneChanged += HandleSceneChange;
             
             HandleSelectionChange();
+
+            isGUICreated = true;
         }
 
         private void HandleActiveSceneChanged(Scene arg0, Scene arg1)
@@ -375,6 +382,7 @@ namespace drytoolkit.Editor.NestedAnimation
         public void ClearGUI()
         {
             rootVisualElement.Clear();
+            isGUICreated = false;
         }
         
         private void HandleSceneChange(Scene arg0, Scene arg1)
