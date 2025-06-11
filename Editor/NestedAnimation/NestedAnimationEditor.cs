@@ -78,7 +78,7 @@ namespace drytoolkit.Editor.NestedAnimation
             window.titleContent = new GUIContent("Nested Animation Editor");
         }
 
-        enum NestedAnimatorEditorState
+        enum NestedAnimationEditorState
         {
             VIEW,
             PREVIEW,
@@ -92,7 +92,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
         private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
         
-        private NestedAnimatorEditorState currMode => (NestedAnimatorEditorState)currModeField.value;
+        private NestedAnimationEditorState currMode;// =>  (NestedAnimatorEditorState)currModeField.value;
         
         private List<Animator> nestedAnimators;
         // private List<AnimationClip> spoofedClips = new List<AnimationClip>();
@@ -267,13 +267,24 @@ namespace drytoolkit.Editor.NestedAnimation
 
         
         private void OnEnable() => AnimatorControllerExtension.OnClipAssetsChanged += HandleClipAssetChange;
-
+        
         private void OnDisable() => AnimatorControllerExtension.OnClipAssetsChanged -= HandleClipAssetChange;
 
         private void HandleClipAssetChange()
         {
             if (!isGUICreated)
+            {
+                // Debug.Log("skip handling clip asset change, the GUI isn't built yet.");
                 return;
+            }
+
+            if (currMode != NestedAnimationEditorState.VIEW)
+            {
+                // Debug.Log("skip handling clip asset change, we're previewing / editing.");
+                return;
+            }
+            
+            // Debug.LogWarning("... handling clip asset change!");
 
             TransitionToView();
             DisconnectAnimator();
@@ -294,10 +305,10 @@ namespace drytoolkit.Editor.NestedAnimation
             FetchAnimationWindow();
 
 
-            currModeField = new EnumField("currMode", NestedAnimatorEditorState.VIEW);
+            currModeField = new EnumField("currMode", NestedAnimationEditorState.VIEW);
             // currModeField.RegisterValueChangedCallback(evt =>
             // {
-            //     currMode = (NestedAnimatorEditorState)evt.newValue;
+            //     currMode = (NestedAnimationEditorState)evt.newValue;
             // });
             currModeField.SetEnabled(false);
             
@@ -894,6 +905,11 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedAnimatorHeaderElement.style.display = DisplayStyle.None;
         }
 
+        private void SetMode(NestedAnimationEditorState newMode)
+        {
+            currMode = newMode;
+            currModeField.value = newMode;
+        }
 
         //... PREVIEW :
         private void TransitionToPreview()
@@ -901,14 +917,14 @@ namespace drytoolkit.Editor.NestedAnimation
             //... exit prev state:
             switch (currMode)
             {
-                case NestedAnimatorEditorState.VIEW:
+                case NestedAnimationEditorState.VIEW:
                     LogOut("leaving view state.");
                     ExitViewMode();
                     break;
-                case NestedAnimatorEditorState.PREVIEW:
+                case NestedAnimationEditorState.PREVIEW:
                     LogOut("already in preview, somehow");
                     return;
-                case NestedAnimatorEditorState.EDIT:
+                case NestedAnimationEditorState.EDIT:
                     LogOut("leaving edit state.");
                     ExitNestedEditMode();
                     break;
@@ -917,8 +933,8 @@ namespace drytoolkit.Editor.NestedAnimation
             }
             
             //... should select the parent animator and set the clip of the animation window to clip w/ embedded bindings:
-            
-            currModeField.value = NestedAnimatorEditorState.PREVIEW;
+            SetMode(NestedAnimationEditorState.PREVIEW);
+            // currModeField.value = NestedAnimationEditorState.PREVIEW;
             
             Selection.activeGameObject = connectedAnimator.gameObject;
             SetAnimationWindowsCurrentClip(selectedParentClip);
@@ -978,7 +994,7 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private void ToggleNestedPreviewMode()
         {
-            if (currMode == NestedAnimatorEditorState.VIEW)
+            if (currMode == NestedAnimationEditorState.VIEW)
                 TransitionToPreview();
             else
                 TransitionToView();
@@ -1001,22 +1017,23 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             switch (currMode)
             {
-                case NestedAnimatorEditorState.VIEW:
+                case NestedAnimationEditorState.VIEW:
                     LogOut("leaving view state.");
                     ExitViewMode();
                     break;
-                case NestedAnimatorEditorState.PREVIEW:
+                case NestedAnimationEditorState.PREVIEW:
                     LogOut("leaving preview state");
                     ExitPreviewMode();
                     break;
-                case NestedAnimatorEditorState.EDIT:
+                case NestedAnimationEditorState.EDIT:
                     LogOut("already in edit state, somehow");
                     return;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
-            currModeField.value = NestedAnimatorEditorState.EDIT;
+            SetMode(NestedAnimationEditorState.EDIT);
+            // currModeField.value = NestedAnimationEditorState.EDIT;
             
             Selection.activeGameObject = connectedAnimator.gameObject;
             SetAnimationWindowsCurrentClip(selectedParentClip);
@@ -1075,7 +1092,7 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private void ToggleNestedEditMode()
         {
-            if(currMode == NestedAnimatorEditorState.VIEW)
+            if(currMode == NestedAnimationEditorState.VIEW)
                 TransitionToEdit();
             else
                 TransitionToView();
@@ -1098,14 +1115,14 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             switch (currMode)
             {
-                case NestedAnimatorEditorState.VIEW:
+                case NestedAnimationEditorState.VIEW:
                     LogOut("already in view state, somehow");
                     return;
-                case NestedAnimatorEditorState.PREVIEW:
+                case NestedAnimationEditorState.PREVIEW:
                     LogOut("leaving preview state");
                     ExitPreviewMode();
                     break;
-                case NestedAnimatorEditorState.EDIT:
+                case NestedAnimationEditorState.EDIT:
                     LogOut("leaving edit state");
                     ExitNestedEditMode();
                     break;
@@ -1113,7 +1130,8 @@ namespace drytoolkit.Editor.NestedAnimation
                     throw new ArgumentOutOfRangeException();
             }
             
-            currModeField.value = NestedAnimatorEditorState.VIEW;
+            SetMode(NestedAnimationEditorState.VIEW);
+            // currModeField.value = NestedAnimationEditorState.VIEW;
         }
         
         private void ExitViewMode()
@@ -1232,6 +1250,11 @@ namespace drytoolkit.Editor.NestedAnimation
          
             var currCurveBindings = AnimationUtility.GetCurveBindings(selectedParentClip);
 
+            // var nestedRootPath = AnimationUtility.CalculateTransformPath(
+            //     cachedNestedAnimatorGameObject.transform,
+            //     connectedAnimator.transform
+            // );
+            
             string nestedRootPath = "";
             bool nestedAnimatorWasPresent = cachedNestedAnimatorGameObject != null;
             if (nestedAnimatorWasPresent)
@@ -1247,6 +1270,7 @@ namespace drytoolkit.Editor.NestedAnimation
                 // bool bindingShouldBeRemoved = false;
                 bool wasModified = false;
                 bool isNewBinding = false;
+                // bool isNestedBinding = binding.path.StartsWith(nestedRootPath);
                 bool isNestedBinding = nestedAnimatorWasPresent && binding.path.StartsWith(nestedRootPath);
                 
                 LogOut($"binding for {binding.propertyName} is under {(isNestedBinding ? "nested" : "parent")} root.");
@@ -1413,6 +1437,8 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private void CacheEmbeddedClipBindings()
         {
+            // Debug.LogWarning("caching embedded clip bindings");
+            
             if (selectedParentClip == null)
             {
                 Debug.LogWarning("went to cache flattened clip, but it was null.");
@@ -1975,7 +2001,7 @@ namespace drytoolkit.Editor.NestedAnimation
             if (locked)
                 return;
 
-            if (currMode == NestedAnimatorEditorState.EDIT || currMode == NestedAnimatorEditorState.PREVIEW)
+            if (currMode == NestedAnimationEditorState.EDIT || currMode == NestedAnimationEditorState.PREVIEW)
                 return;
             
             if (Selection.activeGameObject == null)
