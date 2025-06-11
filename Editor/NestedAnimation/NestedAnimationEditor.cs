@@ -262,8 +262,25 @@ namespace drytoolkit.Editor.NestedAnimation
         private PropertyInfo recordingPropInfo;
         private PropertyInfo previewingPropInfo;
         private object animWindowState;
+
         
-        
+        private void OnEnable() => AnimatorControllerExtension.OnClipAssetsChanged += HandleClipAssetChange;
+
+        private void OnDisable() => AnimatorControllerExtension.OnClipAssetsChanged -= HandleClipAssetChange;
+
+        private void HandleClipAssetChange()
+        {
+            Debug.LogWarning("handling clip asset change!");
+            
+            TransitionToView();
+            DisconnectAnimator();
+            ConnectAnimator();
+            
+            // TransitionToView();
+            // ClearGUI();
+            // CreateGUI();
+        }
+
         public void CreateGUI()
         {
             ScrollView scrollView = new ScrollView(ScrollViewMode.Vertical);

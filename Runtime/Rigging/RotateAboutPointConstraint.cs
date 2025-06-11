@@ -1,5 +1,5 @@
 using System;
-using Unity.Mathematics;
+// using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Animations.Rigging;
@@ -10,6 +10,8 @@ namespace drytoolkit.Runtime.Rigging
     {
         public ReadWriteTransformHandle constrained;
         public ReadOnlyTransformHandle source;
+
+        public AffineTransform sourceOffset;
         
         public void ProcessAnimation(AnimationStream stream)
         {
@@ -17,9 +19,24 @@ namespace drytoolkit.Runtime.Rigging
             
             var constrainedPos = constrained.GetPosition(stream);
             var constrainedRot = constrained.GetRotation(stream);
+            
             var sourcePos = source.GetPosition(stream);
-            var sourceRot = source.GetRotation(stream);
-            var weightedRot = Quaternion.Slerp(quaternion.identity, sourceRot, w);
+            var sourceRot = source.GetLocalRotation(stream);
+            
+            //... TODO: for now, just using localRot of source pivot... maybe something smart can be done tho?
+            
+            // constrained.GetGlobalTR(stream, out Vector3 conPos, out Quaternion conRot);
+            // var constrainedTx = new AffineTransform(conPos, conRot);
+            //
+            // source.GetGlobalTR(stream, out Vector3 srcPos, out Quaternion srcRot);
+            // var sourceTx = new AffineTransform(srcPos, srcRot);
+
+            // sourceTx *= sourceOffset;
+            
+            // var fromTo = constrainedTx.InverseMul(sourceTx);
+            // var fromTo = sourceTx.InverseMul(constrainedTx);
+            
+            var weightedRot = Quaternion.Slerp(Quaternion.identity, sourceRot, w);
             
             var sourceToConstrained = constrainedPos - sourcePos;
             Vector3 rotatedOffset = sourceRot * sourceToConstrained;
@@ -27,9 +44,7 @@ namespace drytoolkit.Runtime.Rigging
             var weightedPos = Vector3.Slerp(constrainedPos, sourcePos + rotatedOffset, w);
             
             constrained.SetPosition(stream, weightedPos);
-            constrained.SetRotation(stream, constrainedRot * weightedRot);
-
-            // Vector3 = 
+            constrained.SetRotation(stream, weightedRot * constrainedRot);
         }
 
         public void ProcessRootMotion(AnimationStream stream)
@@ -63,8 +78,24 @@ namespace drytoolkit.Runtime.Rigging
         public override RotateAboutPointJob Create(Animator animator, ref RotateAboutPointData data, Component component)
         {
             var job = new RotateAboutPointJob();
+            
             job.constrained = ReadWriteTransformHandle.Bind(animator, data.constrainedObject);
             job.source = ReadOnlyTransformHandle.Bind(animator, data.sourceObject);
+
+            var constrainedTransform = data.constrainedObject.transform;
+            var constrainedTx = new AffineTransform(constrainedTransform.position, constrainedTransform.rotation);
+            
+            var sourceTransform = data.sourceObject.transform;
+            var sourceTx = new AffineTransform(sourceTransform.position, sourceTransform.rotation);
+            
+            var sourceOffset = AffineTransform.identity;
+
+            var tmp = sourceTx.InverseMul(constrainedTx);
+
+            sourceOffset.rotation = tmp.rotation;
+            
+            job.sourceOffset = sourceOffset;
+            
             return job;
         }
 
