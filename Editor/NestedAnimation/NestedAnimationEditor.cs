@@ -92,7 +92,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
         private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
         
-        private NestedAnimatorEditorState currMode => (NestedAnimatorEditorState)currModeField.value;
+        private NestedAnimatorEditorState currMode;// => (NestedAnimatorEditorState)currModeField.value;
         
         private List<Animator> nestedAnimators;
         // private List<AnimationClip> spoofedClips = new List<AnimationClip>();
@@ -270,15 +270,9 @@ namespace drytoolkit.Editor.NestedAnimation
 
         private void HandleClipAssetChange()
         {
-            Debug.LogWarning("handling clip asset change!");
-            
             TransitionToView();
             DisconnectAnimator();
             ConnectAnimator();
-            
-            // TransitionToView();
-            // ClearGUI();
-            // CreateGUI();
         }
 
         public void CreateGUI()
@@ -296,6 +290,10 @@ namespace drytoolkit.Editor.NestedAnimation
 
 
             currModeField = new EnumField("currMode", NestedAnimatorEditorState.VIEW);
+            currModeField.RegisterValueChangedCallback(evt =>
+            {
+                currMode = (NestedAnimatorEditorState)evt.newValue;
+            });
             currModeField.SetEnabled(false);
             
             selectedClipField = new ObjectField("Selected Clip");
@@ -893,7 +891,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private void TransitionToPreview()
         {
             //... exit prev state:
-            switch ((NestedAnimatorEditorState)currModeField.value)
+            switch (currMode)
             {
                 case NestedAnimatorEditorState.VIEW:
                     LogOut("leaving view state.");
@@ -972,7 +970,7 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private void ToggleNestedPreviewMode()
         {
-            if ((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
+            if (currMode == NestedAnimatorEditorState.VIEW)
                 TransitionToPreview();
             else
                 TransitionToView();
@@ -993,7 +991,7 @@ namespace drytoolkit.Editor.NestedAnimation
         //... EDIT:
         private void TransitionToEdit()
         {
-            switch ((NestedAnimatorEditorState)currModeField.value)
+            switch (currMode)
             {
                 case NestedAnimatorEditorState.VIEW:
                     LogOut("leaving view state.");
@@ -1069,7 +1067,7 @@ namespace drytoolkit.Editor.NestedAnimation
         
         private void ToggleNestedEditMode()
         {
-            if((NestedAnimatorEditorState)currModeField.value == NestedAnimatorEditorState.VIEW)
+            if(currMode == NestedAnimatorEditorState.VIEW)
                 TransitionToEdit();
             else
                 TransitionToView();
@@ -1090,7 +1088,7 @@ namespace drytoolkit.Editor.NestedAnimation
         //... VIEW:
         public void TransitionToView()
         {
-            switch ((NestedAnimatorEditorState)currModeField.value)
+            switch (currMode)
             {
                 case NestedAnimatorEditorState.VIEW:
                     LogOut("already in view state, somehow");
@@ -1226,17 +1224,22 @@ namespace drytoolkit.Editor.NestedAnimation
          
             var currCurveBindings = AnimationUtility.GetCurveBindings(selectedParentClip);
 
-            var nestedRootPath = AnimationUtility.CalculateTransformPath(
+            string nestedRootPath = "";
+            bool nestedAnimatorWasPresent = cachedNestedAnimatorGameObject != null;
+            if (nestedAnimatorWasPresent)
+            {
+                nestedRootPath = AnimationUtility.CalculateTransformPath(
                     cachedNestedAnimatorGameObject.transform,
                     connectedAnimator.transform
-                    );
+                );
+            }
             
             foreach (var binding in currCurveBindings)
             {
                 // bool bindingShouldBeRemoved = false;
                 bool wasModified = false;
                 bool isNewBinding = false;
-                bool isNestedBinding = binding.path.StartsWith(nestedRootPath);
+                bool isNestedBinding = nestedAnimatorWasPresent && binding.path.StartsWith(nestedRootPath);
                 
                 LogOut($"binding for {binding.propertyName} is under {(isNestedBinding ? "nested" : "parent")} root.");
                 

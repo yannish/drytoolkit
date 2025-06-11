@@ -16,8 +16,6 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
     public NativeReference<Vector3> impulseVel;
     public NativeReference<Vector3> impulseTorque;
     
-
-    
     const float k_FixedDt = 0.01666667f;
 
     public ReadWriteTransformHandle constrained;
@@ -103,7 +101,6 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
 
         if (streamDt <= 0f)
             return;
-
 
         // if(w <= 0f || streamDt <= 0f)
         //     return;
@@ -330,8 +327,6 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
     {
         var job = new SecondOrderTransformJob();
 
-        Debug.LogWarning("Created second order transform job");
-        
         //.. FROM MULTIPARENT, TRY TO ADD IN OFFSET OPTION..?
         // var drivenTx = new AffineTransform(data.constrainedObject.position, data.constrainedObject.rotation);
         // for (int i = 0; i < sourceObjects.Count; ++i)
