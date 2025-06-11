@@ -92,7 +92,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private AnimationClip selectedParentClip => selectedClipField.value as AnimationClip;
         private AnimationClip selectedNestedClip => selectedNestedClipField.value as AnimationClip;
         
-        private NestedAnimatorEditorState currMode;// => (NestedAnimatorEditorState)currModeField.value;
+        private NestedAnimatorEditorState currMode => (NestedAnimatorEditorState)currModeField.value;
         
         private List<Animator> nestedAnimators;
         // private List<AnimationClip> spoofedClips = new List<AnimationClip>();
@@ -295,10 +295,10 @@ namespace drytoolkit.Editor.NestedAnimation
 
 
             currModeField = new EnumField("currMode", NestedAnimatorEditorState.VIEW);
-            currModeField.RegisterValueChangedCallback(evt =>
-            {
-                currMode = (NestedAnimatorEditorState)evt.newValue;
-            });
+            // currModeField.RegisterValueChangedCallback(evt =>
+            // {
+            //     currMode = (NestedAnimatorEditorState)evt.newValue;
+            // });
             currModeField.SetEnabled(false);
             
             selectedClipField = new ObjectField("Selected Clip");
