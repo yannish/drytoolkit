@@ -40,7 +40,8 @@ namespace drytoolkit.Runtime.Animation
         
         
         [Header("HANDLES:")]
-        [ShowInInspector, DoNotSerialize] List<StateClipHandle> stateClipHandles_PREV => stateClipMixers[0].clipHandles;
+        public readonly StateClipMixer[] stateClipMixers;
+        // [ShowInInspector, DoNotSerialize] List<StateClipHandle> stateClipHandles_PREV => stateClipMixers[0].clipHandles;
         // [ShowInInspector, DoNotSerialize] List<StateClipHandle> stateClipHandles_PREV = new List<StateClipHandle>();
         // [ShowInInspector, DoNotSerialize] public List<List<StateClipHandle>> totalStateClipHandles = new List<List<StateClipHandle>>();
         
@@ -59,15 +60,7 @@ namespace drytoolkit.Runtime.Animation
         
         private readonly AnimationLayerMixerPlayable topLevelMixer;
 
-
-        private AnimationMixerPlayable stateMixer => stateClipMixers[0].mixer;
-
         private readonly AnimationLayerMixerPlayable stateLayerMixer;
-        
-        // private readonly AnimationMixerPlayable[] stateMixers;
-        
-        private readonly StateClipMixer[] stateClipMixers;
-
         
         private readonly AnimationMixerPlayable oneShotMixer;
         
