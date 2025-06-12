@@ -10,20 +10,20 @@ namespace drytoolkit.Runtime.Animation
     public class ClipHandler : MonoBehaviour
     {
         public bool logDebug;
-
-        public int layerCount = 1;
-        
         public AnimationSystem.ClipBlendStyle blendStyle;
         
-        [Header("CLIPS:")]
-        [Expandable] public ClipConfig oneShotWithEvent;
-        [Expandable] public ClipConfig anotherOneShotWithEvent;
-        
+        [Header("STATE CLIPS:")]
+        public int layerCount = 1;
         public List<ClipConfig> stateClips;
         public List<AvatarMask> stateMasks;
         
+        [Header("ONE SHOTS:")]
         public List<ClipConfig> oneShotClips;
         public List<ClipConfig> additiveOneShotClips;
+        [Expandable] public ClipConfig oneShotWithEvent;
+        [Expandable] public ClipConfig anotherOneShotWithEvent;
+
+        [Header("SEQUENCES:")]
         public List<ClipConfig> sequenceClips;
 
         [Header("EVENTS:")]

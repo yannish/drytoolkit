@@ -287,9 +287,12 @@ namespace drytoolkit.Runtime.Animation
         
         public void TransitionToState(ClipConfig clipConfig, int layer = 0)
         {
-            if (clipConfig.clip == null)
+            if (clipConfig == null || clipConfig.clip == null)
             {
-                Debug.LogWarning("... clip config had no clip assigned!", clipConfig);
+                if(clipConfig != null)
+                    Debug.LogWarning("... clip config had no clip assigned!", clipConfig);
+                else
+                    Debug.LogWarning("tried to transition to a null clipconfig.");
                 return;
             }
 
@@ -313,7 +316,11 @@ namespace drytoolkit.Runtime.Animation
             int layer = 0
         )
         {
-            Debug.LogWarning("TRANSITIONING TO STATE");
+            if (newStateClip == null)
+            {
+                Debug.LogWarning("... tried to transition to clip, but it was null.");
+                return;
+            }
             
             //... search to see if this clip is already among those being blended between.
             bool stateClipAlreadyExists = false;
