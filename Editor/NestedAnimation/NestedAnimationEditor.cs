@@ -278,6 +278,12 @@ namespace drytoolkit.Editor.NestedAnimation
                 return;
             }
 
+            if (!isConnected)
+            {
+                // Debug.Log("skip handling clip asset change, editor isn't connected.");
+                return;
+            }
+
             if (currMode != NestedAnimationEditorState.VIEW)
             {
                 // Debug.Log("skip handling clip asset change, we're previewing / editing.");

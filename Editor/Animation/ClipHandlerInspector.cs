@@ -44,7 +44,7 @@ public class ClipHandlerInspector : Editor
                 layerPicks = new int[clipHandler.stateClips.Count];
                 for (int i = 0; i < clipHandler.stateClips.Count; i++)
                     layerPicks[i] = 0;
-            }// COMMONE
+            }
             
             for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {

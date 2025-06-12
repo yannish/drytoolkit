@@ -30,6 +30,9 @@ public class ImpulseRunner : MonoBehaviour
     void OnEnable()
     {
         Debug.LogWarning("started impulse runner.");
+
+        if (fastTwitchConstraint == null || constraint == null)
+            return;
         
         _velocity = new NativeReference<Vector3>(Allocator.Persistent);
         _torque = new NativeReference<Vector3>(Allocator.Persistent);
@@ -50,6 +53,8 @@ public class ImpulseRunner : MonoBehaviour
 
     private void Update()
     {
+        if (animSystem == null)
+            return;
         animSystem.Tick();
     }
 
@@ -59,7 +64,8 @@ public class ImpulseRunner : MonoBehaviour
         // if (_velocity.IsCreated)
         //     _velocity.Dispose();
         
-        animSystem.Destroy();
+        if(animSystem != null)
+            animSystem.Destroy();
 
         if(_velocity.IsCreated)
             _velocity.Dispose();

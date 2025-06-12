@@ -113,7 +113,8 @@ namespace drytoolkit.Runtime.Animation
                     mixer.ConnectInput(i, clipHandles[i].clipPlayable, 0);
                 }
 
-                system.playableOutput.SetSourcePlayable(system.playableOutput.GetSourcePlayable());
+                if(system.rebind)
+                    system.playableOutput.SetSourcePlayable(system.playableOutput.GetSourcePlayable());
             }
 
             for (int i = 0; i < clipHandles.Count; i++)

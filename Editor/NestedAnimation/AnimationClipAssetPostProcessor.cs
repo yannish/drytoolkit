@@ -10,6 +10,7 @@ public class AnimationClipAssetPostProcessor : AssetPostprocessor
         bool deletedClip = deletedAssets.Any(path => path.EndsWith(".anim"));
         if (hasNewClip || deletedClip)
         {
+            // Debug.LogWarning("processing a new animation clip change");
             AnimatorControllerExtension.NotifyClipsChanged(); // As in Option 1
         }
     }
