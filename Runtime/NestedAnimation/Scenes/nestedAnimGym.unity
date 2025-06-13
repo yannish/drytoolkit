@@ -1763,7 +1763,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1040563701
 Transform:
   m_ObjectHideFlags: 0
@@ -3120,10 +3120,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   logDebug: 0
-  layerCount: 2
   blendStyle: 0
-  oneShotWithEvent: {fileID: 0}
-  anotherOneShotWithEvent: {fileID: 0}
+  layerCount: 2
   stateClips:
   - {fileID: 11400000, guid: e7e3eceba375874439fee8d9dc79ef12, type: 2}
   - {fileID: 11400000, guid: bcb59a287d8ddfc48afb011e27b2c472, type: 2}
@@ -3134,6 +3132,8 @@ MonoBehaviour:
   - {fileID: 0}
   oneShotClips: []
   additiveOneShotClips: []
+  oneShotWithEvent: {fileID: 0}
+  anotherOneShotWithEvent: {fileID: 0}
   sequenceClips: []
   reloadEventDef: {fileID: 0}
   midwayEventDef: {fileID: 0}

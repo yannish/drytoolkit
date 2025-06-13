@@ -508,7 +508,7 @@ namespace drytoolkit.Runtime.Animation
             {
                 // if (rebind)
                 // rebindMethod.Invoke(animator, new object[] { false });
-                playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
+                // playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
                 
                 for (int i = 0; i < oneShotMixer.GetInputCount(); i++)
                     oneShotMixer.DisconnectInput(i);
@@ -516,7 +516,8 @@ namespace drytoolkit.Runtime.Animation
                 for (int i = 0; i < oneShotClipHandles.Count; i++)
                     oneShotMixer.ConnectInput(i, oneShotClipHandles[i].clipPlayable, 0);
                 
-                playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
+                if(rebind)
+                    playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
             }
 
             for (int i = 0; i < oneShotClipHandles.Count; i++)
@@ -552,8 +553,8 @@ namespace drytoolkit.Runtime.Animation
 
         public OneShotClipHandle PlayOneShot(
             AnimationClip clip,
-            float blendInTime,
-            float blendOutTime,
+            float blendInTime = 0f,
+            float blendOutTime = 0f,
             float startTime = 0f,
             float playbackSpeed = 1f,
             WrapMode wrapMode = WrapMode.Once,
@@ -601,6 +602,9 @@ namespace drytoolkit.Runtime.Animation
             oneShotMixer.SetInputWeight(oneShotClipHandles.Count, 0f);
             
             oneShotClipHandles.Add(newOneShotClipHandle);
+            
+            if(rebind)
+                playableOutput.SetSourcePlayable(playableOutput.GetSourcePlayable());
 
             return newOneShotClipHandle;
         }

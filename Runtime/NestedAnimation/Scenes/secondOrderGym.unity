@@ -209,8 +209,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de8a7a2d3ad593f488dae873e6c2cc28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  clipA: {fileID: 7400000, guid: 171bf2f1527b8d6499de8e0aeb369944, type: 2}
-  clipB: {fileID: 7400000, guid: bf0b2a7507608c24bb410fbf1c5b66e5, type: 2}
 --- !u!4 &252693048 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2925912294365293714, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
@@ -245,16 +243,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   logDebug: 0
-  layerCount: 1
   blendStyle: 0
-  oneShotWithEvent: {fileID: 0}
-  anotherOneShotWithEvent: {fileID: 0}
+  layerCount: 1
   stateClips:
   - {fileID: 11400000, guid: b95f8ce70f320254496b1fd23e7ad5f0, type: 2}
   - {fileID: 11400000, guid: 1fef17c62d0a06f4786dc0a3832e2e47, type: 2}
   stateMasks: []
   oneShotClips: []
   additiveOneShotClips: []
+  oneShotWithEvent: {fileID: 0}
+  anotherOneShotWithEvent: {fileID: 0}
   sequenceClips: []
   reloadEventDef: {fileID: 0}
   midwayEventDef: {fileID: 0}
@@ -272,6 +270,7 @@ MonoBehaviour:
     additiveOneShotClipHandles: []
     heaviestOneShot: 0
   blendInTime: 0.2
+  maskedTransforms: []
 --- !u!1 &297984676
 GameObject:
   m_ObjectHideFlags: 0
@@ -1089,8 +1088,8 @@ MonoBehaviour:
     posDamping: 0.5
     posResponse: 1
     maxRotationAngle: 90
-    rotFrequency: 2
-    rotDamping: 0.6
+    rotFrequency: 4
+    rotDamping: 0.2
     rotResponse: 1
     perAxisRotFrequency: {x: 1, y: 1, z: 1}
     perAxisRotDamping: {x: 0.5, y: 0.5, z: 0.5}
@@ -1990,11 +1989,11 @@ MonoBehaviour:
     constrainPosition: 1
     constrainRotation: 1
     maxPositionDistance: 1
-    posFrequency: 1
+    posFrequency: 3
     posDamping: 0.5
     posResponse: 1
     maxRotationAngle: 90
-    rotFrequency: 1
+    rotFrequency: 2
     rotDamping: 0.5
     rotResponse: 1
     perAxisRotFrequency: {x: 1, y: 1, z: 1}
@@ -2095,10 +2094,24 @@ MonoBehaviour:
   torque: {x: -15, y: 0, z: 0}
   fastTwitchConstraint: {fileID: 1040563702}
   fastImpulse: {x: 0, y: 0, z: -10}
-  fastTorque: {x: 5, y: 0, z: -10}
+  fastTorque: {x: 1, y: 0, z: -10}
+  animSystem:
+    logDebug: 0
+    currStateSmoothDampTime: 0
+    currStateMoveTowardsTime: 0
+    rewire: 0
+    rebind: 1
+    oneShotBlendStyle: 0
+    oneShotSmoothTime: 0
+    oneShotMoveToTime: 0
+    oneShotClipHandles: []
+    additiveOneShotClipHandles: []
+    heaviestOneShot: 0
   stateAClip: {fileID: 11400000, guid: 3e33b527e7baa8e49b017afd3f9e662f, type: 2}
   stateBClip: {fileID: 11400000, guid: a610fe37e3fcb3947bf409284238592f, type: 2}
-  oneShotClip: {fileID: 11400000, guid: 262694790c232fa44a05a9b387d1dfe0, type: 2}
+  oneShotClip: {fileID: 7400000, guid: b66410e3a9899964cbd9169871dab09d, type: 2}
+  blendInTime: -1
+  blendOutTime: 0.1
 --- !u!4 &8747801216351120114
 Transform:
   m_ObjectHideFlags: 0

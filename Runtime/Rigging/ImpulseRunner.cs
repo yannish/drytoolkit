@@ -8,7 +8,7 @@ using UnityEngine.Animations.Rigging;
 public class ImpulseRunner : MonoBehaviour
 {
     [Header("SLOW TWITCH:")]
-    public SecondOrderTransformConstraint constraint;
+    [Expandable] public SecondOrderTransformConstraint constraint;
     public Vector3 impulse = Vector3.forward;
     public Vector3 torque = Vector3.zero;
 
@@ -17,8 +17,9 @@ public class ImpulseRunner : MonoBehaviour
     private NativeReference<Vector3> _velocity;
     private NativeReference<Vector3> _torque;
     
+    
     [Header("FAST TWITCH:")]
-    public SecondOrderTransformConstraint fastTwitchConstraint;
+    [Expandable] public SecondOrderTransformConstraint fastTwitchConstraint;
     public Vector3 fastImpulse = Vector3.forward;
     public Vector3 fastTorque = Vector3.zero;
     
@@ -26,7 +27,8 @@ public class ImpulseRunner : MonoBehaviour
     private NativeReference<Vector3> _fastTorque;
 
     private AnimationSystem animSystem;
-    
+
+
     void OnEnable()
     {
         Debug.LogWarning("started impulse runner.");
@@ -49,6 +51,7 @@ public class ImpulseRunner : MonoBehaviour
         fastTwitchConstraint.data.torqueRef = _fastTorque;
 
         animSystem = new AnimationSystem(GetComponent<Animator>());
+        animSystem.rebind = rebind;
     }
 
     private void Update()
@@ -57,7 +60,6 @@ public class ImpulseRunner : MonoBehaviour
             return;
         animSystem.Tick();
     }
-
     
     void OnDestroy()
     {
@@ -80,69 +82,83 @@ public class ImpulseRunner : MonoBehaviour
             _fastTorque.Dispose();
     }
     
+    
+
     public ClipConfig stateAClip;
-    [ButtonGroup("_animButtons", GroupName = "CLIPS:")]
     public void GoToStateA() => animSystem.TransitionToState(stateAClip);
 
     public ClipConfig stateBClip;
-    [ButtonGroup("_animButtons", GroupName = "CLIPS:")]
     public void GoToStateB() => animSystem.TransitionToState(stateBClip);
 
-    public ClipConfig oneShotClip;
-    [ButtonGroup("_animButtons", GroupName = "CLIPS:")]
+
+
+    [FoldoutGroup("ONE SHOT")] public bool rebind = true;
+    [FoldoutGroup("ONE SHOT")] public AnimationClip oneShotClip;
+    [FoldoutGroup("ONE SHOT")] public float blendOutTime = 0.1f;
+    [FoldoutGroup("ONE SHOT")] public float blendInTime = 0.1f;
+    [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
     public void PlayOneShot() => animSystem.PlayOneShot(oneShotClip);
 
-
-    [ButtonGroup("_bothButtons", GroupName = "BOTH:")]
-    public void PlayOneShotAndImpulse()
+    [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
+    public void PlayAll()
     {
+        PrimaryImpulse();
+        PrimaryTorque();
+        SecondaryImpulse();
+        SecondaryTorque();
         PlayOneShot();
-        ApplyBoth();
     }
 
-    [ButtonGroup("SlowButtons", GroupName = "IMPULSE:")]
-    public void DoTorque() => ApplyTorque(torque);
+
+
+    
+    [FoldoutGroup("PRIMARY")]
+    [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
+    public void PrimaryTorque() => ApplyTorque(torque);
     private void ApplyTorque(Vector3 torqueToApply) => _torque.Value += torqueToApply;
 
-    [ButtonGroup("SlowButtons", GroupName = "IMPULSE:")]
-    public void DoImpulse() => ApplyImpulse(impulse);
-    private void ApplyImpulse(Vector3 impulseToApply)
-    {
-        Debug.LogWarning("applying impulse.");
-        _velocity.Value += impulseToApply;
-    }
+    [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
+    public void PrimaryImpulse() => ApplyImpulse(impulse);
+    private void ApplyImpulse(Vector3 impulseToApply) => _velocity.Value += impulseToApply;
 
-    [ButtonGroup("SlowButtons", GroupName = "IMPULSE:")]
-    public void ApplyBoth()
+    [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
+    public void PrimaryTorqueAndImpulse()
     {
         ApplyTorque(torque);
         ApplyImpulse(impulse);
     }
-    
-    
-    [ButtonGroup("FastButtons")]
-    public void DoFastTorque() => ApplyFastTorque(fastTorque);
-    private void ApplyFastTorque(Vector3 torque) => _fastTorque.Value += torque;
-    
-    [ButtonGroup("FastButtons")]
-    public void DoFastImpulse() => ApplyFastImpulse(fastImpulse);
-    private void ApplyFastImpulse(Vector3 vector3) => _fastVelocity.Value += vector3;
 
-    [ButtonGroup("FastButtons")]
-    public void ApplyFastBoth()
+    [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
+    public void PrimaryWithOneShot()
     {
-        DoFastImpulse();
-        DoFastTorque();
-    }
-
-    [Button]
-    public void BothImpulsesAndOneShot()
-    {
-        DoImpulse();
-        DoTorque();
-        DoFastImpulse();
-        DoFastTorque();
         PlayOneShot();
+        PrimaryTorqueAndImpulse();
     }
+    
+    
+    [FoldoutGroup("SECONDARY")]
+    [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
+    public void SecondaryTorque() => ApplySecondaryTorque(fastTorque);
+    private void ApplySecondaryTorque(Vector3 torque) => _fastTorque.Value += torque;
+    
+    [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
+    public void SecondaryImpulse() => ApplySecondaryImpulse(fastImpulse);
+    private void ApplySecondaryImpulse(Vector3 vector3) => _fastVelocity.Value += vector3;
+
+    [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
+    public void SecondaryTorqueAndImpulse()
+    {
+        SecondaryImpulse();
+        SecondaryTorque();
+    }
+
+    [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
+    public void SecondaryWithOneShot()
+    {
+        PlayOneShot();
+        SecondaryImpulse();
+        SecondaryTorque();
+    }
+    
 
 }
