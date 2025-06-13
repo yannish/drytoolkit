@@ -14,6 +14,7 @@ using AffineTransform = UnityEngine.Animations.Rigging.AffineTransform;
 public struct SecondOrderTransformJob : IWeightedAnimationJob
 {
     public NativeReference<Vector3> impulseVel;
+    public NativeReference<Vector3> alignedImpulseVel;
     public NativeReference<Vector3> impulseTorque;
     
     const float k_FixedDt = 0.01666667f;
@@ -172,6 +173,13 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
             currVel += impulseVel.Value;
             impulseVel.Value = Vector3.zero;
         }
+
+        if (alignedImpulseVel.IsCreated)
+        {
+            currVel += currRot * alignedImpulseVel.Value;
+            alignedImpulseVel.Value = Vector3.zero;
+        }
+        
         // else
         // {
         //     // Debug.LogWarning("impulse not created.");
@@ -252,6 +260,7 @@ public struct SecondOrderTransformData : IAnimationJobData
 {
     public NativeReference<Vector3> velocityRef;
     public NativeReference<Vector3> torqueRef;
+    public NativeReference<Vector3> alignedImpulseRef;
 
     public const float saneFrequency = 1f;
     public const float saneDamping = 0.5f;
@@ -347,6 +356,7 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
         
         job.impulseVel = data.velocityRef;
         job.impulseTorque = data.torqueRef;
+        job.alignedImpulseVel = data.alignedImpulseRef;
 
         job.constrainPosition = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainPosition)));
         job.constrainRotation = BoolProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.constrainRotation)));

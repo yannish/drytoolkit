@@ -10,12 +10,12 @@ public class ImpulseRunner : MonoBehaviour
     [Header("SLOW TWITCH:")]
     [Expandable] public SecondOrderTransformConstraint constraint;
     public Vector3 impulse = Vector3.forward;
+    public Vector3 alignedImpulse = Vector3.forward;
     public Vector3 torque = Vector3.zero;
 
-    public NativeReference<Vector3> someNativeVector3;
-    
-    private NativeReference<Vector3> _velocity;
-    private NativeReference<Vector3> _torque;
+    private NativeReference<Vector3> primaryImpulse;
+    private NativeReference<Vector3> alignedPrimaryImpulse;
+    private NativeReference<Vector3> primaryTorque;
     
     
     [Header("FAST TWITCH:")]
@@ -23,8 +23,8 @@ public class ImpulseRunner : MonoBehaviour
     public Vector3 fastImpulse = Vector3.forward;
     public Vector3 fastTorque = Vector3.zero;
     
-    private NativeReference<Vector3> _fastVelocity;
-    private NativeReference<Vector3> _fastTorque;
+    private NativeReference<Vector3> secondaryImpulse;
+    private NativeReference<Vector3> secondaryTorque;
 
     private AnimationSystem animSystem;
 
@@ -36,19 +36,20 @@ public class ImpulseRunner : MonoBehaviour
         if (fastTwitchConstraint == null || constraint == null)
             return;
         
-        _velocity = new NativeReference<Vector3>(Allocator.Persistent);
-        _torque = new NativeReference<Vector3>(Allocator.Persistent);
+        primaryImpulse = new NativeReference<Vector3>(Allocator.Persistent);
+        constraint.data.velocityRef = primaryImpulse;
         
-        constraint.data.velocityRef = _velocity;
-        constraint.data.torqueRef = _torque;
+        primaryTorque = new NativeReference<Vector3>(Allocator.Persistent);
+        constraint.data.torqueRef = primaryTorque;
         
-        someNativeVector3 = new NativeReference<Vector3>(Allocator.Persistent);
-
-        _fastVelocity = new NativeReference<Vector3>(Allocator.Persistent);
-        _fastTorque = new NativeReference<Vector3>(Allocator.Persistent);
+        alignedPrimaryImpulse = new NativeReference<Vector3>(Allocator.Persistent);
+        constraint.data.alignedImpulseRef = alignedPrimaryImpulse;
         
-        fastTwitchConstraint.data.velocityRef = _fastVelocity;
-        fastTwitchConstraint.data.torqueRef = _fastTorque;
+        secondaryImpulse = new NativeReference<Vector3>(Allocator.Persistent);
+        fastTwitchConstraint.data.velocityRef = secondaryImpulse;
+        
+        secondaryTorque = new NativeReference<Vector3>(Allocator.Persistent);
+        fastTwitchConstraint.data.torqueRef = secondaryTorque;
 
         animSystem = new AnimationSystem(GetComponent<Animator>());
         animSystem.rebind = rebind;
@@ -69,17 +70,17 @@ public class ImpulseRunner : MonoBehaviour
         if(animSystem != null)
             animSystem.Destroy();
 
-        if(_velocity.IsCreated)
-            _velocity.Dispose();
+        if(primaryImpulse.IsCreated)
+            primaryImpulse.Dispose();
         
-        if (_torque.IsCreated)
-            _torque.Dispose(); 
+        if (primaryTorque.IsCreated)
+            primaryTorque.Dispose(); 
         
-        if(_fastVelocity.IsCreated)
-            _fastVelocity.Dispose();
+        if(secondaryImpulse.IsCreated)
+            secondaryImpulse.Dispose();
         
-        if(_fastTorque.IsCreated)
-            _fastTorque.Dispose();
+        if(secondaryTorque.IsCreated)
+            secondaryTorque.Dispose();
     }
     
     
@@ -115,11 +116,17 @@ public class ImpulseRunner : MonoBehaviour
     [FoldoutGroup("PRIMARY")]
     [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
     public void PrimaryTorque() => ApplyTorque(torque);
-    private void ApplyTorque(Vector3 torqueToApply) => _torque.Value += torqueToApply;
 
     [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
     public void PrimaryImpulse() => ApplyImpulse(impulse);
-    private void ApplyImpulse(Vector3 impulseToApply) => _velocity.Value += impulseToApply;
+
+    [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
+    public void PrimaryAlignedImpulse()
+    {
+        alignedPrimaryImpulse.Value += alignedImpulse;
+        // var effectiveImpulse = constraint.data.sourceObject.rotation * impulse;
+        // ApplyImpulse(effectiveImpulse);
+    }
 
     [ResponsiveButtonGroup("PRIMARY/PRIMARY GROUP")]
     public void PrimaryTorqueAndImpulse()
@@ -135,15 +142,19 @@ public class ImpulseRunner : MonoBehaviour
         PrimaryTorqueAndImpulse();
     }
     
+    private void ApplyTorque(Vector3 torqueToApply) => primaryTorque.Value += torqueToApply;
+
+    private void ApplyImpulse(Vector3 impulseToApply) => primaryImpulse.Value += impulseToApply;
+    
     
     [FoldoutGroup("SECONDARY")]
     [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
     public void SecondaryTorque() => ApplySecondaryTorque(fastTorque);
-    private void ApplySecondaryTorque(Vector3 torque) => _fastTorque.Value += torque;
+    private void ApplySecondaryTorque(Vector3 torque) => secondaryTorque.Value += torque;
     
     [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
     public void SecondaryImpulse() => ApplySecondaryImpulse(fastImpulse);
-    private void ApplySecondaryImpulse(Vector3 vector3) => _fastVelocity.Value += vector3;
+    private void ApplySecondaryImpulse(Vector3 vector3) => secondaryImpulse.Value += vector3;
 
     [ResponsiveButtonGroup("SECONDARY/SECONDARY GROUP")]
     public void SecondaryTorqueAndImpulse()
