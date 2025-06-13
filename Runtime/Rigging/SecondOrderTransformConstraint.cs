@@ -87,9 +87,9 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
             if (constrainingRotation)
             {
                 if(!useLocalSpace)
-                    constrained.SetLocalRotation(stream, source.GetLocalRotation(stream));
-                else
                     constrained.SetRotation(stream, source.GetRotation(stream));
+                else
+                    constrained.SetLocalRotation(stream, source.GetLocalRotation(stream));
             }
             
             AnimationRuntimeUtils.PassThrough(stream, constrained);
