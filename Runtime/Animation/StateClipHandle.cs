@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Playables;
@@ -115,6 +116,8 @@ namespace drytoolkit.Runtime.Animation
 
                 if(system.rebind)
                     system.playableOutput.SetSourcePlayable(system.playableOutput.GetSourcePlayable());
+                
+                system.graph.Evaluate(0f);
             }
 
             for (int i = 0; i < clipHandles.Count; i++)
