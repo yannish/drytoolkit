@@ -117,14 +117,15 @@ namespace drytoolkit.Runtime.Animation
                 if(system.rebind)
                     system.playableOutput.SetSourcePlayable(system.playableOutput.GetSourcePlayable());
                 
-                system.graph.Evaluate(0f);
+                // system.graph.Evaluate(0f);
             }
 
             for (int i = 0; i < clipHandles.Count; i++)
             {
-                // var normalizeWeight = stateClipHandles.Count > 1 ? oneOverTotalWeights : 1f;
                 var effectiveWeight = clipHandles[i].currWeight * oneOverTotalWeights;// * normalizeWeight;
                 mixer.SetInputWeight(i, effectiveWeight);
+                
+                // var normalizeWeight = stateClipHandles.Count > 1 ? oneOverTotalWeights : 1f;
                 // Debug.LogWarning($"effStateWeight: {effectiveWeight}");
             }
 

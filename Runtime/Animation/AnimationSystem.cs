@@ -69,7 +69,8 @@ namespace drytoolkit.Runtime.Animation
         public AnimationPlayableOutput playableOutput { get; private set; }
 
         private MethodInfo rebindMethod;
-        private bool stateClipCountChanged = false;
+        
+        private bool graphReevaluationQueued = false;
         
         [ReadOnly] public float heaviestOneShot = 0f;
 
@@ -153,8 +154,6 @@ namespace drytoolkit.Runtime.Animation
 
             topLevelMixer.SetLayerAdditive(2, true);
             
-            //
-            
             playableOutput.SetSourcePlayable(topLevelMixer);
 
             graph.GetRootPlayable(0).SetInputWeight(0, 1f);
@@ -173,6 +172,9 @@ namespace drytoolkit.Runtime.Animation
             topLevelMixer.SetInputWeight(0, 1f - heaviestOneShot);
             topLevelMixer.SetInputWeight(1, 1f);
             topLevelMixer.SetInputWeight(2, 1f);
+            
+            if(graphReevaluationQueued)
+                graph.Evaluate(0f);
             
             // if (logDebug)
             // {
@@ -198,8 +200,7 @@ namespace drytoolkit.Runtime.Animation
             
             // float totalWeights = 0f;
             // float heaviestWeight = 0f;
-            //
-            //
+
             // for (int i = stateClipHandles_PREV.Count - 1; i >= 0; i--)
             // {
             //     var stateClipHandle = stateClipHandles_PREV[i];
@@ -324,12 +325,12 @@ namespace drytoolkit.Runtime.Animation
             
             //... search to see if this clip is already among those being blended between.
             bool stateClipAlreadyExists = false;
+            
             for (int i = 0; i < stateClipMixers[layer].clipHandles.Count; i++)
-            // for (int i = 0; i < stateClipHandles_PREV.Count; i++)
             {
                 var stateClipHandle = stateClipMixers[layer].clipHandles[i];
-                // var stateClipHandle = stateClipHandles_PREV[i];
                 var stateClip = stateClipHandle.clip;
+                
                 //... if found, we just set its target weight back to 1f.
                 if (stateClip == newStateClip)
                 {
@@ -347,6 +348,7 @@ namespace drytoolkit.Runtime.Animation
             if (!stateClipAlreadyExists)
             {
                 stateClipMixers[layer].stateClipCountChanged = true;
+                
                 var newStateClipHandle = new StateClipHandle()
                 {
                     clip = newStateClip,
@@ -354,10 +356,13 @@ namespace drytoolkit.Runtime.Animation
                     blendInOverrideTime = blendInTime,
                     targetWeight = 1f
                 };
+                
                 newStateClipHandle.clipPlayable.SetTime(startTime);
                 newStateClipHandle.clipPlayable.SetSpeed(playbackSpeed);
                 
                 stateClipMixers[layer].clipHandles.Add(newStateClipHandle);
+
+                graphReevaluationQueued = true;
             }
         }
 
