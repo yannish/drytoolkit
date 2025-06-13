@@ -63,9 +63,9 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
     
     
     //... PER-AXIS ROT:
-    public Vector3Property perAxisFrequency;
-    public Vector3Property perAxisDamping;
-    public Vector3Property perAxisResponse;
+    // public Vector3Property perAxisFrequency;
+    // public Vector3Property perAxisDamping;
+    // public Vector3Property perAxisResponse;
 
     
     public void ProcessAnimation(AnimationStream stream)
@@ -381,9 +381,9 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
         job.rotDamping = FloatProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.rotDamping)));
         job.rotResponse = FloatProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.rotResponse)));
         
-        job.perAxisFrequency = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotFrequency)));
-        job.perAxisDamping = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotDamping)));
-        job.perAxisResponse = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotResponse)));
+        // job.perAxisFrequency = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotFrequency)));
+        // job.perAxisDamping = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotDamping)));
+        // job.perAxisResponse = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotResponse)));
         
         job.currVel = Vector3.zero;
 
