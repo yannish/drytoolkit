@@ -173,8 +173,8 @@ namespace drytoolkit.Runtime.Animation
             topLevelMixer.SetInputWeight(1, 1f);
             topLevelMixer.SetInputWeight(2, 1f);
             
-            if(graphReevaluationQueued)
-                graph.Evaluate(0f);
+            // if(graphReevaluationQueued)
+            //     graph.Evaluate(0f);
             
             // if (logDebug)
             // {
