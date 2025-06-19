@@ -13,6 +13,11 @@ using AffineTransform = UnityEngine.Animations.Rigging.AffineTransform;
 [BurstCompile]
 public struct SecondOrderTransformJob : IWeightedAnimationJob
 {
+    //... OFFSETS:
+    public Vector3 translationOffset;
+    public Quaternion rotationalOffset;
+    
+    //... IMPULSE:
     public NativeReference<Vector3> impulseVel;
     public NativeReference<Vector3> alignedImpulseVel;
     public NativeReference<Vector3> impulseTorque;
@@ -72,21 +77,32 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
     {
         bool constrainingPosition = constrainPosition.Get(stream);
         bool constrainingRotation = constrainRotation.Get(stream);
-        bool useLocalSpace = this.useLocalSpace.Get(stream) && localSpaceTransform.IsValid(stream);
+        bool usingLocalSpace = this.useLocalSpace.Get(stream) && localSpaceTransform.IsValid(stream);
+
+        var targetPos = source.GetPosition(stream);
+        
+        float w = jobWeight.Get(stream);
 
         if (isPreviewing)
         {
             if (constrainingPosition)
             {
-                if(!useLocalSpace)
+                if(!usingLocalSpace)
                     constrained.SetPosition(stream, source.GetPosition(stream));
                 else
-                    constrained.SetLocalPosition(stream, source.GetLocalPosition(stream));
+                {
+                    localSpaceTransform.GetGlobalTR(stream, out var localTxPos, out var localTxRot);
+                    var localTransformMatrix = new AffineTransform(localTxPos, localTxRot);
+                    var tempTargetPos = localTransformMatrix.InverseTransform(targetPos);
+                    constrained.SetLocalPosition(stream, tempTargetPos);
+                    // constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, tempTargetPos, 1f - w));
+                    // constrained.SetLocalPosition(stream, source.GetLocalPosition(stream));
+                }
             }
 
             if (constrainingRotation)
             {
-                if(!useLocalSpace)
+                if(!usingLocalSpace)
                     constrained.SetRotation(stream, source.GetRotation(stream));
                 else
                     constrained.SetLocalRotation(stream, source.GetLocalRotation(stream));
@@ -96,8 +112,37 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
             
             return;
         }
+        
+        // if (isPreviewing)
+        // {
+        //     if (constrainingPosition)
+        //     {
+        //         if(!useLocalSpace)
+        //             constrained.SetPosition(stream, source.GetPosition(stream));
+        //         else
+        //         {
+        //             constrained.SetLocalPosition(stream, source.GetLocalPosition(stream));
+        //             
+        //             // localSpaceTransform.GetGlobalTR(stream, out var localTxPos, out var localTxRot);
+        //             // var localTransformMatrix = new AffineTransform(localTxPos, localTxRot);
+        //             // var tempTargetPos = localTransformMatrix.InverseTransform(targetPos);
+        //             // constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, tempTargetPos, 1f - w));
+        //         }
+        //     }
+        //
+        //     if (constrainingRotation)
+        //     {
+        //         if(!useLocalSpace)
+        //             constrained.SetRotation(stream, source.GetRotation(stream));
+        //         else
+        //             constrained.SetLocalRotation(stream, source.GetLocalRotation(stream));
+        //     }
+        //     
+        //     // AnimationRuntimeUtils.PassThrough(stream, constrained);
+        //     
+        //     return;
+        // }
 
-        float w = jobWeight.Get(stream);
         float streamDt = Mathf.Abs(stream.deltaTime);
 
         if (streamDt <= 0f)
@@ -120,8 +165,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         
 
         // prevTargetRot = currTargetRot;
-        var targetPos = source.GetPosition(stream);
-        if (useLocalSpace)
+        if (usingLocalSpace)
         {
             localSpaceTransform.GetGlobalTR(stream, out var localTxPos, out var localTxRot);
             var localTransformMatrix = new AffineTransform(localTxPos, localTxRot);
@@ -132,7 +176,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         currTargetPos = targetPos;
         
         currTargetRot = source.GetRotation(stream);
-        if (useLocalSpace)
+        if (usingLocalSpace)
             currTargetRot = Quaternion.Inverse(localSpaceTransform.GetRotation(stream)) * currTargetRot;
 
         
@@ -166,10 +210,6 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         //... integrate position:
         if (impulseVel.IsCreated)
         {
-            // Debug.LogWarning($"impulse: {impulseVel.Value}");
-            //
-            // if(impulseVel.Value.sqrMagnitude > 0f)
-            //     Debug.Log($"IMPULSE: {impulseVel.Value}");
             currVel += impulseVel.Value;
             impulseVel.Value = Vector3.zero;
         }
@@ -180,11 +220,6 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
             alignedImpulseVel.Value = Vector3.zero;
         }
         
-        // else
-        // {
-        //     // Debug.LogWarning("impulse not created.");
-        // }
-            
         var xDeriv = (currTargetPos - prevTargetPos) / effectiveDt;
         currPos += effectiveDt * currVel;
         currVel += effectiveDt * (currTargetPos + k3 * xDeriv - currPos - k1 * currVel) / k2;
@@ -193,10 +228,11 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         //.. TODO: 
         // while (streamDt > 0f)
         // {
+        //  run a tick with at most a 1/60 dt, until you're caught up.
             // streamDt -= k_FixedDt;
         // }
 
-        if (useLocalSpace)
+        if (usingLocalSpace)
         {
             if(constrainingRotation)
                 constrained.SetLocalRotation(stream, Quaternion.Slerp(currRot, currTargetRot, 1f - w));
@@ -218,39 +254,10 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         
         // Debug.LogWarning($"currTargPos: ({currTargetPos.x}, {currTargetPos.y}, {currTargetPos.z})");
 
-        Matrix4x4 GetPerAxisParams(Vector3 freq, Vector3 damp, Vector3 resp)
-        {
-            Vector3 perAxisParams = Vector3.zero;
-            Matrix4x4 paramMatrix = new Matrix4x4();
-
-            var k1x = damp.x / (math.PI * freq.x);
-            var k1y = damp.y / (math.PI * freq.y);
-            var k1z = damp.z / (math.PI * freq.z);
-
-            var k2x = 1f / math.pow(2f * math.PI * freq.x, 2f);
-            var k2y = 1f / math.pow(2f * math.PI * freq.y, 2f);
-            var k2z = 1f / math.pow(2f * math.PI * freq.z, 2f);
-
-            var k3x = resp.x * damp.x / (2f * math.PI * freq.x);
-            var k3y = resp.y * damp.y / (2f * math.PI * freq.y);
-            var k3z = resp.z * damp.z / (2f * math.PI * freq.z);
-
-            paramMatrix.SetRow(0, new Vector4(k1x, k2x, k3x));
-            paramMatrix.SetRow(1, new Vector4(k1y, k2y, k3y));
-            paramMatrix.SetRow(2, new Vector4(k1z, k2z, k3z));
-            
-            // k1 = damping.Get(stream) / (math.PI * frequency.Get(stream));
-            // k2 = 1f / math.pow(2f * math.PI * frequency.Get(stream), 2f);
-            // k3 = response.Get(stream) * damping.Get(stream) / (2 * math.PI * frequency.Get(stream));
-            
-            return paramMatrix;
-        }
+       
     }
 
-    public void ProcessRootMotion(AnimationStream stream)
-    {
-        
-    }
+    public void ProcessRootMotion(AnimationStream stream){}
 
     public FloatProperty jobWeight { get; set; }
 }
@@ -272,7 +279,6 @@ public struct SecondOrderTransformData : IAnimationJobData
     private static readonly Vector3 sanePerAxisRotResponse = new Vector3(saneResponse, saneResponse, saneResponse);
     private static readonly Vector3 sanePerAxisRotFrequency = new Vector3(saneFrequency, saneFrequency, saneFrequency);
     private static readonly Vector3 sanePerAxisRotDamping = new Vector3(saneDamping, saneDamping, saneDamping);
-    
     
     
     [Header("REFERENCES:")]
@@ -298,10 +304,6 @@ public struct SecondOrderTransformData : IAnimationJobData
     [SyncSceneToStream] public float rotDamping;
     [SyncSceneToStream] public float rotResponse;
     
-    [SyncSceneToStream] public Vector3 perAxisRotFrequency;
-    [SyncSceneToStream] public Vector3 perAxisRotDamping;
-    [SyncSceneToStream] public Vector3 perAxisRotResponse;
-    
     
     public bool IsValid() => !(constrainedObject == null || sourceObject == null);
 
@@ -318,10 +320,6 @@ public struct SecondOrderTransformData : IAnimationJobData
         rotDamping = saneDamping;
         rotResponse = saneResponse;
 
-        perAxisRotFrequency = sanePerAxisRotFrequency;
-        perAxisRotDamping = sanePerAxisRotDamping;
-        perAxisRotResponse = sanePerAxisRotResponse;
-        
         maxPositionDistance = saneMaxPositionDistance;
         maxRotationAngle = saneMaxRotationAngle;
         
@@ -336,6 +334,16 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
     {
         var job = new SecondOrderTransformJob();
 
+        var sourceTransform = data.sourceObject.transform;
+        var constrainedTransform = data.constrainedObject.transform;
+        
+        var sourceTx = new AffineTransform(sourceTransform.position, sourceTransform.rotation);
+        var constrainedTx = new AffineTransform(constrainedTransform.position, constrainedTransform.rotation);
+        var tmp = sourceTx.InverseMul(constrainedTx);
+        
+        job.translationOffset = tmp.translation;
+        job.rotationalOffset = tmp.rotation;
+        
         //.. FROM MULTIPARENT, TRY TO ADD IN OFFSET OPTION..?
         // var drivenTx = new AffineTransform(data.constrainedObject.position, data.constrainedObject.rotation);
         // for (int i = 0; i < sourceObjects.Count; ++i)
@@ -381,10 +389,6 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
         job.rotDamping = FloatProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.rotDamping)));
         job.rotResponse = FloatProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.rotResponse)));
         
-        // job.perAxisFrequency = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotFrequency)));
-        // job.perAxisDamping = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotDamping)));
-        // job.perAxisResponse = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.perAxisRotResponse)));
-        
         job.currVel = Vector3.zero;
 
         if (data.useLocalSpace)
@@ -423,3 +427,27 @@ public class SecondOrderTransformConstraint : RigConstraint<SecondOrderTransform
 {
     
 }
+
+// Matrix4x4 GetPerAxisParams(Vector3 freq, Vector3 damp, Vector3 resp)
+// {
+//     Vector3 perAxisParams = Vector3.zero;
+//     Matrix4x4 paramMatrix = new Matrix4x4();
+//
+//     var k1x = damp.x / (math.PI * freq.x);
+//     var k1y = damp.y / (math.PI * freq.y);
+//     var k1z = damp.z / (math.PI * freq.z);
+//
+//     var k2x = 1f / math.pow(2f * math.PI * freq.x, 2f);
+//     var k2y = 1f / math.pow(2f * math.PI * freq.y, 2f);
+//     var k2z = 1f / math.pow(2f * math.PI * freq.z, 2f);
+//
+//     var k3x = resp.x * damp.x / (2f * math.PI * freq.x);
+//     var k3y = resp.y * damp.y / (2f * math.PI * freq.y);
+//     var k3z = resp.z * damp.z / (2f * math.PI * freq.z);
+//
+//     paramMatrix.SetRow(0, new Vector4(k1x, k2x, k3x));
+//     paramMatrix.SetRow(1, new Vector4(k1y, k2y, k3y));
+//     paramMatrix.SetRow(2, new Vector4(k1z, k2z, k3z));
+//             
+//     return paramMatrix;
+// }

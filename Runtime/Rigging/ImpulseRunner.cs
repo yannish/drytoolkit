@@ -52,8 +52,12 @@ public class ImpulseRunner : MonoBehaviour
         secondaryTorque = new NativeReference<Vector3>(Allocator.Persistent);
         fastTwitchConstraint.data.torqueRef = secondaryTorque;
 
-        animSystem = new AnimationSystem(GetComponent<Animator>());
-        animSystem.rebind = rebind;
+        var foundAnimator = GetComponent<Animator>();
+        if (foundAnimator != null)
+        {
+            animSystem = new AnimationSystem(GetComponent<Animator>());
+            animSystem.rebind = rebind;
+        }
     }
 
     private void Update()
@@ -93,13 +97,23 @@ public class ImpulseRunner : MonoBehaviour
     public void GoToStateB() => animSystem.TransitionToState(stateBClip);
 
 
+    [Header("ANIMATION:")] public ClipHandler ClipHandler;
 
     [FoldoutGroup("ONE SHOT")] public bool rebind = true;
     [FoldoutGroup("ONE SHOT")] public AnimationClip oneShotClip;
     [FoldoutGroup("ONE SHOT")] public float blendOutTime = 0.1f;
     [FoldoutGroup("ONE SHOT")] public float blendInTime = 0.1f;
     [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
-    public void PlayOneShot() => animSystem.PlayOneShot(oneShotClip);
+    public void PlayOneShot()
+    {
+        if (ClipHandler != null)
+        {
+            ClipHandler.animSystem.PlayOneShot(oneShotClip);
+            return;
+        }
+        
+        animSystem.PlayOneShot(oneShotClip);
+    }
 
     [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
     public void PlayAll()

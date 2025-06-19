@@ -14,7 +14,8 @@ namespace drytoolkit.Runtime.Animation
         
         [Header("STATE CLIPS:")]
         public int layerCount = 1;
-        public List<ClipConfig> stateClips;
+        public List<AnimationClip> stateClips = new List<AnimationClip>();
+        [FormerlySerializedAs("stateClips")] public List<ClipConfig> stateClipConfigs;
         public List<AvatarMask> stateMasks;
         
         [Header("ONE SHOTS:")]

@@ -25,7 +25,8 @@ public class ClipHandlerInspector : Editor
         DrawDefaultInspector();
     }
 
-    private int[] layerPicks;
+    private int[] layerClipPicks;
+    private int[] layerClipConfigPicks;
     
     private void DrawPlayControls()
     {
@@ -39,16 +40,52 @@ public class ClipHandlerInspector : Editor
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
             EditorGUILayout.LabelField("STATE CLIPS:", EditorStyles.boldLabel);
-            if (layerPicks == null || layerPicks.Length != clipHandler.stateClips.Count)
+            if (layerClipPicks == null || layerClipPicks.Length != clipHandler.stateClips.Count)
             {
-                layerPicks = new int[clipHandler.stateClips.Count];
+                layerClipPicks = new int[clipHandler.stateClips.Count];
                 for (int i = 0; i < clipHandler.stateClips.Count; i++)
-                    layerPicks[i] = 0;
+                    layerClipPicks[i] = 0;
             }
             
             for (int i = 0; i < clipHandler.stateClips.Count; i++)
             {
-                var clipConfig = clipHandler.stateClips[i];
+                var stateClip = clipHandler.stateClips[i];
+                
+                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                {
+                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    {
+                        clipHandler.animSystem.TransitionToState(stateClip, clipHandler.blendInTime, layer: layerClipPicks[i]);
+                    }
+                    
+                    EditorGUILayout.ObjectField(
+                        stateClip, 
+                        typeof(ClipConfig),
+                        false, 
+                        null
+                        );
+                    
+                    EditorGUI.BeginChangeCheck();
+                    var result = EditorGUILayout.IntField(layerClipPicks[i], GUILayout.Width(objectFieldWidth));
+                    if(EditorGUI.EndChangeCheck())
+                        layerClipPicks[i] = result;
+                }
+            }
+        }
+        
+        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        {
+            EditorGUILayout.LabelField("STATE CONFIG-CLIPS:", EditorStyles.boldLabel);
+            if (layerClipConfigPicks == null || layerClipConfigPicks.Length != clipHandler.stateClipConfigs.Count)
+            {
+                layerClipConfigPicks = new int[clipHandler.stateClipConfigs.Count];
+                for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
+                    layerClipConfigPicks[i] = 0;
+            }
+            
+            for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
+            {
+                var clipConfig = clipHandler.stateClipConfigs[i];
                 
                 using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                 {
@@ -58,13 +95,15 @@ public class ClipHandlerInspector : Editor
                         //     ? clipConfig.blendInTime
                         //     : clipHandler.blendInTime;
                         
-                        clipHandler.animSystem.TransitionToState(clipConfig, layerPicks[i]);
-                        //
+                        clipHandler.animSystem.TransitionToState(clipConfig, layerClipPicks[i]);
+
                         // if(clipHandler.logDebug)
                         //     Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
                     }
+                    
                     // EditorGUILayout.LabelField(clipConfig.clip.name);
                     // EditorGUILayout.GetControlRect().
+                    
                     EditorGUILayout.ObjectField(
                         clipConfig, 
                         typeof(ClipConfig),
@@ -73,9 +112,9 @@ public class ClipHandlerInspector : Editor
                         );
                     
                     EditorGUI.BeginChangeCheck();
-                    var result = EditorGUILayout.IntField(layerPicks[i], GUILayout.Width(objectFieldWidth));
+                    var result = EditorGUILayout.IntField(layerClipPicks[i], GUILayout.Width(objectFieldWidth));
                     if(EditorGUI.EndChangeCheck())
-                        layerPicks[i] = result;
+                        layerClipPicks[i] = result;
                 }
             }
         }
