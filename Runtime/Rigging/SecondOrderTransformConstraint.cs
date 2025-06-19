@@ -418,7 +418,9 @@ public class SecondOrderTransformBinder : AnimationJobBinder<SecondOrderTransfor
 
     public override void Destroy(SecondOrderTransformJob job)
     {
-        
+        job.impulseVel.Dispose();
+        job.alignedImpulseVel.Dispose();
+        job.impulseTorque.Dispose();
     }
 }
 
