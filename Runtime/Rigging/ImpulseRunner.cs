@@ -75,17 +75,17 @@ public class ImpulseRunner : MonoBehaviour
         if(animSystem != null)
             animSystem.Destroy();
 
-        if(primaryImpulseRef.IsCreated)
-            primaryImpulseRef.Dispose();
+        // if(primaryImpulseRef.IsCreated)
+        //     primaryImpulseRef.Dispose();
         
-        if (primaryTorqueRef.IsCreated)
-            primaryTorqueRef.Dispose(); 
-        
-        if(secondaryImpulse.IsCreated)
-            secondaryImpulse.Dispose();
-        
-        if(secondaryTorque.IsCreated)
-            secondaryTorque.Dispose();
+        // if (primaryTorqueRef.IsCreated)
+        //     primaryTorqueRef.Dispose(); 
+        //
+        // if(secondaryImpulse.IsCreated)
+        //     secondaryImpulse.Dispose();
+        //
+        // if(secondaryTorque.IsCreated)
+        //     secondaryTorque.Dispose();
     }
     
     
