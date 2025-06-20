@@ -91,10 +91,19 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
                     constrained.SetPosition(stream, source.GetPosition(stream));
                 else
                 {
+                    // source.GetGlobalTR(stream, out Vector3 srcPos, out Quaternion srcRot);
+                    // var sourceTx = new AffineTransform(srcPos, srcRot);
+                    // var offsetTx = new AffineTransform(translationOffset, rotationalOffset);
+                    // sourceTx *= offsetTx;
+                    //
+                    // constrained.GetGlobalTR(stream, out Vector3 conPos, out Quaternion conRot);
+                    
+                    
                     localSpaceTransform.GetGlobalTR(stream, out var localTxPos, out var localTxRot);
-                    var localTransformMatrix = new AffineTransform(localTxPos, localTxRot);
-                    var tempTargetPos = localTransformMatrix.InverseTransform(targetPos);
+                    var localTx = new AffineTransform(localTxPos, localTxRot);
+                    var tempTargetPos = localTx.InverseTransform(targetPos);
                     constrained.SetLocalPosition(stream, tempTargetPos);
+                    
                     // constrained.SetLocalPosition(stream, Vector3.Lerp(currPos, tempTargetPos, 1f - w));
                     // constrained.SetLocalPosition(stream, source.GetLocalPosition(stream));
                 }

@@ -917,6 +917,7 @@ namespace drytoolkit.Editor.NestedAnimation
             currModeField.value = newMode;
         }
 
+        
         //... PREVIEW :
         private void TransitionToPreview()
         {
@@ -1249,7 +1250,6 @@ namespace drytoolkit.Editor.NestedAnimation
             else
             {
                 LogOut("no nestedClip selected.");
-                return;
             }
             
             //... TODO: should this be happening here? we've just embedded. we're not "done". 
@@ -1533,13 +1533,13 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             if (cachingNestedAnimator)
             {
-                Debug.LogWarning("already caching nested animator.");
+                LogOut("already caching nested animator.");
                 return;
             }
             
             if (nestedAnimator == null)
             {
-                Debug.LogWarning("Tried to cache nested animator, but it was null");
+                LogOut("Tried to cache nested animator, but it was null");
                 return;
             }
             
@@ -1567,7 +1567,7 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             if (!cachingNestedAnimator)
             {
-                Debug.LogWarning("Tried to restore nested animator, but we weren't caching it.");
+                LogOut("Tried to restore nested animator, but we weren't caching it.");
                 return;
             }
 
