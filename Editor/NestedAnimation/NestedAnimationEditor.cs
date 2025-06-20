@@ -680,7 +680,7 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedPreviewClipButton.clicked += () =>
             {
                 nestedPreviewClipButton.Blur();
-                ToggleNestedPreviewMode();
+                TogglePreviewMode();
             };
             
             modeControlElement.Add(nestedEditClipButton);
@@ -927,13 +927,16 @@ namespace drytoolkit.Editor.NestedAnimation
                     LogOut("leaving view state.");
                     ExitViewMode();
                     break;
+                
                 case NestedAnimationEditorState.PREVIEW:
                     LogOut("already in preview, somehow");
                     return;
+                
                 case NestedAnimationEditorState.EDIT:
                     LogOut("leaving edit state.");
                     ExitNestedEditMode();
                     break;
+                
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -948,6 +951,7 @@ namespace drytoolkit.Editor.NestedAnimation
             CacheNestedAnimator();
             CacheParentClipBindings();
             CacheSpoofClipBindings();
+            
             EmbedClipBindings();
             CacheEmbeddedClipBindings();
 
@@ -998,7 +1002,7 @@ namespace drytoolkit.Editor.NestedAnimation
             nestedEditIconImage.style.display = DisplayStyle.None;
         }
         
-        private void ToggleNestedPreviewMode()
+        private void TogglePreviewMode()
         {
             if (currMode == NestedAnimationEditorState.VIEW)
                 TransitionToPreview();
@@ -1150,11 +1154,9 @@ namespace drytoolkit.Editor.NestedAnimation
         private void EmbedClipBindings()
         {
             var destinationClip = selectedParentClip;
-            var sourceClip = selectedNestedClip;
-
-            if (destinationClip == null || sourceClip == null)
+            if (destinationClip == null)
             {
-                LogOut("a clip was null during embed attempt.");
+                LogOut("tried to embed in parent clip, but none was selected.");
                 return;
             }
 
@@ -1195,53 +1197,61 @@ namespace drytoolkit.Editor.NestedAnimation
             
             
             // NESTED CLIP:
-            var rootPath = AnimationUtility.CalculateTransformPath(
+            var sourceClip = selectedNestedClip;
+            if (sourceClip != null)
+            {
+                var rootPath = AnimationUtility.CalculateTransformPath(
                 cachedNestedAnimatorGameObject.transform,
                 connectedAnimator.transform
                 );
 
-            var nestedClipBindings = AnimationUtility.GetCurveBindings(sourceClip);
+                var nestedClipBindings = AnimationUtility.GetCurveBindings(sourceClip);
 
-            
-            //... include "spoof" clips. these are represented in the flattened clip, but won't have changes written back out to them.
-            if (nestedSpoofClipHistory.TryGetValue(cachedNestedRuntimeAnimatorController, out var foundSpoofClips))
-            {
-                foreach (var spoofClip in foundSpoofClips)
+                //... include "spoof" clips. these are represented in the flattened clip, but won't have changes written back out to them.
+                if (nestedSpoofClipHistory.TryGetValue(cachedNestedRuntimeAnimatorController, out var foundSpoofClips))
                 {
-                    bool bindingCollision = false;
-                    var spoofClipBindings = AnimationUtility.GetCurveBindings(spoofClip);
-                    foreach (var spoofClipBinding in spoofClipBindings)
+                    foreach (var spoofClip in foundSpoofClips)
                     {
-                        foreach (var nestedClipBinding in nestedClipBindings)
+                        bool bindingCollision = false;
+                        var spoofClipBindings = AnimationUtility.GetCurveBindings(spoofClip);
+                        foreach (var spoofClipBinding in spoofClipBindings)
                         {
-                            if (spoofClipBinding.path == nestedClipBinding.path)
+                            foreach (var nestedClipBinding in nestedClipBindings)
                             {
-                                bindingCollision = true;
-                                break;
+                                if (spoofClipBinding.path == nestedClipBinding.path)
+                                {
+                                    bindingCollision = true;
+                                    break;
+                                }
                             }
-                        }
 
-                        if (bindingCollision)
-                            continue;
-                        
-                        var curve = AnimationUtility.GetEditorCurve(spoofClip, spoofClipBinding);
-                        destinationClip.SetCurve(
-                            $"{rootPath}/{spoofClipBinding.path}",
-                            spoofClipBinding.type,
-                            spoofClipBinding.propertyName,
-                            curve
-                            );
+                            if (bindingCollision)
+                                continue;
+                            
+                            var curve = AnimationUtility.GetEditorCurve(spoofClip, spoofClipBinding);
+                            destinationClip.SetCurve(
+                                $"{rootPath}/{spoofClipBinding.path}",
+                                spoofClipBinding.type,
+                                spoofClipBinding.propertyName,
+                                curve
+                                );
+                        }
                     }
                 }
+                
+                //... then embed nested clip's bindings into parent clip. they might overwrite spoof clip bindings:
+                foreach (var binding in nestedClipBindings)
+                {
+                    var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
+                    destinationClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
+                }
+            }
+            else
+            {
+                LogOut("no nestedClip selected.");
+                return;
             }
             
-            //... then embed nested clip's bindings into parent clip. they might overwrite spoof clip bindings:
-            foreach (var binding in nestedClipBindings)
-            {
-                var curve = AnimationUtility.GetEditorCurve(sourceClip, binding);
-                destinationClip.SetCurve($"{rootPath}/{binding.path}", binding.type, binding.propertyName, curve);
-            }
-
             //... TODO: should this be happening here? we've just embedded. we're not "done". 
             EditorUtility.SetDirty(destinationClip);
             AssetDatabase.SaveAssets();
