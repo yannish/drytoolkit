@@ -1670,6 +1670,7 @@ namespace drytoolkit.Editor.NestedAnimation
             return true;
         }
         
+        
         //... UTILITY:
         private void RefreshAnimationWindow()
         {
@@ -2027,7 +2028,14 @@ namespace drytoolkit.Editor.NestedAnimation
             
             var foundAnimators = Selection.activeGameObject.GetComponentsInChildren<Animator>();
             if (foundAnimators.Length == 0)
+            {
+                var foundParentAnimator = Selection.activeGameObject.GetComponentInParent<Animator>();
+                if (foundParentAnimator != null)
+                {
+                    selectedAnimatorField.value = foundParentAnimator;
+                }
                 return;
+            }
             
             selectedAnimatorField.value = foundAnimators[0];
 
