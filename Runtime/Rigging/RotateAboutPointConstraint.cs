@@ -15,43 +15,71 @@ namespace drytoolkit.Runtime.Rigging
         
         public void ProcessAnimation(AnimationStream stream)
         {
+            //
             var w = jobWeight.Get(stream);
-
-            if (w > 0)
+            if (w > 0f)
             {
-                var constrainedPos = constrained.GetPosition(stream);
-                var constrainedRot = constrained.GetRotation(stream);
-                
-                var sourcePos = source.GetPosition(stream);
-                var sourceRot = source.GetLocalRotation(stream);
-                
-                //... TODO: for now, just using localRot of source pivot... maybe something smart can be done tho?
-                
-                // constrained.GetGlobalTR(stream, out Vector3 conPos, out Quaternion conRot);
-                // var constrainedTx = new AffineTransform(conPos, conRot);
-                //
-                // source.GetGlobalTR(stream, out Vector3 srcPos, out Quaternion srcRot);
-                // var sourceTx = new AffineTransform(srcPos, srcRot);
+                Vector3 constrainedPos = constrained.GetPosition(stream);
+                Quaternion constrainedRot = constrained.GetRotation(stream);
 
-                // sourceTx *= sourceOffset;
-                
-                // var fromTo = constrainedTx.InverseMul(sourceTx);
-                // var fromTo = sourceTx.InverseMul(constrainedTx);
-                
-                var weightedRot = Quaternion.Slerp(Quaternion.identity, sourceRot, w);
-                
-                var sourceToConstrained = constrainedPos - sourcePos;
-                Vector3 rotatedOffset = sourceRot * sourceToConstrained;
+                Vector3 sourcePos = source.GetPosition(stream);
+                Quaternion sourceRot = source.GetRotation(stream); // Use world rotation for consistent space
 
-                var weightedPos = Vector3.Slerp(constrainedPos, sourcePos + rotatedOffset, w);
-                
-                constrained.SetPosition(stream, weightedPos);
-                constrained.SetRotation(stream, weightedRot * constrainedRot);
+                // Calculate offset from source to constrained
+                Vector3 sourceToConstrained = constrainedPos - sourcePos;
+
+                // Rotate that offset by the weighted source rotation
+                Quaternion weightedRot = Quaternion.Slerp(Quaternion.identity, sourceRot, w);
+                Vector3 rotatedOffset = weightedRot * sourceToConstrained;
+
+                Vector3 newPos = sourcePos + rotatedOffset;
+                Vector3 blendedPos = Vector3.Lerp(constrainedPos, newPos, w);
+
+                Quaternion newRot = Quaternion.Slerp(constrainedRot, sourceRot, w);
+
+                constrained.SetPosition(stream, blendedPos);
+                constrained.SetRotation(stream, newRot);
             }
             else
             {
                 AnimationRuntimeUtils.PassThrough(stream, constrained);
             }
+            
+            // if (w > 0)
+            // {
+            //     var constrainedPos = constrained.GetPosition(stream);
+            //     var constrainedRot = constrained.GetRotation(stream);
+            //     
+            //     var sourcePos = source.GetPosition(stream);
+            //     var sourceRot = source.GetLocalRotation(stream);
+            //     
+            //     //... TODO: for now, just using localRot of source pivot... maybe something smart can be done tho?
+            //     
+            //     // constrained.GetGlobalTR(stream, out Vector3 conPos, out Quaternion conRot);
+            //     // var constrainedTx = new AffineTransform(conPos, conRot);
+            //     //
+            //     // source.GetGlobalTR(stream, out Vector3 srcPos, out Quaternion srcRot);
+            //     // var sourceTx = new AffineTransform(srcPos, srcRot);
+            //
+            //     // sourceTx *= sourceOffset;
+            //     
+            //     // var fromTo = constrainedTx.InverseMul(sourceTx);
+            //     // var fromTo = sourceTx.InverseMul(constrainedTx);
+            //     
+            //     var weightedRot = Quaternion.Slerp(Quaternion.identity, sourceRot, w);
+            //     
+            //     var sourceToConstrained = constrainedPos - sourcePos;
+            //     Vector3 rotatedOffset = sourceRot * sourceToConstrained;
+            //
+            //     var weightedPos = Vector3.Slerp(constrainedPos, sourcePos + rotatedOffset, w);
+            //     
+            //     constrained.SetPosition(stream, weightedPos);
+            //     constrained.SetRotation(stream, weightedRot * constrainedRot);
+            // }
+            // else
+            // {
+            //     AnimationRuntimeUtils.PassThrough(stream, constrained);
+            // }
         }
 
         public void ProcessRootMotion(AnimationStream stream)
