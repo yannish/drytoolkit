@@ -1,5 +1,6 @@
 using System;using System.Collections.Generic;
 using Unity.Burst;
+using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -36,16 +37,28 @@ public static class TransformExtensions
 [BurstCompile]
 public struct ConfigurableLookConstraintJob : IWeightedAnimationJob
 {
-    public static Dictionary<Direction, Vector3> dirLookup = new Dictionary<Direction, Vector3>()
-    {
-        { Direction.Forward, Vector3.forward },
-        { Direction.Backward, Vector3.back},
-        { Direction.Left, Vector3.left },
-        { Direction.Right, Vector3.right },
-        { Direction.Up, Vector3.up },
-        { Direction.Down, Vector3.down },
-    };
+    // public static readonly Dictionary<Direction, Vector3> dirLookup = new Dictionary<Direction, Vector3>()
+    // {
+    //     { Direction.Forward, Vector3.forward },
+    //     { Direction.Backward, Vector3.back},
+    //     { Direction.Left, Vector3.left },
+    //     { Direction.Right, Vector3.right },
+    //     { Direction.Up, Vector3.up },
+    //     { Direction.Down, Vector3.down },
+    // };
 
+    // public v3
+    
+    public NativeArray<Vector3> simpleDirLookup;// = new Vector3[];
+    // {
+    //     Vector3.forward,
+    //     Vector3.back,
+    //     Vector3.left,
+    //     Vector3.right,
+    //     Vector3.up,
+    //     Vector3.down,
+    // };
+    
     public Vector3Property angleOffset;
     
     public ReadWriteTransformHandle constrainedObject;
@@ -68,8 +81,8 @@ public struct ConfigurableLookConstraintJob : IWeightedAnimationJob
         
         // Vector3 forward = firstAxisSourceObject.GetRotation(stream) * Vector3.forward;
         
-        Vector3 v1 = firstAxisSourceObject.GetRotation(stream) * dirLookup[(Direction)firstSourceAxis.Get(stream)];
-        Vector3 v2 = secondAxisSourceObject.GetRotation(stream) * dirLookup[(Direction)secondSourceAxis.Get(stream)];
+        Vector3 v1 = firstAxisSourceObject.GetRotation(stream) * simpleDirLookup[firstSourceAxis.Get(stream)];
+        Vector3 v2 = secondAxisSourceObject.GetRotation(stream) * simpleDirLookup[secondSourceAxis.Get(stream)];
         
         Vector3 crossDir = Vector3.Cross(v1, v2);
         
@@ -127,6 +140,7 @@ public class ConfigurableLookConstraintBinder : AnimationJobBinder<ConfigurableL
     public override ConfigurableLookConstraintJob Create(Animator animator, ref ConfigurableLookConstraintData data, Component component)
     {
         var job = new ConfigurableLookConstraintJob();
+
         job.constrainedObject = ReadWriteTransformHandle.Bind(animator, data.constrainedObject);
         job.firstAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.firstAxisSourceObject);
         job.secondAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.secondAxisSourceObject);
@@ -134,12 +148,21 @@ public class ConfigurableLookConstraintBinder : AnimationJobBinder<ConfigurableL
         job.firstSourceAxis = IntProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.firstSourceAxis)));
         job.secondSourceAxis = IntProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.secondSourceAxis)));
         job.angleOffset = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.angleOffset)));
+
+        job.simpleDirLookup = new NativeArray<Vector3>(6, Allocator.Persistent);
+        job.simpleDirLookup[0] = Vector3.forward;
+        job.simpleDirLookup[1] = Vector3.back;
+        job.simpleDirLookup[2] = Vector3.left;
+        job.simpleDirLookup[3] = Vector3.right;
+        job.simpleDirLookup[4] = Vector3.up;
+        job.simpleDirLookup[5] = Vector3.down;
+        
         return job;
     }
 
     public override void Destroy(ConfigurableLookConstraintJob job)
     {
-        
+        job.simpleDirLookup.Dispose();
     }
 }
 
