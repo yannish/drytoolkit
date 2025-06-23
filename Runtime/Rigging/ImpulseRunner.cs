@@ -6,8 +6,16 @@ using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using UnityEngine.Serialization;
 
+public interface IAnimationSystemProvider
+{
+    public AnimationSystem GetAnimationSystem();
+}
+
 public class ImpulseRunner : MonoBehaviour
 {
+    public GameObject AnimationSystemRoot;
+    public bool animationSystemRequiresTick = false;
+    
     [Header("SLOW TWITCH:")]
     [Expandable] public SecondOrderTransformConstraint constraint;
     public Vector3 primaryImpulse = Vector3.forward;
@@ -52,6 +60,16 @@ public class ImpulseRunner : MonoBehaviour
         secondaryTorque = new NativeReference<Vector3>(Allocator.Persistent);
         fastTwitchConstraint.data.torqueRef = secondaryTorque;
 
+        if (AnimationSystemRoot != null)
+        {
+            var foundProvider = AnimationSystemRoot.GetComponent<IAnimationSystemProvider>();
+            if (foundProvider != null)
+            {
+                animSystem = foundProvider.GetAnimationSystem();
+                return;
+            }
+        }
+        
         var foundAnimator = GetComponent<Animator>();
         if (foundAnimator != null)
         {
@@ -62,8 +80,9 @@ public class ImpulseRunner : MonoBehaviour
 
     private void Update()
     {
-        if (animSystem == null)
+        if (animSystem == null || !animationSystemRequiresTick)
             return;
+        
         animSystem.Tick();
     }
     

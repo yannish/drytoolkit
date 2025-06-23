@@ -1,4 +1,5 @@
 using System;using System.Collections.Generic;
+using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Animations;
@@ -32,7 +33,7 @@ public static class TransformExtensions
     }
 }
 
-
+[BurstCompile]
 public struct ConfigurableLookConstraintJob : IWeightedAnimationJob
 {
     public static Dictionary<Direction, Vector3> dirLookup = new Dictionary<Direction, Vector3>()
