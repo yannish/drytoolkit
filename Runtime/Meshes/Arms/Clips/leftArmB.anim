@@ -6,7 +6,7 @@ AnimationClip:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: arms - elbow L
+  m_Name: leftArmB
   serializedVersion: 7
   m_Legacy: 0
   m_Compressed: 0
@@ -19,7 +19,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: {x: -3.75, y: 0, z: -95.139}
+        value: {x: -1.125, y: -0.201, z: 86.492}
         inSlope: {x: 0, y: 0, z: 0}
         outSlope: {x: 0, y: 0, z: 0}
         tangentMode: 0
@@ -29,7 +29,7 @@ AnimationClip:
       m_PreInfinity: 2
       m_PostInfinity: 2
       m_RotationOrder: 4
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
   m_PositionCurves: []
   m_ScaleCurves: []
   m_FloatCurves: []
@@ -42,7 +42,7 @@ AnimationClip:
   m_ClipBindingConstant:
     genericBindings:
     - serializedVersion: 2
-      path: 3542877444
+      path: 2087432251
       attribute: 4
       script: {fileID: 0}
       typeID: 4
@@ -78,7 +78,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: -3.75
+        value: -1.125
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -89,7 +89,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: localEulerAnglesRaw.x
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 16
@@ -99,7 +99,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0
+        value: -0.201
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -110,7 +110,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: localEulerAnglesRaw.y
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 16
@@ -120,7 +120,7 @@ AnimationClip:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: -95.139
+        value: 86.492
         inSlope: 0
         outSlope: 0
         tangentMode: 136
@@ -131,7 +131,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: localEulerAnglesRaw.z
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 16
@@ -144,7 +144,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalEulerAngles.x
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 0
@@ -156,7 +156,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalEulerAngles.y
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 0
@@ -168,7 +168,7 @@ AnimationClip:
       m_PostInfinity: 2
       m_RotationOrder: 4
     attribute: m_LocalEulerAngles.z
-    path: arms/Armature/ROOT/SHOULDER_L/UPPER_ARM_L/LOWER_ARM_L
+    path: Armature/ROOT/SHOULDER_R/UPPER_ARM_R
     classID: 4
     script: {fileID: 0}
     flags: 0
