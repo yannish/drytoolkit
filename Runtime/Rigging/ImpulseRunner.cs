@@ -66,6 +66,7 @@ public class ImpulseRunner : MonoBehaviour
             if (foundProvider != null)
             {
                 animSystem = foundProvider.GetAnimationSystem();
+                animSystem.rebind = rebind;
                 return;
             }
         }
@@ -131,7 +132,7 @@ public class ImpulseRunner : MonoBehaviour
             return;
         }
         
-        animSystem.PlayOneShot(oneShotClip);
+        animSystem.PlayOneShot(oneShotClip, blendInTime, blendOutTime);
     }
 
     [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
@@ -145,6 +146,11 @@ public class ImpulseRunner : MonoBehaviour
     }
 
 
+    [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
+    public void CheckLookup()
+    {
+        animSystem.ClearEventListeners();
+    }
 
     
     [FoldoutGroup("PRIMARY")]
@@ -213,6 +219,4 @@ public class ImpulseRunner : MonoBehaviour
         SecondaryImpulse();
         SecondaryTorque();
     }
-    
-
 }

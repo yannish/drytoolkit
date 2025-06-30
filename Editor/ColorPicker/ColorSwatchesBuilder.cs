@@ -47,6 +47,7 @@ public static class ColorSwatchesBuilder
 		if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
 			AssetDatabase.CreateFolder(path, folderName);
 		
+		//...TODO: error here if there's no asset to delete...?
 		AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
 		AssetDatabase.CreateAsset(swatches,$"{path}/{folderName}/{assetNameFull}");
 		AssetDatabase.SaveAssets();

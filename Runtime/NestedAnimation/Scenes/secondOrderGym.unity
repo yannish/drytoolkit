@@ -171,8 +171,7 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 6763738800800627973, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
+    m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: 2925912294365293714, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
@@ -184,31 +183,13 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1292860634391308199, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 252693046}
-    - targetCorrespondingSourceObject: {fileID: 1292860634391308199, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 252693049}
-    - targetCorrespondingSourceObject: {fileID: 1292860634391308199, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 252693050}
   m_SourcePrefab: {fileID: 100100000, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
 --- !u!1 &252693045 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1292860634391308199, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
   m_PrefabInstance: {fileID: 252693044}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &252693046
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 252693045}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de8a7a2d3ad593f488dae873e6c2cc28, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &252693048 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2925912294365293714, guid: 606a84b73d4d1a9449d9294b693d6487, type: 3}
@@ -230,47 +211,6 @@ MonoBehaviour:
   - m_Rig: {fileID: 605376172}
     m_Active: 1
   m_Effectors: []
---- !u!114 &252693050
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 252693045}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea166451aa502014495a438ef866902c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  logDebug: 0
-  blendStyle: 0
-  layerCount: 1
-  stateClips:
-  - {fileID: 11400000, guid: b95f8ce70f320254496b1fd23e7ad5f0, type: 2}
-  - {fileID: 11400000, guid: 1fef17c62d0a06f4786dc0a3832e2e47, type: 2}
-  stateMasks: []
-  oneShotClips: []
-  additiveOneShotClips: []
-  oneShotWithEvent: {fileID: 0}
-  anotherOneShotWithEvent: {fileID: 0}
-  sequenceClips: []
-  reloadEventDef: {fileID: 0}
-  midwayEventDef: {fileID: 0}
-  shotFiredEventDef: {fileID: 0}
-  animSystem:
-    logDebug: 0
-    currStateSmoothDampTime: 0
-    currStateMoveTowardsTime: 0
-    rewire: 0
-    rebind: 0
-    oneShotBlendStyle: 0
-    oneShotSmoothTime: 0
-    oneShotMoveToTime: 0
-    oneShotClipHandles: []
-    additiveOneShotClipHandles: []
-    heaviestOneShot: 0
-  blendInTime: 0.2
-  maskedTransforms: []
 --- !u!1 &297984676
 GameObject:
   m_ObjectHideFlags: 0
@@ -333,9 +273,6 @@ MonoBehaviour:
     rotFrequency: 1
     rotDamping: 0.5
     rotResponse: 1
-    perAxisRotFrequency: {x: 1, y: 1, z: 1}
-    perAxisRotDamping: {x: 0.5, y: 0.5, z: 0.5}
-    perAxisRotResponse: {x: 1, y: 1, z: 1}
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -1081,7 +1018,7 @@ MonoBehaviour:
     sourceObject: {fileID: 1603543381}
     useLocalSpace: 1
     localSpaceTransform: {fileID: 1040563701}
-    constrainPosition: 0
+    constrainPosition: 1
     constrainRotation: 1
     maxPositionDistance: 1
     posFrequency: 3
@@ -1091,9 +1028,6 @@ MonoBehaviour:
     rotFrequency: 4
     rotDamping: 0.2
     rotResponse: 1
-    perAxisRotFrequency: {x: 1, y: 1, z: 1}
-    perAxisRotDamping: {x: 0.5, y: 0.5, z: 0.5}
-    perAxisRotResponse: {x: 1, y: 1, z: 1}
 --- !u!1 &1518855877
 GameObject:
   m_ObjectHideFlags: 0
@@ -1167,7 +1101,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1603543381}
   m_Layer: 0
-  m_Name: target
+  m_Name: localTarget
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1717,7 +1651,8 @@ GameObject:
   - component: {fileID: 7454687381111981338}
   - component: {fileID: 1543017940850260530}
   - component: {fileID: 5534313354228736962}
-  - component: {fileID: 8638436491235457316}
+  - component: {fileID: 7454687381111981339}
+  - component: {fileID: 7454687381111981340}
   m_Layer: 0
   m_Name: secondOrder test
   m_TagString: Untagged
@@ -1996,9 +1931,6 @@ MonoBehaviour:
     rotFrequency: 2
     rotDamping: 0.5
     rotResponse: 1
-    perAxisRotFrequency: {x: 1, y: 1, z: 1}
-    perAxisRotDamping: {x: 0.5, y: 0.5, z: 0.5}
-    perAxisRotResponse: {x: 1, y: 1, z: 1}
 --- !u!4 &6771876941928233841
 Transform:
   m_ObjectHideFlags: 0
@@ -2032,6 +1964,83 @@ Transform:
   - {fileID: 4792982921972286922}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7454687381111981339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2556068714907536065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea166451aa502014495a438ef866902c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logDebug: 0
+  blendStyle: 0
+  layerCount: 1
+  stateClips:
+  - {fileID: 7400000, guid: 4ffbb7d729b40694c9fcc03381b0e2a2, type: 2}
+  - {fileID: 7400000, guid: 03f32b2aaf7b4a142a434f4e7ee71fbb, type: 2}
+  stateClipConfigs: []
+  stateMasks: []
+  oneShotBlendIn: 0.2
+  oneShotBlendOut: 0.2
+  oneShotClips:
+  - {fileID: 7400000, guid: e18ac3ed7c4713546bae681709150d1d, type: 2}
+  oneShotClipConfigs: []
+  additiveOneShotClipConfigs:
+  - {fileID: 11400000, guid: 2840d07f0b7f9d34e863508b7c2a7c3c, type: 2}
+  additiveOneShotClips:
+  - {fileID: 7400000, guid: e18ac3ed7c4713546bae681709150d1d, type: 2}
+  oneShotWithEvent: {fileID: 0}
+  anotherOneShotWithEvent: {fileID: 0}
+  sequenceClips: []
+  reloadEventDef: {fileID: 0}
+  midwayEventDef: {fileID: 0}
+  shotFiredEventDef: {fileID: 0}
+  animSystem:
+    logDebug: 0
+    currStateSmoothDampTime: 0
+    currStateMoveTowardsTime: 0
+    rewire: 0
+    rebind: 0
+    oneShotBlendStyle: 0
+    oneShotSmoothTime: 0
+    oneShotMoveToTime: 0
+    oneShotClipHandles: []
+    additiveOneShotClipHandles: []
+    heaviestOneShot: 0
+  blendInTime: 0.2
+  maskedTransforms: []
+--- !u!114 &7454687381111981340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2556068714907536065}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a42cd86ee78b044ea97ad31ad598a4a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  AnimationSystemRoot: {fileID: 2556068714907536065}
+  animationSystemRequiresTick: 0
+  constraint: {fileID: 6382493316217595049}
+  primaryImpulse: {x: 0, y: 0, z: 1}
+  primaryAlignedImpulse: {x: 0, y: 0, z: -10}
+  primaryTorque: {x: -16, y: 0, z: 0}
+  fastTwitchConstraint: {fileID: 1040563702}
+  fastImpulse: {x: 0, y: 0, z: 1}
+  fastTorque: {x: 2, y: 0, z: 10}
+  stateAClip: {fileID: 0}
+  stateBClip: {fileID: 0}
+  ClipHandler: {fileID: 0}
+  rebind: 1
+  oneShotClip: {fileID: 7400000, guid: e18ac3ed7c4713546bae681709150d1d, type: 2}
+  blendOutTime: 0
+  blendInTime: 0
 --- !u!23 &7797872091461284646
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2077,41 +2086,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &8638436491235457316
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2556068714907536065}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1a42cd86ee78b044ea97ad31ad598a4a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  constraint: {fileID: 6382493316217595049}
-  impulse: {x: 0, y: 0, z: -14}
-  torque: {x: -15, y: 0, z: 0}
-  fastTwitchConstraint: {fileID: 1040563702}
-  fastImpulse: {x: 0, y: 0, z: -10}
-  fastTorque: {x: 1, y: 0, z: -10}
-  animSystem:
-    logDebug: 0
-    currStateSmoothDampTime: 0
-    currStateMoveTowardsTime: 0
-    rewire: 0
-    rebind: 1
-    oneShotBlendStyle: 0
-    oneShotSmoothTime: 0
-    oneShotMoveToTime: 0
-    oneShotClipHandles: []
-    additiveOneShotClipHandles: []
-    heaviestOneShot: 0
-  stateAClip: {fileID: 11400000, guid: 3e33b527e7baa8e49b017afd3f9e662f, type: 2}
-  stateBClip: {fileID: 11400000, guid: a610fe37e3fcb3947bf409284238592f, type: 2}
-  oneShotClip: {fileID: 7400000, guid: b66410e3a9899964cbd9169871dab09d, type: 2}
-  blendInTime: -1
-  blendOutTime: 0.1
 --- !u!4 &8747801216351120114
 Transform:
   m_ObjectHideFlags: 0
@@ -2136,5 +2110,5 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1719658895}
-  - {fileID: 7454687381111981338}
   - {fileID: 252693044}
+  - {fileID: 7454687381111981338}

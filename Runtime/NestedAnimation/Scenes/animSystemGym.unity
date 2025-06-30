@@ -1467,6 +1467,83 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4094148855733581927, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
   m_PrefabInstance: {fileID: 1455497974}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &477867377
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 477867379}
+  - component: {fileID: 477867378}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &477867378
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 477867377}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea166451aa502014495a438ef866902c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logDebug: 0
+  blendStyle: 0
+  layerCount: 2
+  stateClips:
+  - {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
+  - {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
+  - {fileID: 7400000, guid: 0b06d24c5b5570540a13074cf6a2e8cf, type: 2}
+  - {fileID: 7400000, guid: b75d58f733321594f9005e60ab3a6f02, type: 2}
+  stateClipConfigs: []
+  stateMasks: []
+  oneShotClips:
+  - {fileID: 0}
+  additiveOneShotClips: []
+  oneShotWithEvent: {fileID: 0}
+  anotherOneShotWithEvent: {fileID: 0}
+  sequenceClips: []
+  reloadEventDef: {fileID: 0}
+  midwayEventDef: {fileID: 0}
+  shotFiredEventDef: {fileID: 0}
+  animSystem:
+    logDebug: 0
+    currStateSmoothDampTime: 0
+    currStateMoveTowardsTime: 0
+    rewire: 0
+    rebind: 0
+    oneShotBlendStyle: 0
+    oneShotSmoothTime: 0
+    oneShotMoveToTime: 0
+    oneShotClipHandles: []
+    additiveOneShotClipHandles: []
+    heaviestOneShot: 0
+  blendInTime: 0.2
+  maskedTransforms: []
+--- !u!4 &477867379
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 477867377}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 44.745796, y: 0.14451283, z: 4.001073}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &500000215
 GameObject:
   m_ObjectHideFlags: 0
@@ -4706,13 +4783,16 @@ PrefabInstance:
       addedObject: {fileID: 1455497983}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1455497981}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 1455497982}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1455497988}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1455497989}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1455497990}
   m_SourcePrefab: {fileID: 100100000, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
 --- !u!4 &1455497975 stripped
 Transform:
@@ -4744,51 +4824,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8704411553760183935, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
   m_PrefabInstance: {fileID: 1455497974}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1455497981
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1455497976}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ea166451aa502014495a438ef866902c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  logDebug: 0
-  blendStyle: 0
-  layerCount: 2
-  stateClips:
-  - {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
-  - {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
-  - {fileID: 7400000, guid: 0b06d24c5b5570540a13074cf6a2e8cf, type: 2}
-  - {fileID: 7400000, guid: b75d58f733321594f9005e60ab3a6f02, type: 2}
-  stateClipConfigs: []
-  stateMasks: []
-  oneShotClips:
-  - {fileID: 0}
-  additiveOneShotClips: []
-  oneShotWithEvent: {fileID: 0}
-  anotherOneShotWithEvent: {fileID: 0}
-  sequenceClips: []
-  reloadEventDef: {fileID: 0}
-  midwayEventDef: {fileID: 0}
-  shotFiredEventDef: {fileID: 0}
-  animSystem:
-    logDebug: 0
-    currStateSmoothDampTime: 0
-    currStateMoveTowardsTime: 0
-    rewire: 0
-    rebind: 0
-    oneShotBlendStyle: 0
-    oneShotSmoothTime: 0
-    oneShotMoveToTime: 0
-    oneShotClipHandles: []
-    additiveOneShotClipHandles: []
-    heaviestOneShot: 0
-  blendInTime: 0.2
-  maskedTransforms: []
 --- !u!114 &1455497982
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4812,7 +4847,7 @@ MonoBehaviour:
   fastTorque: {x: -5, y: 0, z: 0}
   stateAClip: {fileID: 0}
   stateBClip: {fileID: 0}
-  ClipHandler: {fileID: 1455497981}
+  ClipHandler: {fileID: 0}
   rebind: 1
   oneShotClip: {fileID: 7400000, guid: b4a2ea9619bf5b44f95511fa69b1061e, type: 2}
   blendOutTime: 0.1
@@ -4943,6 +4978,65 @@ MonoBehaviour:
   - {fileID: 522180567}
   - {fileID: 690906918}
   - {fileID: 1969806951}
+--- !u!114 &1455497989
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455497976}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d203c35a8a60a684faf738eb68d59285, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mode: 1
+  clips:
+  - {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
+  - {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
+  weight: 1
+--- !u!114 &1455497990
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455497976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ea166451aa502014495a438ef866902c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  logDebug: 0
+  blendStyle: 0
+  layerCount: 1
+  stateClips:
+  - {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
+  - {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
+  stateClipConfigs: []
+  stateMasks: []
+  oneShotClips: []
+  additiveOneShotClips: []
+  oneShotWithEvent: {fileID: 0}
+  anotherOneShotWithEvent: {fileID: 0}
+  sequenceClips: []
+  reloadEventDef: {fileID: 0}
+  midwayEventDef: {fileID: 0}
+  shotFiredEventDef: {fileID: 0}
+  animSystem:
+    logDebug: 0
+    currStateSmoothDampTime: 0
+    currStateMoveTowardsTime: 0
+    rewire: 0
+    rebind: 0
+    oneShotBlendStyle: 0
+    oneShotSmoothTime: 0
+    oneShotMoveToTime: 0
+    oneShotClipHandles: []
+    additiveOneShotClipHandles: []
+    heaviestOneShot: 0
+  blendInTime: 0.2
+  maskedTransforms: []
 --- !u!4 &1507627630 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2248376865778800107, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
@@ -7397,3 +7491,4 @@ SceneRoots:
   - {fileID: 2086349155}
   - {fileID: 129973151}
   - {fileID: 500000216}
+  - {fileID: 477867379}

@@ -72,102 +72,174 @@ public class ClipHandlerInspector : Editor
                 }
             }
         }
+
+        if (clipHandler.stateClipConfigs.Count > 0)
+        {
+            
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.LabelField("STATE CONFIG-CLIPS:", EditorStyles.boldLabel);
+                if (layerClipConfigPicks == null || layerClipConfigPicks.Length != clipHandler.stateClipConfigs.Count)
+                {
+                    layerClipConfigPicks = new int[clipHandler.stateClipConfigs.Count];
+                    for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
+                        layerClipConfigPicks[i] = 0;
+                }
+                
+                for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
+                {
+                    var clipConfig = clipHandler.stateClipConfigs[i];
+                    
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                    {
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                        {
+                            // var effectiveBlendTime = clipConfig.overrideBlendInTime
+                            //     ? clipConfig.blendInTime
+                            //     : clipHandler.blendInTime;
+                            
+                            clipHandler.animSystem.TransitionToState(clipConfig, layerClipPicks[i]);
+
+                            // if(clipHandler.logDebug)
+                            //     Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
+                        }
+                        
+                        // EditorGUILayout.LabelField(clipConfig.clip.name);
+                        // EditorGUILayout.GetControlRect().
+                        
+                        EditorGUILayout.ObjectField(
+                            clipConfig, 
+                            typeof(ClipConfig),
+                            false, 
+                            null
+                            );
+                        
+                        EditorGUI.BeginChangeCheck();
+                        var result = EditorGUILayout.IntField(layerClipPicks[i], GUILayout.Width(objectFieldWidth));
+                        if(EditorGUI.EndChangeCheck())
+                            layerClipPicks[i] = result;
+                    }
+                }
+            }
+        }
         
         using (new GUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            EditorGUILayout.LabelField("STATE CONFIG-CLIPS:", EditorStyles.boldLabel);
-            if (layerClipConfigPicks == null || layerClipConfigPicks.Length != clipHandler.stateClipConfigs.Count)
+            if (clipHandler.oneShotClips.Count > 0)
             {
-                layerClipConfigPicks = new int[clipHandler.stateClipConfigs.Count];
-                for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
-                    layerClipConfigPicks[i] = 0;
+                EditorGUILayout.LabelField("ONE SHOT CLIPS:", EditorStyles.boldLabel);
+                for (int i = 0; i < clipHandler.oneShotClips.Count; i++)
+                {
+                    var oneShotClip = clipHandler.oneShotClips[i];
+                    if (oneShotClip == null)
+                        continue;
+                    
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                    {
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                        {
+                            // var effectiveBlendTime = clipConfig.overrideBlendInTime
+                            //     ? clipConfig.blendInTime
+                            //     : clipHandler.blendInTime;
+                            
+                            clipHandler.animSystem.PlayOneShot(
+                                oneShotClip,
+                                clipHandler.oneShotBlendIn,
+                                clipHandler.oneShotBlendOut
+                                );
+                            
+                            if(clipHandler.reloadEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.reloadEventDef, OnReload);
+                            
+                            if(clipHandler.midwayEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.midwayEventDef, OnMidway);
+                            
+                            if(clipHandler.shotFiredEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.shotFiredEventDef, OnShotFired);
+                            
+                            if(clipHandler.logDebug)
+                                Debug.LogWarning($"Playing oneshot : {oneShotClip.name} in {clipHandler.oneShotBlendIn}");
+                        }
+                        EditorGUILayout.LabelField(oneShotClip.name);
+                        EditorGUILayout.ObjectField(oneShotClip, typeof(AnimationClip), false, null);
+                    }
+                }
             }
             
-            for (int i = 0; i < clipHandler.stateClipConfigs.Count; i++)
+            if (clipHandler.oneShotClipConfigs.Count > 0)
             {
-                var clipConfig = clipHandler.stateClipConfigs[i];
-                
-                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                EditorGUILayout.LabelField("ONE SHOT CLIP CONFIGS:", EditorStyles.boldLabel);
+                for (int i = 0; i < clipHandler.oneShotClipConfigs.Count; i++)
                 {
-                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    var oneShotClipConfig = clipHandler.oneShotClipConfigs[i];
+                    if (oneShotClipConfig == null)
+                        continue;
+                    
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                     {
-                        // var effectiveBlendTime = clipConfig.overrideBlendInTime
-                        //     ? clipConfig.blendInTime
-                        //     : clipHandler.blendInTime;
-                        
-                        clipHandler.animSystem.TransitionToState(clipConfig, layerClipPicks[i]);
-
-                        // if(clipHandler.logDebug)
-                        //     Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {effectiveBlendTime}");
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                        {
+                            // var effectiveBlendTime = clipConfig.overrideBlendInTime
+                            //     ? clipConfig.blendInTime
+                            //     : clipHandler.blendInTime;
+                            
+                            clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
+                            
+                            if(clipHandler.reloadEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.reloadEventDef, OnReload);
+                            
+                            if(clipHandler.midwayEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.midwayEventDef, OnMidway);
+                            
+                            if(clipHandler.shotFiredEventDef)
+                                clipHandler.animSystem.AddListener(clipHandler.shotFiredEventDef, OnShotFired);
+                            
+                            if(clipHandler.logDebug)
+                                Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");
+                        }
+                        EditorGUILayout.LabelField(oneShotClipConfig.clip.name);
+                        EditorGUILayout.ObjectField(oneShotClipConfig, typeof(ClipConfig), false, null);
                     }
-                    
-                    // EditorGUILayout.LabelField(clipConfig.clip.name);
-                    // EditorGUILayout.GetControlRect().
-                    
-                    EditorGUILayout.ObjectField(
-                        clipConfig, 
-                        typeof(ClipConfig),
-                        false, 
-                        null
-                        );
-                    
-                    EditorGUI.BeginChangeCheck();
-                    var result = EditorGUILayout.IntField(layerClipPicks[i], GUILayout.Width(objectFieldWidth));
-                    if(EditorGUI.EndChangeCheck())
-                        layerClipPicks[i] = result;
                 }
             }
         }
         
-        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        if (clipHandler.additiveOneShotClips.Count > 0)
         {
-            EditorGUILayout.LabelField("ONE SHOT CLIPS:", EditorStyles.boldLabel);
-            for (int i = 0; i < clipHandler.oneShotClips.Count; i++)
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                var oneShotClipConfig = clipHandler.oneShotClips[i];
-                
-                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                EditorGUILayout.LabelField("ADDITIVE ONE SHOTS:", EditorStyles.boldLabel);
+                for (int i = 0; i < clipHandler.additiveOneShotClips.Count; i++)
                 {
-                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    var additiveOneShot = clipHandler.additiveOneShotClips[i];
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                     {
-                        // var effectiveBlendTime = clipConfig.overrideBlendInTime
-                        //     ? clipConfig.blendInTime
-                        //     : clipHandler.blendInTime;
-                        
-                        clipHandler.animSystem.PlayOneShot(oneShotClipConfig);
-                        
-                        if(clipHandler.reloadEventDef)
-                            clipHandler.animSystem.AddListener(clipHandler.reloadEventDef, OnReload);
-                        
-                        if(clipHandler.midwayEventDef)
-                            clipHandler.animSystem.AddListener(clipHandler.midwayEventDef, OnMidway);
-                        
-                        if(clipHandler.shotFiredEventDef)
-                            clipHandler.animSystem.AddListener(clipHandler.shotFiredEventDef, OnShotFired);
-                        
-                        if(clipHandler.logDebug)
-                            Debug.LogWarning($"Playing oneshot : {oneShotClipConfig.clip.name} in {oneShotClipConfig.blendInTime}");
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                            clipHandler.animSystem.PlayAdditiveOneShot(additiveOneShot);
+                        EditorGUILayout.LabelField(additiveOneShot.name);
+                        EditorGUILayout.ObjectField(additiveOneShot, typeof(ClipConfig), false, null);
                     }
-                    EditorGUILayout.LabelField(oneShotClipConfig.clip.name);
-                    EditorGUILayout.ObjectField(oneShotClipConfig, typeof(ClipConfig), false, null);
                 }
             }
         }
 
-        using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+        if (clipHandler.additiveOneShotClipConfigs.Count > 0)
         {
-            EditorGUILayout.LabelField("ADDITIVE ONE SHOTS:", EditorStyles.boldLabel);
-            for (int i = 0; i < clipHandler.additiveOneShotClips.Count; i++)
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
-                var additiveOneShot = clipHandler.additiveOneShotClips[i];
-                using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                EditorGUILayout.LabelField("ADDITIVE ONE SHOTS:", EditorStyles.boldLabel);
+                for (int i = 0; i < clipHandler.additiveOneShotClipConfigs.Count; i++)
                 {
-                    if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                    var additiveOneShot = clipHandler.additiveOneShotClipConfigs[i];
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
                     {
-                        clipHandler.animSystem.PlayAdditiveOneShot(additiveOneShot);
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                        {
+                            clipHandler.animSystem.PlayAdditiveOneShot(additiveOneShot);
+                        }
+                        EditorGUILayout.LabelField(additiveOneShot.clip.name);
+                        EditorGUILayout.ObjectField(additiveOneShot, typeof(ClipConfig), false, null);
                     }
-                    EditorGUILayout.LabelField(additiveOneShot.clip.name);
-                    EditorGUILayout.ObjectField(additiveOneShot, typeof(ClipConfig), false, null);
                 }
             }
         }

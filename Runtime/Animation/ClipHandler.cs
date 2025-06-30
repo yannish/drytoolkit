@@ -7,7 +7,7 @@ using UnityEngine.Serialization;
 
 namespace drytoolkit.Runtime.Animation
 {
-    public class ClipHandler : MonoBehaviour
+    public class ClipHandler : MonoBehaviour, IAnimationSystemProvider
     {
         public bool logDebug;
         public AnimationSystem.ClipBlendStyle blendStyle;
@@ -17,10 +17,15 @@ namespace drytoolkit.Runtime.Animation
         public List<AnimationClip> stateClips = new List<AnimationClip>();
         [FormerlySerializedAs("stateClips")] public List<ClipConfig> stateClipConfigs;
         public List<AvatarMask> stateMasks;
-        
+
+        [FormerlySerializedAs("oneShotClips")]
         [Header("ONE SHOTS:")]
-        public List<ClipConfig> oneShotClips;
-        public List<ClipConfig> additiveOneShotClips;
+        public float oneShotBlendIn;
+        public float oneShotBlendOut;
+        public List<AnimationClip> oneShotClips = new List<AnimationClip>();
+        public List<ClipConfig> oneShotClipConfigs;
+        [FormerlySerializedAs("additiveOneShotClips")] public List<ClipConfig> additiveOneShotClipConfigs;
+        public List<AnimationClip> additiveOneShotClips;
         [Expandable] public ClipConfig oneShotWithEvent;
         [Expandable] public ClipConfig anotherOneShotWithEvent;
 
@@ -41,13 +46,26 @@ namespace drytoolkit.Runtime.Animation
         public List<Transform> maskedTransforms = new List<Transform>();
         
         private Animator animator;
-        
+
+        private bool initialized;
         
         void Start()
         {
-            animator = GetComponent<Animator>();
-            animator.runtimeAnimatorController = null;
+            Debug.LogWarning("Start on cliphandler.");
+            InitializeAnimationSystem();
+        }
 
+        void InitializeAnimationSystem()
+        {
+            if (initialized)
+                return;
+            
+            animator = GetComponent<Animator>();
+            if (animator == null)
+                return;
+            
+            animator.runtimeAnimatorController = null;
+            
             foreach (var mask in stateMasks)
             {
                 if(mask== null)
@@ -74,8 +92,13 @@ namespace drytoolkit.Runtime.Animation
             // stateMasks.Add(avatarmask);
             
             animSystem = new AnimationSystem(animator, layerCount: layerCount, avatarMasks: stateMasks);
-            
-            // GraphVisualizerClient.Show(animSystem.graph);
+            initialized = true;
+        }
+        
+        public AnimationSystem GetAnimationSystem()
+        {
+            InitializeAnimationSystem();
+            return animSystem;
         }
 
         private void Update()
@@ -96,5 +119,6 @@ namespace drytoolkit.Runtime.Animation
         }
 
         private void OnDestroy() => animSystem.Destroy();
+
     }
 }   

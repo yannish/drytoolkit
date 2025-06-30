@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Sirenix.OdinInspector;
+using Sirenix.Utilities;
 using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine.Animations;
@@ -159,6 +160,10 @@ namespace drytoolkit.Runtime.Animation
             graph.GetRootPlayable(0).SetInputWeight(0, 1f);
 
             graph.Play();
+            
+            Debug.LogWarning("Created animationsystem");
+            
+            eventLookup = new Dictionary<ClipEventDefinition, Action>();
         }
 
         public void Tick(ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP)
@@ -168,6 +173,9 @@ namespace drytoolkit.Runtime.Animation
             TickOneShotBlending();
 
             TickAdditiveOneShotBlending();
+
+            if (!topLevelMixer.IsValid())
+                return;
             
             topLevelMixer.SetInputWeight(0, 1f - heaviestOneShot);
             topLevelMixer.SetInputWeight(1, 1f);
@@ -195,6 +203,9 @@ namespace drytoolkit.Runtime.Animation
         #region STATE-CLIPS:
         private void TickStateBlending(ClipBlendStyle blendStyle)
         {
+            if(stateClipMixers.IsNullOrEmpty())
+                return;
+            
             foreach(var stateClipMixer in stateClipMixers)
                 stateClipMixer.TickStateBlending(this, blendStyle);
             
@@ -643,7 +654,7 @@ namespace drytoolkit.Runtime.Animation
                 var clipHandle = additiveOneShotClipHandles[i];
                 clipHandle.currWeight = (float)clipHandle.GetCurrentBlendWeight();
                 
-                Debug.LogWarning($"weight: {clipHandle.currWeight}");
+                // Debug.LogWarning($"weight: {clipHandle.currWeight}");
 
                 var clipComplete = false;
                 var clipTime = clipHandle.clipPlayable.GetTime();
@@ -725,8 +736,8 @@ namespace drytoolkit.Runtime.Animation
 
         public OneShotClipHandle PlayAdditiveOneShot(
             AnimationClip clip,
-            float blendInTime,
-            float blendOutTime,
+            float blendInTime = 0f,
+            float blendOutTime = 0f,
             float startTime = 0f,
             float playbackSpeed = 1f,
             WrapMode wrapMode = WrapMode.Once,
