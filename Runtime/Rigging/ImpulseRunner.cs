@@ -132,13 +132,14 @@ public class ImpulseRunner : MonoBehaviour
             return;
         }
         
-        animSystem.PlayOneShot(oneShotClip, blendInTime, blendOutTime);
+        animSystem.PlayAdditiveOneShot(oneShotClip, blendInTime, blendOutTime);
     }
 
     [ResponsiveButtonGroup("ONE SHOT/ONE SHOT GROUP")]
     public void PlayAll()
     {
         PrimaryImpulse();
+        PrimaryAlignedImpulse();
         PrimaryTorque();
         SecondaryImpulse();
         SecondaryTorque();
