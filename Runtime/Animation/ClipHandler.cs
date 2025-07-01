@@ -7,6 +7,16 @@ using UnityEngine.Serialization;
 
 namespace drytoolkit.Runtime.Animation
 {
+    [Serializable]
+    public class ClipHandlerConfig
+    {
+        public AnimationClip clip;
+        public float smoothDampTime = 0.2f;
+        public float moveTowardsSpeed = 1f;
+        public int layer = 0;
+        public AnimationSystem.ClipBlendStyle blendInStyle = AnimationSystem.ClipBlendStyle.SMOOTHDAMP;
+    }
+    
     public class ClipHandler : MonoBehaviour, IAnimationSystemProvider
     {
         public bool logDebug;
@@ -14,6 +24,7 @@ namespace drytoolkit.Runtime.Animation
         
         [Header("STATE CLIPS:")]
         public int layerCount = 1;
+        public List<ClipHandlerConfig> clipHandlerConfigs = new List<ClipHandlerConfig>();
         public List<AnimationClip> stateClips = new List<AnimationClip>();
         [FormerlySerializedAs("stateClips")] public List<ClipConfig> stateClipConfigs;
         public List<AvatarMask> stateMasks;

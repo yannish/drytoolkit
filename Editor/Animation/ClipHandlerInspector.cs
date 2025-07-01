@@ -73,9 +73,56 @@ public class ClipHandlerInspector : Editor
             }
         }
 
+        if (clipHandler.clipHandlerConfigs.Count > 0)
+        {
+            using (new GUILayout.VerticalScope(EditorStyles.helpBox))
+            {
+                EditorGUILayout.LabelField("CLIP HANDLER-CLIPS:", EditorStyles.boldLabel);
+                for (int i = 0; i < clipHandler.clipHandlerConfigs.Count; i++)
+                {
+                    var clipConfig = clipHandler.clipHandlerConfigs[i];
+                    
+                    using (new GUILayout.HorizontalScope(EditorStyles.helpBox))
+                    {
+                        if (GUILayout.Button(playFromStart, GUILayout.Width(buttonWidth)))
+                        {
+                            clipHandler.animSystem.TransitionToState(
+                                clipConfig.clip,
+                                blendInTime: clipConfig.smoothDampTime,
+                                layer: clipConfig.layer,
+                                blendStyle: clipConfig.blendInStyle
+                                );
+
+                            // if(clipHandler.logDebug)
+                            Debug.LogWarning($"Transitioning to: {clipConfig.clip.name} in {clipHandler.blendInTime}");
+                        }
+                        
+                        // EditorGUILayout.LabelField(clipConfig.clip.name);
+                        // EditorGUILayout.GetControlRect().
+                        
+                        EditorGUILayout.ObjectField(
+                            clipConfig.clip, 
+                            typeof(ClipConfig),
+                            false, 
+                            null
+                            );
+                        
+                        // EditorGUI.BeginChangeCheck();
+                        // EditorGUILayout.FloatField(clipConfig.blendInTime, GUILayout.Width(objectFieldWidth));
+                        // if(EditorGUI.EndChangeCheck())
+                        //     clipConfig.blendInTime = 
+                        //     
+                        // EditorGUI.BeginChangeCheck();
+                        // var result = EditorGUILayout.IntField(layerClipPicks[i], GUILayout.Width(objectFieldWidth));
+                        // if(EditorGUI.EndChangeCheck())
+                        //     layerClipPicks[i] = result;
+                    }
+                }
+            }
+        }
+
         if (clipHandler.stateClipConfigs.Count > 0)
         {
-            
             using (new GUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 EditorGUILayout.LabelField("STATE CONFIG-CLIPS:", EditorStyles.boldLabel);

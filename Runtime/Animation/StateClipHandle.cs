@@ -24,9 +24,9 @@ namespace drytoolkit.Runtime.Animation
          */
 
         public bool overrideBlendInTime = false;
-        public float blendInOverrideTime = 0.1f;
+        // public float blendInOverrideTime = 0.1f;
 
-        public float moveTowardsSpeed = 0f;
+        // public float moveTowardsSpeed = 0f;
         public float startTime = 0f;
         public float playbackSpeed = 1f;
         public int index = -1;
@@ -37,6 +37,10 @@ namespace drytoolkit.Runtime.Animation
     {
         public AnimationMixerPlayable mixer;
 
+        public AnimationSystem.ClipBlendStyle blendStyle;
+        public float currSmoothTime = 0.2f;
+        public float currMoveTowardsSpeed = 1f;
+
         [FormerlySerializedAs("stateClipHandles_PREV")]
         public List<StateClipHandle> clipHandles;
 
@@ -44,7 +48,7 @@ namespace drytoolkit.Runtime.Animation
 
         public bool stateClipCountChanged = false;
         
-        public void TickStateBlending(AnimationSystem system, AnimationSystem.ClipBlendStyle blendStyle)
+        public void TickStateBlending(AnimationSystem system)
         {
             float totalWeights = 0f;
             float heaviestWeight = 0f;
@@ -60,8 +64,9 @@ namespace drytoolkit.Runtime.Animation
                             stateClipHandle.currWeight,
                             stateClipHandle.targetWeight,
                             ref stateClipHandle.blendVel,
-                            currStateSmoothDampTime,
-                            // stateClipHandle.blendInTime,
+                            currSmoothTime,
+                            // currStateSmoothDampTime,
+                            // stateClipHandle.smoothBlendTime,
                             Mathf.Infinity,
                             Time.deltaTime
                         );
@@ -71,7 +76,9 @@ namespace drytoolkit.Runtime.Animation
                         stateClipHandle.currWeight = Mathf.MoveTowards(
                             stateClipHandle.currWeight,
                             stateClipHandle.targetWeight,
-                            currStateSmoothDampTime * Time.deltaTime
+                            currMoveTowardsSpeed * Time.deltaTime
+                        // stateClipHandle.moveTowardsSpeed * Time.deltaTime
+                            // currStateSmoothDampTime * Time.deltaTime
                         );
                         break;
                 }

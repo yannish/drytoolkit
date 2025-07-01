@@ -8,6 +8,10 @@ namespace drytoolkit.Runtime.Animation
     [Serializable]
     public class ClipHandle
     {
+        public AnimationSystem.ClipBlendStyle blendStyle;
+        public float smoothBlendTime;
+        public float moveTowardsSpeed;
+        
         public AnimationClip clip;
         public ClipConfig config;
         public AnimationClipPlayable clipPlayable;

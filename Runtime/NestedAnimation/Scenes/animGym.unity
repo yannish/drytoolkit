@@ -2092,6 +2092,13 @@ MonoBehaviour:
   logDebug: 0
   blendStyle: 0
   layerCount: 1
+  clipHandlerConfigs:
+  - clip: {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
+    blendInTime: 0.02
+    layer: 0
+  - clip: {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
+    blendInTime: 1
+    layer: 0
   stateClips:
   - {fileID: 7400000, guid: 9452edaeecd2aff408ea0c4996f4ed26, type: 2}
   - {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
@@ -2102,6 +2109,7 @@ MonoBehaviour:
   oneShotClips:
   - {fileID: 7400000, guid: 79d90f696af73c64b9f8f467291e588b, type: 2}
   oneShotClipConfigs: []
+  additiveOneShotClipConfigs: []
   additiveOneShotClips: []
   oneShotWithEvent: {fileID: 0}
   anotherOneShotWithEvent: {fileID: 0}

@@ -26,6 +26,8 @@ namespace drytoolkit.Runtime.Animation
         const int MAX_STATE_HANDLES = 16; //TODO:... are these maxes necessary? can't we add / subtract inputs at will?
         const int MAX_ONESHOT_HANDLES = 16;
         public const float BLEND_EPSILON = 0.001f;
+
+        public const float defaultBlendInTime = 0.2f;
         
         public bool logDebug;
         public float currStateSmoothDampTime = -1f;
@@ -207,7 +209,7 @@ namespace drytoolkit.Runtime.Animation
                 return;
             
             foreach(var stateClipMixer in stateClipMixers)
-                stateClipMixer.TickStateBlending(this, blendStyle);
+                stateClipMixer.TickStateBlending(this);
             
             // float totalWeights = 0f;
             // float heaviestWeight = 0f;
@@ -322,17 +324,33 @@ namespace drytoolkit.Runtime.Animation
 
         public void TransitionToState(
             AnimationClip newStateClip,
-            float blendInTime = 0f,
+            float blendInTime = defaultBlendInTime,
             float startTime = 0f,
             float playbackSpeed = 1f,
-            int layer = 0
-        )
+            int layer = 0,
+            ClipBlendStyle blendStyle = ClipBlendStyle.SMOOTHDAMP
+            )
         {
             if (newStateClip == null)
             {
                 Debug.LogWarning("... tried to transition to clip, but it was null.");
                 return;
             }
+
+            switch (blendStyle)
+            {
+                case ClipBlendStyle.SMOOTHDAMP:
+                    stateClipMixers[layer].currSmoothTime = blendInTime;
+                    break;
+                case ClipBlendStyle.MOVETOWARDS:
+                    stateClipMixers[layer].currMoveTowardsSpeed = blendInTime;
+                    break;
+            }
+           
+            // if(blendInTime >= 0f)
+            //     stateClipMixers[layer].currBlendInTime = blendInTime;
+            // else
+            //     stateClipMixers[layer].currBlendInTime = blendInTime;
             
             //... search to see if this clip is already among those being blended between.
             bool stateClipAlreadyExists = false;
@@ -346,7 +364,10 @@ namespace drytoolkit.Runtime.Animation
                 if (stateClip == newStateClip)
                 {
                     stateClipAlreadyExists = true;
-                    stateClipHandle.blendInOverrideTime = blendInTime;
+                    stateClipHandle.blendStyle = blendStyle;
+                    // stateClipHandle.blendInOverrideTime = blendInTime;
+                    stateClipHandle.smoothBlendTime = blendInTime;
+                    stateClipHandle.moveTowardsSpeed = blendInTime;
                     stateClipHandle.targetWeight = 1f;
                 }
                 else
@@ -364,7 +385,10 @@ namespace drytoolkit.Runtime.Animation
                 {
                     clip = newStateClip,
                     clipPlayable = AnimationClipPlayable.Create(graph, newStateClip),
-                    blendInOverrideTime = blendInTime,
+                    blendStyle = blendStyle,
+                    smoothBlendTime = blendInTime,
+                    moveTowardsSpeed = blendInTime,
+                    // blendInOverrideTime = blendInTime,
                     targetWeight = 1f
                 };
                 
