@@ -166,7 +166,9 @@ public class ConfigurableLookConstraintBinder : AnimationJobBinder<ConfigurableL
         job.constrainedObject = ReadWriteTransformHandle.Bind(animator, data.constrainedObject);
         job.firstAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.firstAxisSourceObject);
         job.secondAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.secondAxisSourceObject);
-        job.positionSourceObject = ReadWriteTransformHandle.Bind(animator, data.positionSourceObject);
+        
+        if(data.positionSourceObject != null)
+            job.positionSourceObject = ReadWriteTransformHandle.Bind(animator, data.positionSourceObject);
         
         if(data.lookAxisSourceObject != null)
             job.lookAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.lookAxisSourceObject);
