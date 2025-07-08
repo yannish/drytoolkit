@@ -2,6 +2,7 @@ using System;using System.Collections.Generic;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Mathematics;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Animations.Rigging;
@@ -67,15 +68,26 @@ public struct ConfigurableLookConstraintJob : IWeightedAnimationJob
     
     public ReadWriteTransformHandle secondAxisSourceObject;
     
+    public ReadWriteTransformHandle lookAxisSourceObject;
+    
     public ReadWriteTransformHandle positionSourceObject;
 
     public IntProperty firstSourceAxis;
     
     public IntProperty secondSourceAxis;
     
+    public IntProperty lookSourceAxis;
+    
     
     public void ProcessAnimation(AnimationStream stream)
     {
+        var w = jobWeight.Get(stream);
+        if (w <= 0)
+        {
+            AnimationRuntimeUtils.PassThrough(stream, constrainedObject);
+            return;
+        }
+        
         // Vector3 v1Dir;
         // Vector3 v2Dir;
         
@@ -87,9 +99,15 @@ public struct ConfigurableLookConstraintJob : IWeightedAnimationJob
         Vector3 crossDir = Vector3.Cross(v1, v2);
         
         Quaternion angleOffsetRot = Quaternion.Euler(angleOffset.Get(stream));
+
+        var lookDir = v1;
+        if(lookAxisSourceObject.IsValid(stream))
+            lookDir = lookAxisSourceObject.GetRotation(stream) * simpleDirLookup[lookSourceAxis.Get(stream)];
         
-        constrainedObject.SetRotation(stream, Quaternion.LookRotation(v1, crossDir) * angleOffsetRot);
-        constrainedObject.SetPosition(stream, positionSourceObject.GetPosition(stream));
+        constrainedObject.SetRotation(stream, Quaternion.LookRotation(lookDir, crossDir) * angleOffsetRot);
+        
+        if(positionSourceObject.IsValid(stream))
+            constrainedObject.SetPosition(stream, positionSourceObject.GetPosition(stream));
     }
 
     public void ProcessRootMotion(AnimationStream stream)
@@ -114,15 +132,19 @@ public struct ConfigurableLookConstraintData : IAnimationJobData
     [SyncSceneToStream] public Transform secondAxisSourceObject;
     [SyncSceneToStream] public Direction secondSourceAxis;
     
-    [SyncSceneToStream] public Transform positionSourceObject;
+    [SyncSceneToStream] public Transform lookAxisSourceObject;
+    [SyncSceneToStream] public Direction lookSourceAxis;
     
+    [SyncSceneToStream] public Transform positionSourceObject;
+
+
     public bool IsValid()
     {
         return !(
             constrainedObject == null 
             || firstAxisSourceObject == null 
-            || secondAxisSourceObject == null 
-            || positionSourceObject == null
+            || secondAxisSourceObject == null
+            // || positionSourceObject == null
         );
     }
 
@@ -145,8 +167,14 @@ public class ConfigurableLookConstraintBinder : AnimationJobBinder<ConfigurableL
         job.firstAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.firstAxisSourceObject);
         job.secondAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.secondAxisSourceObject);
         job.positionSourceObject = ReadWriteTransformHandle.Bind(animator, data.positionSourceObject);
+        
+        if(data.lookAxisSourceObject != null)
+            job.lookAxisSourceObject = ReadWriteTransformHandle.Bind(animator, data.lookAxisSourceObject);
+        
         job.firstSourceAxis = IntProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.firstSourceAxis)));
         job.secondSourceAxis = IntProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.secondSourceAxis)));
+        job.lookSourceAxis = IntProperty.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.lookSourceAxis)));
+        
         job.angleOffset = Vector3Property.Bind(animator, component, ConstraintsUtils.ConstructConstraintDataPropertyName(nameof(data.angleOffset)));
 
         job.simpleDirLookup = new NativeArray<Vector3>(6, Allocator.Persistent);
