@@ -519,17 +519,43 @@ namespace drytoolkit.Editor.NestedAnimation
 
         private void CreateParentAnimatorSection()
         {
-            if (selectedAnimatorField.value == null || animWindow == null)
-                return;
-            
             if (
-                selectedAnimatorField.value is Animator animator
-                && animator.runtimeAnimatorController == null
+                selectedAnimatorField.value == null 
+                || !(selectedAnimatorField.value is Animator animator)
+                || animWindow == null
                 )
+                return;
+
+            if (animator.runtimeAnimatorController == null)
             {
                 Debug.LogWarning($"Animator {animator.name} has no controller.");
                 return;
             }
+
+            var animatorFilepath = AssetDatabase.GetAssetPath(animator.runtimeAnimatorController);
+            var folderPath = System.IO.Path.GetDirectoryName(animatorFilepath);
+            string[] guids = AssetDatabase.FindAssets("t:ClipSet", new[] { folderPath });
+
+            var foundClipSets = new List<ClipSet>();
+            foreach (string guid in guids)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<ClipSet>(assetPath);
+                if (asset != null)
+                    foundClipSets.Add(asset);
+            }
+            
+            Debug.LogWarning($"found {foundClipSets.Count} clipsets");
+            
+            // var data = AssetDatabase.LoadAllAssetsAtPath(animatorFilepath);
+            // foreach (var obj in data)
+            // {
+            //     Debug.LogWarning($"data: {obj.name}");
+            //     if (obj is ClipSet clipSet)
+            //     {
+            //         Debug.LogWarning($"found clipset: {clipSet.name}");
+            //     }
+            // }
             
             connectedAnimatorField.value = selectedAnimatorField.value;
             disconnectedElement.style.display = DisplayStyle.None;
@@ -2007,7 +2033,6 @@ namespace drytoolkit.Editor.NestedAnimation
 
             return debugControlsElement;
         }
-
 
         private void HandleSelectionChange()
         {
