@@ -158,7 +158,7 @@ namespace drytoolkit.Editor.NestedAnimation
         private ScrollView allParentClipElements;
         private ScrollView allNestedClipElements;
 
-        private const float maxClipViewHeight = 360f;
+        private const float maxClipViewHeight = 800f;
         // private List<VisualElement> allClipElements = new List<VisualElement>();
         private List<VisualElement> elementsToDisable = new List<VisualElement>();
         
@@ -1481,6 +1481,8 @@ namespace drytoolkit.Editor.NestedAnimation
         {
             // Debug.LogWarning("caching embedded clip bindings");
             
+            flattenedBindingToCurveLookup = new Dictionary<EditorCurveBinding, AnimationCurve>();
+            
             if (selectedParentClip == null)
             {
                 Debug.LogWarning("went to cache flattened clip, but it was null.");
@@ -1488,7 +1490,6 @@ namespace drytoolkit.Editor.NestedAnimation
             }
             
             flattenedCurveBindingCache = AnimationUtility.GetCurveBindings(selectedParentClip);
-            flattenedBindingToCurveLookup = new Dictionary<EditorCurveBinding, AnimationCurve>();
             foreach (var binding in flattenedCurveBindingCache)
             {
                 var curve = AnimationUtility.GetEditorCurve(selectedParentClip, binding);
