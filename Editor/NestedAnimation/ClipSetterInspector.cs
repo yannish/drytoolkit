@@ -1,9 +1,8 @@
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.UI;
 
 [CustomEditor(typeof(ClipSetter))]
-public class CipSetterInspector : Editor
+public class ClipSetterInspector : Editor
 {
     public override void OnInspectorGUI()
     {
