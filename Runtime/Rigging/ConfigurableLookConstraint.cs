@@ -1,12 +1,9 @@
-using System;using System.Collections.Generic;
+using System;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Mathematics;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.Animations;
 using UnityEngine.Animations.Rigging;
-using UnityEngine.Serialization;
 
 public enum Direction
 {

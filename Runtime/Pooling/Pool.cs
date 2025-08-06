@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace drytoolkit.Runtime.Pooling
@@ -75,7 +74,10 @@ namespace drytoolkit.Runtime.Pooling
                 var pooledPrefabInstance = Instantiate(prefab);
                 pooledPrefabInstance.gameObject.name += " " + (i + currPoolSize).ToString();
 
-                var poolHandle = pooledPrefabInstance.GetOrAddComponent<PoolHandle>();
+                var poolHandle = pooledPrefabInstance.GetComponent<PoolHandle>();
+                if(poolHandle == null)
+                    poolHandle = pooledPrefabInstance.AddComponent<PoolHandle>();
+                
                 poolHandle.pool = this;
                 poolHandle.CachePoolables();
                 poolHandle.transform.SetParent(transform);
