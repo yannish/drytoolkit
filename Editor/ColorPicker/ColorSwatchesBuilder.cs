@@ -38,6 +38,13 @@ public static class ColorSwatchesBuilder
 			return;
 		}
 		
+		var foundSwatches = Resources.FindObjectsOfTypeAll<ColorSwatches>();
+		if (foundSwatches != null && foundSwatches.Length > 0)
+		{
+			Debug.LogWarning("Found existing swatches.");
+			return;
+		}
+		
 		var swatches = ScriptableObject.CreateInstance(colorSwatchTypes[0]);
 		// swatches.name = "ColorSwatches ---";
 		
