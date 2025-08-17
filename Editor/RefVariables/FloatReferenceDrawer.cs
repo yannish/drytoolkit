@@ -53,14 +53,22 @@ public class FloatReferenceDrawer : PropertyDrawer
         int indent = EditorGUI.indentLevel;
         EditorGUI.indentLevel = 0;
 
-        int result = EditorGUI.Popup(
-            buttonRect,
-            useConstant.boolValue ? 0 : 1,
-            popupOptions,
-            popupStyle
-            );
+        if (GUI.Button(buttonRect, "", popupStyle))
+        {
+            // Debug.LogWarning("clicked da buton");
+            useConstant.boolValue = !useConstant.boolValue;
+        }
 
-        useConstant.boolValue = result == 0;
+        // int result = 0;
+        
+        // int result = EditorGUI.Popup(
+        //     buttonRect,
+        //     useConstant.boolValue ? 0 : 1,
+        //     popupOptions,
+        //     popupStyle
+        //     );
+
+        // useConstant.boolValue = result == 0;
 
         float floatRectWidth = 0.12f;
         Rect floatRect = new Rect(position);
