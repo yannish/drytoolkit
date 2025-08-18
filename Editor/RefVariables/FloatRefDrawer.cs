@@ -109,7 +109,6 @@ public class FloatRefDrawer : PropertyDrawer
         
         root.RegisterCallback<GeometryChangedEvent>(evt =>
         {
-            Debug.Log($"Property total width: {root.layout.width}");
             constantField.labelElement.style.width = root.layout.width * 0.4f - imguiButton.layout.width ;// - imguiButton.style.width.value);
             soValueField.labelElement.style.width = root.layout.width * 0.4f  - imguiButton.layout.width;
 
