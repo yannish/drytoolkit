@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using Sirenix.Utilities;
 using Unity.Properties;
 using UnityEditor;
 using UnityEditor.UIElements;
@@ -13,14 +16,13 @@ public class FloatRefDrawer : PropertyDrawer
     public override VisualElement CreatePropertyGUI(SerializedProperty property)
     {
         var root = new VisualElement();
+        
         root.style.flexDirection = FlexDirection.Row;
-
-        // Find properties
+        
         var useConstantProp = property.FindPropertyRelative("useConstant");
         var constantValueProp = property.FindPropertyRelative("constantValue");
         var variableProp = property.FindPropertyRelative("variable");
 
-        // --- Main float field (constant) ---
         var constantField = new FloatField(property.displayName);//+ " - [const]");
         constantField.BindProperty(constantValueProp);
         constantField.style.flexGrow = 1;
@@ -33,32 +35,27 @@ public class FloatRefDrawer : PropertyDrawer
         var modeLabel = new Label();
         modeLabel.text = useConstantProp.boolValue ? "[OVR]" : "[REF]";
         modeLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        // modeLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        // modeLabel.style.alignSelf = Align.Center;
         
         
-        // --- Object field for SO ---
+        var soFloatField = new FloatField(property.displayName);//  + " - [ref]");
+        var input = soFloatField.Q("unity-text-input"); 
+        input.style.minWidth = 100;
+        // input.style.maxWidth = soInputFieldWidth;
+        input.style.flexGrow = 1;
+        // soValueField.labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
+        soFloatField.labelElement.style.unityTextAlign = TextAnchor.MiddleLeft;
+        soFloatField.style.flexGrow = 1;
+        soFloatField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
+
+        
         var objectField = new ObjectField()
         {
             objectType = typeof(FloatVar),
             allowSceneObjects = false
         };
         objectField.BindProperty(variableProp);
-        objectField.style.flexGrow = 1;
+        // objectField.style.flexGrow = 1;
         objectField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-
-        float soInputFieldWidth = 40;
-        
-        // --- Float field that reflects SO.value ---
-        var soValueField = new FloatField(property.displayName);//  + " - [ref]");
-        var input = soValueField.Q("unity-text-input"); 
-        input.style.minWidth = soInputFieldWidth;
-        // input.style.maxWidth = soInputFieldWidth;
-        input.style.flexGrow = 1;
-        // soValueField.labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
-        soValueField.labelElement.style.unityTextAlign = TextAnchor.MiddleLeft;
-        soValueField.style.flexGrow = 1;
-        soValueField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
 
         // Keep in sync with SO value
         objectField.RegisterValueChangedCallback(evt =>
@@ -68,11 +65,11 @@ public class FloatRefDrawer : PropertyDrawer
                 var soSerialized = new SerializedObject(so);
                 var soValueProp = soSerialized.FindProperty("value");
 
-                soValueField.BindProperty(soValueProp);
-                soValueField.value = so.value;
-                soValueField.SetEnabled(true);
+                soFloatField.BindProperty(soValueProp);
+                soFloatField.value = so.value;
+                soFloatField.SetEnabled(true);
 
-                soValueField.RegisterValueChangedCallback(ev2 =>
+                soFloatField.RegisterValueChangedCallback(ev2 =>
                 {
                     so.value = ev2.newValue;
                     EditorUtility.SetDirty(so);
@@ -80,13 +77,12 @@ public class FloatRefDrawer : PropertyDrawer
             }
             else
             {
-                soValueField.SetEnabled(false);
-                soValueField.value = 0;
+                soFloatField.SetEnabled(false);
+                soFloatField.value = 0;
             }
         });
 
 
-        
         // --- PaneOptions-style toggle button ---
         var imguiButton = new IMGUIContainer(() =>
         {
@@ -99,7 +95,7 @@ public class FloatRefDrawer : PropertyDrawer
                 
                 constantField.style.display = useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
                 objectField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-                soValueField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
+                soFloatField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
                 
                 property.serializedObject.ApplyModifiedProperties();
             }
@@ -110,10 +106,12 @@ public class FloatRefDrawer : PropertyDrawer
         root.RegisterCallback<GeometryChangedEvent>(evt =>
         {
             constantField.labelElement.style.width = root.layout.width * 0.4f - imguiButton.layout.width ;// - imguiButton.style.width.value);
-            soValueField.labelElement.style.width = root.layout.width * 0.4f  - imguiButton.layout.width;
+            soFloatField.labelElement.style.width = root.layout.width * 0.4f  - imguiButton.layout.width;
 
-            var totalWidth = soValueField.labelElement.style.width.value.value;// + soInputFieldWidth;
-            soValueField.style.width = totalWidth;// + soInputFieldWidth;
+            var totalWidth = soFloatField.labelElement.style.width.value.value;// + soInputFieldWidth;
+            soFloatField.style.width = totalWidth;// + soInputFieldWidth;
+
+            objectField.style.maxWidth = (root.layout.width - soFloatField.style.width.value.value) * 0.7f;
         });
         
         // var modeButton = new Button()
@@ -153,7 +151,7 @@ public class FloatRefDrawer : PropertyDrawer
         // root.Add(modeButton);
         root.Add(imguiButton);
         root.Add(constantField);
-        root.Add(soValueField);
+        root.Add(soFloatField);
         root.Add(objectField);
         // root.Add(modeLabel);
 
