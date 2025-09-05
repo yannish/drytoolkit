@@ -45,20 +45,20 @@ public static class ColorSwatchesBuilder
 			return;
 		}
 		
-		var swatches = ScriptableObject.CreateInstance(colorSwatchTypes[0]);
-		// swatches.name = "ColorSwatches ---";
-		
-		if(!AssetDatabase.IsValidFolder($"{path}"))
-			AssetDatabase.CreateFolder("Assets", "Resources");
-
-		if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
-			AssetDatabase.CreateFolder(path, folderName);
-		
-		//...TODO: error here if there's no asset to delete...?
-		AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
-		AssetDatabase.CreateAsset(swatches,$"{path}/{folderName}/{assetNameFull}");
-		AssetDatabase.SaveAssets();
-		AssetDatabase.Refresh();
+		// var swatches = ScriptableObject.CreateInstance(colorSwatchTypes[0]);
+		// // swatches.name = "ColorSwatches ---";
+		//
+		// if(!AssetDatabase.IsValidFolder($"{path}"))
+		// 	AssetDatabase.CreateFolder("Assets", "Resources");
+		//
+		// if (!AssetDatabase.IsValidFolder($"{path}/{folderName}"))
+		// 	AssetDatabase.CreateFolder(path, folderName);
+		//
+		// //...TODO: error here if there's no asset to delete...?
+		// AssetDatabase.DeleteAsset($"{path}/{folderName}/{assetNameFull}");
+		// AssetDatabase.CreateAsset(swatches,$"{path}/{folderName}/{assetNameFull}");
+		// AssetDatabase.SaveAssets();
+		// AssetDatabase.Refresh();
 	}
 // #endif
 
