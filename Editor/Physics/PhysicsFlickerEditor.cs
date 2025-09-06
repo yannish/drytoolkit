@@ -13,15 +13,12 @@ public class PhysicsFlickerInspector : Editor
 
     void DrawInScene(SceneView view)
     {
-		Ray quickRay = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
-		Plane plane = new Plane(Vector3.up, Vector3.zero);
-		if (plane.Raycast(quickRay, out float enter))
-		{
-			var planePoint = quickRay.GetPoint(enter);
-			Handles.DrawWireDisc(planePoint, Vector3.up, 0.5f);
-			Handles.DrawLine(planePoint, planePoint + Vector3.up);
-		}
-
+		// Ray quickRay = HandleUtility.GUIPointToWorldRay(Event.current.mousePosition);
+		// Plane plane = new Plane(Vector3.up, Vector3.zero);
+		// if (plane.Raycast(quickRay, out float enter))
+		// {
+		// 	var planePoint = quickRay.GetPoint(enter);
+		// }
 
         if (!Application.isPlaying)
             return;
@@ -45,6 +42,9 @@ public class PhysicsFlickerInspector : Editor
                     physFlicker.queryMode
                     ))
             {
+                Handles.DrawWireDisc(hit.point, hit.normal, 0.5f);
+                Handles.DrawLine(hit.point, hit.point + hit.normal);
+                
                 var hitPhysFlicker = hit.collider.gameObject.GetComponentInParent<PhysicsFlicker>();
                 if (hitPhysFlicker != null && hitPhysFlicker == physFlicker)
                 {
