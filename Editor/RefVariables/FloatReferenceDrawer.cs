@@ -29,6 +29,14 @@ public class FloatReferenceDrawer : PropertyDrawer
         SerializedProperty constantValue = property.FindPropertyRelative("ConstantValue");
         SerializedProperty variable = property.FindPropertyRelative("Variable");
 
+        SerializedProperty variableFloatProp;
+        SerializedObject variableSO = new SerializedObject(variable.objectReferenceValue);
+        if (variable.objectReferenceValue != null)
+        {
+            variableSO = new SerializedObject(variable.objectReferenceValue);
+            variableFloatProp = variableSO.FindProperty("Value");
+        }
+        
 
         EditorGUI.BeginChangeCheck();
         label = EditorGUI.BeginProperty(position, label, property);
@@ -60,7 +68,6 @@ public class FloatReferenceDrawer : PropertyDrawer
         }
 
         // int result = 0;
-        
         // int result = EditorGUI.Popup(
         //     buttonRect,
         //     useConstant.boolValue ? 0 : 1,
@@ -133,15 +140,24 @@ public class FloatReferenceDrawer : PropertyDrawer
             //floatRect.xMin = buttonRect.xMax;
             //floatRect.xMin = 120;
 
-            var newValue = EditorGUI.FloatField(
-                floatRect,
-                floatRefVariable.Value
+            if (variable.objectReferenceValue != null)
+            {
+                variableSO = new SerializedObject(variable.objectReferenceValue);
+                variableFloatProp = variableSO.FindProperty("Value");
+                EditorGUI.PropertyField(floatRect, variableFloatProp, GUIContent.none);
+            }
+            else
+            {
+                var newValue = EditorGUI.FloatField(
+                    floatRect,
+                    floatRefVariable.Value
                 );
 
-            if (newValue != prevValue)
-                changedScrObjValue = true;
-
-            floatRefVariable.SetValue(newValue);
+                if (newValue != prevValue)
+                    changedScrObjValue = true;
+                
+                floatRefVariable.SetValue(newValue);
+            }
         }
 
         EditorGUI.PropertyField(
@@ -162,8 +178,8 @@ public class FloatReferenceDrawer : PropertyDrawer
         {
             //Debug.Log("applying change to floarRef variable");
             EditorUtility.SetDirty(variable.objectReferenceValue);
-            AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
+            // AssetDatabase.SaveAssets();
+            // AssetDatabase.Refresh();
         }
 
 
