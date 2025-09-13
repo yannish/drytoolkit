@@ -7,7 +7,7 @@ namespace drytoolkit.Editor.Utils
     [CustomPropertyDrawer(typeof(ViewOnlyAttribute))]
     public class ViewOnlyPropertyDrawer : PropertyDrawer
     {
-        public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+        public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
         {
             bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
