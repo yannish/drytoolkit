@@ -17,18 +17,23 @@ public class RuntimeSetUtils
         
         Debug.LogWarning("Cleaning up runtime sets;");
 
-        var allRuntimeSetTypes = TypeCache.GetTypesDerivedFrom(typeof(RuntimeSet<>));
-        foreach (var runtimeSetType in allRuntimeSetTypes)
+        EditorApplication.delayCall += () =>
         {
-            var sets = Resources.LoadAll("RuntimeSets", runtimeSetType);
-            foreach (var set in sets)
+            Debug.LogWarning("Cleaning up runtime sets;");
+
+            var allRuntimeSetTypes = TypeCache.GetTypesDerivedFrom(typeof(RuntimeSet<>));
+            foreach (var runtimeSetType in allRuntimeSetTypes)
             {
-                if (set is ScriptableObject scriptableSet)
+                var sets = Resources.LoadAll("RuntimeSets", runtimeSetType);
+                foreach (var set in sets)
                 {
-                    var clearMethod = runtimeSetType.GetMethod("ClearSet");
-                    clearMethod?.Invoke(scriptableSet, null); // Call ClearSet dynamically
+                    if (set is ScriptableObject scriptableSet)
+                    {
+                        var clearMethod = runtimeSetType.GetMethod("ClearSet");
+                        clearMethod?.Invoke(scriptableSet, null); // Call ClearSet dynamically
+                    }
                 }
             }
-        }
+        };
     }
 }
