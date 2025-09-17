@@ -49,10 +49,8 @@ public class BindingMapPropertyDrawer : PropertyDrawer
 
 		var buttonText = prop.isExpanded ? "FOLD" : "SHOW";
 		if (GUI.Button(buttonRect, buttonText, EditorStyles.miniButton))
-		{
 			prop.isExpanded = !prop.isExpanded;
-			Debug.Log($"TOGGLING VIS: {prop.isExpanded}");
-		}
+
 		// // prop.isExpanded = 
 		// 	EditorGUI.Foldout(headerRect, prop.isExpanded, label, EditorStyles.boldLabel);
 
