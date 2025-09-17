@@ -33,7 +33,7 @@ public class BindingMapPropertyDrawer : PropertyDrawer
 		var specificNameRect = headerRect;
 		specificNameRect.x += labelSize.x;
 		specificNameRect.x += widthMargin * 2f;
-		EditorGUI.LabelField(specificNameRect, $"[{label.text}]");//, EditorStyles.i);
+		EditorGUI.LabelField(specificNameRect, $"[{prop.name}]");//, EditorStyles.i);
 
 		var buttonWidth = 100f;
 		var buttonRect = headerRect;
