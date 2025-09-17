@@ -63,8 +63,10 @@ public class BindingMapPropertyDrawer : PropertyDrawer
 			{
 				headerRect.y += LineHeight;
 				var style = EditorStyles.label;
+				var prevFontStyle = style.fontStyle;
 				style.fontStyle = FontStyle.Italic;
 				EditorGUI.LabelField(headerRect, "... map is empty", style);
+				style.fontStyle = prevFontStyle;
 				return;
 			}
 		}
