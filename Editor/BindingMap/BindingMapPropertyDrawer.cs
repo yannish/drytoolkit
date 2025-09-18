@@ -5,131 +5,252 @@ using UnityEditor;
 using UnityEngine;
 
 [CustomPropertyDrawer(typeof(BindingMapBase), true)]
-public class BindingMapPropertyDrawer : PropertyDrawer
+public class BindingMapDrawer : PropertyDrawer
 {
-	public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
-	{
-		Color drawColor;
-		drawColor.a = 0f;
+    private float LineHeight => EditorGUIUtility.singleLineHeight;
+    private const float VerticalSpacing = 2f;
+    private const float HeaderPadding = 4f;
 
-		var bindingMapTag = "BINDING MAP";
-		var guiContent = new GUIContent(bindingMapTag);
-		var helpBoxStyle = new GUIStyle(GUI.skin.box);
-		var labelSize = helpBoxStyle.CalcSize(guiContent);
-		
-		EditorGUI.HelpBox(rect, "", MessageType.None);
-		int widthMargin = 4;
-		int heightMargin = 4;
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
+    {
+        var entriesProp = property.FindPropertyRelative("entries");
 
-		Rect headerRect = rect;
-		headerRect.x += widthMargin;
-		headerRect.width -= widthMargin * 2f;
-		headerRect.height = LineHeight;
-		
-		// var calculatedLength = GUILayoutUtility.
-		
-		EditorGUI.LabelField(headerRect, "BINDING MAP", EditorStyles.boldLabel);
-		
-		var specificNameRect = headerRect;
-		specificNameRect.x += labelSize.x;
-		specificNameRect.x += widthMargin * 2f;
-		EditorGUI.LabelField(specificNameRect, $"[{prop.name}]");//, EditorStyles.i);
+        // Always draw header
+        float height = LineHeight + HeaderPadding * 2;
 
-		var buttonWidth = 100f;
-		var buttonRect = headerRect;
-		buttonRect.width = buttonWidth;
-		buttonRect.x += (headerRect.xMax);
-		buttonRect.x -= buttonWidth;
-		buttonRect.x -= widthMargin * 5.5f;
-		buttonRect.y += widthMargin;
-		
-		buttonRect.height -= heightMargin * 2f;
-		// buttonRect.AlignRight(100f);
-		// buttonRect.x += widthMargin;
+        // If expanded, add space for entries
+        if (property.isExpanded && entriesProp != null)
+        {
+            int count = entriesProp.arraySize;
+            height += (LineHeight + VerticalSpacing) * count;
+        }
 
-		var buttonText = prop.isExpanded ? "FOLD" : "SHOW";
-		if (GUI.Button(buttonRect, buttonText, EditorStyles.miniButton))
-			prop.isExpanded = !prop.isExpanded;
+        return height + HeaderPadding * 2; // padding top/bottom
+    }
 
-		// // prop.isExpanded = 
-		// 	EditorGUI.Foldout(headerRect, prop.isExpanded, label, EditorStyles.boldLabel);
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        // Draw background helpbox
+        GUI.Box(position, GUIContent.none, EditorStyles.helpBox);
 
-		int count = 0;
-		if (prop.boxedValue != null && prop.boxedValue is IBindable)
-		{
-			IBindable bindable = prop.boxedValue as IBindable;
-			count = bindable.forward.Count;
-			if (count == 0 && prop.isExpanded)
-			{
-				headerRect.y += LineHeight;
-				var style = EditorStyles.label;
-				var prevFontStyle = style.fontStyle;
-				style.fontStyle = FontStyle.Italic;
-				EditorGUI.LabelField(headerRect, "... map is empty", style);
-				style.fontStyle = prevFontStyle;
-				return;
-			}
-		}
+        // Original headerRect
+        Rect headerRect = new Rect(
+            position.x + HeaderPadding,
+            position.y,
+            position.width - HeaderPadding * 2,
+            LineHeight
+        );
+        
+        EditorGUI.LabelField(headerRect, "BINDING MAP", EditorStyles.boldLabel);
 
-		if (!prop.isExpanded)
-			return;
-		
-		SerializedProperty entriesProp = prop.FindPropertyRelative("entries");
+        var bindingMapTag = "BINDING MAP";
+        var guiContent = new GUIContent(bindingMapTag);
+        var helpBoxStyle = new GUIStyle(EditorStyles.boldLabel);
+        var labelSize = helpBoxStyle.CalcSize(guiContent);
 
-		GUI.enabled = false;
-		Rect drawRect = headerRect;
-		drawRect.y += LineHeight;
-		drawRect.y += heightMargin;
-		
-		for (int i = 0; i < count; i++)
-		{
-			SerializedProperty entryProp = entriesProp.GetArrayElementAtIndex(i);
-			if (entryProp == null)
-				continue;
+        var propNameRect = headerRect;
+        propNameRect.x += labelSize.x;
+        
+        EditorGUI.LabelField(propNameRect,$"[{property.name}]");
+        
+        var entriesProp = property.FindPropertyRelative("entries");
 
-			SerializedProperty forwardProp = entryProp.FindPropertyRelative("forwardEntry");
-			if (forwardProp != null) 
-			{
-				Rect forwardRect = drawRect;
-				forwardRect.width *= 0.5f;
-				forwardRect.width -= widthMargin;
-				forwardRect.height -= heightMargin;
+        var countString = $"COUNT: {entriesProp.arraySize}";
+        var countSize = helpBoxStyle.CalcSize(new GUIContent(countString));
+        var countRect = headerRect;
+        countRect.x += (headerRect.width - countSize.x);
+        EditorGUI.LabelField(countRect, countString);
+        
+        headerRect.y += HeaderPadding;
+        
+        
+        // Adjust for foldout arrow inside the helpbox
+        Rect foldoutRect = new Rect(
+            headerRect.x + 10f,   // shift right a bit
+            headerRect.y + 10f,
+            headerRect.width - 10f,
+            headerRect.height
+        );
 
-				EditorGUI.PropertyField(forwardRect, forwardProp, new GUIContent());
-			}
-			
-			SerializedProperty backwardProp = entryProp.FindPropertyRelative("backwardEntry");
-			if (backwardProp != null)
-			{
-				Rect backwardRect = drawRect;
-				backwardRect.width *= 0.5f;
-				backwardRect.width -= widthMargin;
-				backwardRect.height -= heightMargin;
-				backwardRect.x += drawRect.width * 0.5f;
+        // Draw foldout
+        property.isExpanded = EditorGUI.Foldout(
+            foldoutRect,
+            property.isExpanded,
+            GUIContent.none,
+            // $"{label.text} ({entriesProp.arraySize})",
+            true
+            // EditorStyles.foldoutHeader
+        );
+        
+        // Draw entries if expanded
+        if (property.isExpanded && entriesProp != null)
+        {
+            EditorGUI.indentLevel++;
+            GUI.enabled = false;
+            for (int i = 0; i < entriesProp.arraySize; i++)
+            {
+                SerializedProperty entryProp = entriesProp.GetArrayElementAtIndex(i);
+                SerializedProperty forwardProp = entryProp.FindPropertyRelative("forwardEntry");
+                SerializedProperty backwardProp = entryProp.FindPropertyRelative("backwardEntry");
 
-				EditorGUI.PropertyField(backwardRect, backwardProp, new GUIContent());
-			}
-			drawRect.y += LineHeight;
-		}
-		GUI.enabled = true;
-	}
+                Rect rowRect = new Rect(
+                    position.x + HeaderPadding,
+                    headerRect.yMax + VerticalSpacing + i * (LineHeight + VerticalSpacing),
+                    position.width - HeaderPadding * 2,
+                    LineHeight
+                );
 
+                // Split row into two halves
+                float halfWidth = (rowRect.width - 4f) / 2f;
+                Rect forwardRect = new Rect(rowRect.x, rowRect.y, halfWidth, rowRect.height);
+                Rect backwardRect = new Rect(rowRect.x + halfWidth + 4f, rowRect.y, halfWidth, rowRect.height);
 
-	private const float heightMargin = 4f;
-	private float LineHeight => EditorGUIUtility.singleLineHeight + heightMargin;
-
-	public override float GetPropertyHeight(SerializedProperty prop, GUIContent label)
-	{
-		if (prop.isExpanded && prop.boxedValue != null && prop.boxedValue is IBindable)
-		{
-			IBindable bindable = prop.boxedValue as IBindable;
-			if(bindable == null || bindable.forward.Count == 0)
-				return LineHeight * 2f + heightMargin;
-
-			return LineHeight * (bindable.forward.Count + 1) + heightMargin;
-		}
-
-		return LineHeight + heightMargin * 2f;
-		// return lineHeight * 2f + heightMargin;
-	}
+                EditorGUI.PropertyField(forwardRect, forwardProp, GUIContent.none, true);
+                EditorGUI.PropertyField(backwardRect, backwardProp, GUIContent.none, true);
+            }
+            GUI.enabled = true;
+            EditorGUI.indentLevel--;
+        }
+    }
 }
+//
+// [CustomPropertyDrawer(typeof(BindingMapBase), true)]
+// public class BindingMapPropertyDrawer : PropertyDrawer
+// {
+// 	public override void OnGUI(Rect rect, SerializedProperty prop, GUIContent label)
+// 	{
+// 		Color drawColor;
+// 		drawColor.a = 0f;
+//
+// 		var bindingMapTag = "BINDING MAP";
+// 		var guiContent = new GUIContent(bindingMapTag);
+// 		var helpBoxStyle = new GUIStyle(GUI.skin.box);
+// 		var labelSize = helpBoxStyle.CalcSize(guiContent);
+// 		
+// 		EditorGUI.HelpBox(rect, "", MessageType.None);
+// 		int widthMargin = 4;
+// 		int heightMargin = 4;
+//
+// 		Rect headerRect = rect;
+// 		headerRect.x += widthMargin;
+// 		headerRect.width -= widthMargin * 2f;
+// 		headerRect.height = LineHeight;
+// 		
+// 		// var calculatedLength = GUILayoutUtility.
+// 		
+// 		EditorGUI.LabelField(headerRect, "BINDING MAP", EditorStyles.boldLabel);
+// 		
+// 		var specificNameRect = headerRect;
+// 		specificNameRect.x += labelSize.x;
+// 		specificNameRect.x += widthMargin * 2f;
+// 		EditorGUI.LabelField(specificNameRect, $"[{prop.name}]");//, EditorStyles.i);
+//
+// 		var buttonWidth = 100f;
+// 		var buttonRect = headerRect;
+// 		buttonRect.width = buttonWidth;
+// 		buttonRect.x += (headerRect.xMax);
+// 		buttonRect.x -= buttonWidth;
+// 		buttonRect.x -= widthMargin * 5.5f;
+// 		buttonRect.y += widthMargin;
+// 		buttonRect.height -= heightMargin * 2f;
+//
+// 		var buttonText = prop.isExpanded ? "FOLD" : "SHOW";
+// 		if (GUI.Button(buttonRect, buttonText, EditorStyles.miniButton))
+// 			prop.isExpanded = !prop.isExpanded;
+//
+// 		int count = 0;
+// 		if (prop.boxedValue != null && prop.boxedValue is IBindable)
+// 		{
+// 			IBindable bindable = prop.boxedValue as IBindable;
+// 			count = bindable.Entries.Count;
+// 			if (count == 0 && prop.isExpanded)
+// 			{
+// 				headerRect.y += LineHeight;
+// 				var style = EditorStyles.label;
+// 				var prevFontStyle = style.fontStyle;
+// 				style.fontStyle = FontStyle.Italic;
+// 				EditorGUI.LabelField(headerRect, "... map is empty", style);
+// 				style.fontStyle = prevFontStyle;
+// 				return;
+// 			}
+// 		}
+//
+// 		// int count = 0;
+// 		// if (prop.boxedValue != null && prop.boxedValue is IBindable)
+// 		// {
+// 		// 	IBindable bindable = prop.boxedValue as IBindable;
+// 		// 	count = bindable.forward.Count;
+// 		// 	if (count == 0 && prop.isExpanded)
+// 		// 	{
+// 		// 		headerRect.y += LineHeight;
+// 		// 		var style = EditorStyles.label;
+// 		// 		var prevFontStyle = style.fontStyle;
+// 		// 		style.fontStyle = FontStyle.Italic;
+// 		// 		EditorGUI.LabelField(headerRect, "... map is empty", style);
+// 		// 		style.fontStyle = prevFontStyle;
+// 		// 		return;
+// 		// 	}
+// 		// }
+//
+// 		if (!prop.isExpanded)
+// 			return;
+// 		
+// 		SerializedProperty entriesProp = prop.FindPropertyRelative("entries");
+//
+// 		GUI.enabled = false;
+// 		Rect drawRect = headerRect;
+// 		drawRect.y += LineHeight;
+// 		drawRect.y += heightMargin;
+// 		
+// 		for (int i = 0; i < count; i++)
+// 		{
+// 			SerializedProperty entryProp = entriesProp.GetArrayElementAtIndex(i);
+// 			if (entryProp == null)
+// 				continue;
+//
+// 			SerializedProperty forwardProp = entryProp.FindPropertyRelative("forwardEntry");
+// 			if (forwardProp != null) 
+// 			{
+// 				Rect forwardRect = drawRect;
+// 				forwardRect.width *= 0.5f;
+// 				forwardRect.width -= widthMargin;
+// 				forwardRect.height -= heightMargin;
+//
+// 				EditorGUI.PropertyField(forwardRect, forwardProp, new GUIContent());
+// 			}
+// 			
+// 			SerializedProperty backwardProp = entryProp.FindPropertyRelative("backwardEntry");
+// 			if (backwardProp != null)
+// 			{
+// 				Rect backwardRect = drawRect;
+// 				backwardRect.width *= 0.5f;
+// 				backwardRect.width -= widthMargin;
+// 				backwardRect.height -= heightMargin;
+// 				backwardRect.x += drawRect.width * 0.5f;
+//
+// 				EditorGUI.PropertyField(backwardRect, backwardProp, new GUIContent());
+// 			}
+// 			drawRect.y += LineHeight;
+// 		}
+// 		GUI.enabled = true;
+// 	}
+//
+//
+// 	private const float heightMargin = 4f;
+// 	private float LineHeight => EditorGUIUtility.singleLineHeight + heightMargin;
+//
+// 	public override float GetPropertyHeight(SerializedProperty prop, GUIContent label)
+// 	{
+// 		if (prop.isExpanded && prop.boxedValue != null && prop.boxedValue is IBindable)
+// 		{
+// 			IBindable bindable = prop.boxedValue as IBindable;
+// 			if(bindable == null || bindable.Entries.Count == 0)
+// 				return LineHeight * 2f + heightMargin;
+//
+// 			return LineHeight * (bindable.Entries.Count + 1) + heightMargin;
+// 		}
+//
+// 		return LineHeight + heightMargin * 2f;
+// 		// return lineHeight * 2f + heightMargin;
+// 	}
+// }
