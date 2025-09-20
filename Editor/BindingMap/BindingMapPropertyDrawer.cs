@@ -98,21 +98,6 @@ public class BindingMapPropertyDrawer : PropertyDrawer
             LineHeight
         );
 
-        using (new EditorGUILayout.HorizontalScope())
-        {
-            EditorGUILayout.LabelField("BINDING MAP");
-
-            // using (new EditorGUILayout.HorizontalScope())
-            // {
-            //     EditorGUILayout.LabelField("BINDING MAP");
-            //     EditorGUILayout.LabelField($"[{property.name}]");
-            // }
-
-            var style = new GUIStyle(EditorStyles.label);
-            style.alignment = TextAnchor.MiddleRight;
-            EditorGUILayout.LabelField("COUNT", style);
-        }
-        
         EditorGUI.LabelField(headerRect, "BINDING MAP", EditorStyles.boldLabel);
 
         var bindingMapTag = "BINDING MAP";
