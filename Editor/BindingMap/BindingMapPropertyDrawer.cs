@@ -181,11 +181,7 @@ public class BindingMapPropertyDrawer : PropertyDrawer
                 {
                     var style = new GUIStyle(EditorStyles.boldLabel);
                     style.alignment = TextAnchor.MiddleRight;
-                    EditorGUI.LabelField(
-                        forwardRect,
-                        new GUIContent($"[{forwardProp.boxedValue.ToString()}]"),
-                        style
-                        );
+                    EditorGUI.LabelField(forwardRect,$"[{forwardProp.boxedValue}]", style);
                 }
                 else
                 {
@@ -194,16 +190,9 @@ public class BindingMapPropertyDrawer : PropertyDrawer
 
                 if (backwardProp.propertyType == SerializedPropertyType.Generic)
                 {
-                    Debug.LogWarning("drawing generic value");
                     var style = new GUIStyle(EditorStyles.boldLabel);
                     style.alignment = TextAnchor.MiddleRight;
                     EditorGUI.LabelField(backwardRect, $"[{backwardProp.boxedValue}]", style);
-                    // EditorGUI.LabelField(
-                    //     backwardRect,
-                    //     $"[{backwardProp.boxedValue}]"
-                    //     // new GUIContent($"[{backwardProp.boxedValue.ToString()}]"),
-                    //     // style
-                    // );
                 }
                 else
                 {
