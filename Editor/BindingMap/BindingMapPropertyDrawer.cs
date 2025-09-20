@@ -2,11 +2,68 @@ using System.Collections;
 using System.Collections.Generic;
 using Sirenix.Utilities;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 [CustomPropertyDrawer(typeof(BindingMapBase), true)]
-public class BindingMapDrawer : PropertyDrawer
+public class BindingMapPropertyDrawer : PropertyDrawer
 {
+    // public override VisualElement CreatePropertyGUI(SerializedProperty property)
+    // {
+    //     // Root container styled like a helpbox
+    //     var root = new VisualElement();
+    //     root.style.marginBottom = 4;
+    //     root.AddToClassList("unity-box"); // helpbox style
+    //
+    //     // Foldout for collapsible list
+    //     var entriesProp = property.FindPropertyRelative("entries");
+    //     var foldout = new Foldout
+    //     {
+    //         text = $"{property.displayName} ({entriesProp.arraySize})",
+    //         value = false,
+    //     };
+    //     foldout.style.unityFontStyleAndWeight = FontStyle.Bold;
+    //
+    //     root.Add(foldout);
+    //
+    //     // Draw each entry inside the foldout
+    //     for (int i = 0; i < entriesProp.arraySize; i++)
+    //     {
+    //         SerializedProperty entryProp = entriesProp.GetArrayElementAtIndex(i);
+    //         var forwardProp = entryProp.FindPropertyRelative("forwardEntry");
+    //         var backwardProp = entryProp.FindPropertyRelative("backwardEntry");
+    //
+    //         // Row container
+    //         var row = new VisualElement();
+    //         row.style.flexDirection = FlexDirection.Row;
+    //         row.style.marginBottom = 2;
+    //         // row.style.gap = 4;
+    //
+    //         // Forward field
+    //         var forwardField = new PropertyField(forwardProp);
+    //         forwardField.style.flexGrow = 1;
+    //
+    //         // Backward field
+    //         var backwardField = new PropertyField(backwardProp);
+    //         backwardField.style.flexGrow = 1;
+    //
+    //         row.Add(forwardField);
+    //         row.Add(backwardField);
+    //
+    //         foldout.Add(row);
+    //     }
+    //
+    //     // Refresh foldout label if entries change
+    //     entriesProp.serializedObject.ApplyModifiedProperties();
+    //     foldout.RegisterValueChangedCallback(evt =>
+    //     {
+    //         foldout.text = $"{property.displayName} ({entriesProp.arraySize})";
+    //     });
+    //
+    //     return root;
+    // }
+    
     private float LineHeight => EditorGUIUtility.singleLineHeight;
     private const float VerticalSpacing = 2f;
     private const float HeaderPadding = 4f;
@@ -40,6 +97,21 @@ public class BindingMapDrawer : PropertyDrawer
             position.width - HeaderPadding * 2,
             LineHeight
         );
+
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            EditorGUILayout.LabelField("BINDING MAP");
+
+            // using (new EditorGUILayout.HorizontalScope())
+            // {
+            //     EditorGUILayout.LabelField("BINDING MAP");
+            //     EditorGUILayout.LabelField($"[{property.name}]");
+            // }
+
+            var style = new GUIStyle(EditorStyles.label);
+            style.alignment = TextAnchor.MiddleRight;
+            EditorGUILayout.LabelField("COUNT", style);
+        }
         
         EditorGUI.LabelField(headerRect, "BINDING MAP", EditorStyles.boldLabel);
 
@@ -105,14 +177,46 @@ public class BindingMapDrawer : PropertyDrawer
                 Rect forwardRect = new Rect(rowRect.x, rowRect.y, halfWidth, rowRect.height);
                 Rect backwardRect = new Rect(rowRect.x + halfWidth + 4f, rowRect.y, halfWidth, rowRect.height);
 
-                EditorGUI.PropertyField(forwardRect, forwardProp, GUIContent.none, true);
-                EditorGUI.PropertyField(backwardRect, backwardProp, GUIContent.none, true);
+                if (forwardProp.propertyType == SerializedPropertyType.Generic)
+                {
+                    var style = new GUIStyle(EditorStyles.boldLabel);
+                    style.alignment = TextAnchor.MiddleRight;
+                    EditorGUI.LabelField(
+                        forwardRect,
+                        new GUIContent($"[{forwardProp.boxedValue.ToString()}]"),
+                        style
+                        );
+                }
+                else
+                {
+                    EditorGUI.PropertyField(forwardRect, forwardProp, GUIContent.none, true);
+                }
+
+                if (backwardProp.propertyType == SerializedPropertyType.Generic)
+                {
+                    Debug.LogWarning("drawing generic value");
+                    var style = new GUIStyle(EditorStyles.boldLabel);
+                    style.alignment = TextAnchor.MiddleRight;
+                    EditorGUI.LabelField(backwardRect, $"[{backwardProp.boxedValue}]", style);
+                    // EditorGUI.LabelField(
+                    //     backwardRect,
+                    //     $"[{backwardProp.boxedValue}]"
+                    //     // new GUIContent($"[{backwardProp.boxedValue.ToString()}]"),
+                    //     // style
+                    // );
+                }
+                else
+                {
+                    EditorGUI.PropertyField(backwardRect, backwardProp, GUIContent.none, true);
+                }
+
             }
             GUI.enabled = true;
             EditorGUI.indentLevel--;
         }
     }
 }
+
 //
 // [CustomPropertyDrawer(typeof(BindingMapBase), true)]
 // public class BindingMapPropertyDrawer : PropertyDrawer
