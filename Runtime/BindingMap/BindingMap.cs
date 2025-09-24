@@ -49,9 +49,9 @@ public class BindingMap<T, U> :
 
 	public List<UnityEngine.Object> backward => entries.Select(t => t.backwardEntry as UnityEngine.Object).ToList();
 	
-	public T[] forwardMembers => forwardLookup.Keys.ToArray();
+	public T[] front => forwardLookup.Keys.ToArray();
 	
-	public U[] backwardMembers => backwardLookup.Keys.ToArray();
+	public U[] back => backwardLookup.Keys.ToArray();
 
 
 	public void OnBeforeSerialize()
@@ -68,7 +68,6 @@ public class BindingMap<T, U> :
 			entries.Add(new MapEntry(pair.Key, pair.Value));
 		}
 	}
-
 
 	public void OnAfterDeserialize()
 	{
@@ -109,6 +108,29 @@ public class BindingMap<T, U> :
 		}
 	}
 
+	public void Rebind(T frontItem, U backItem)
+	{
+		if (forwardLookup.TryGetValue(frontItem, out var foundBackItem))
+		{
+			forwardLookup.Remove(frontItem);
+			backwardLookup.Remove(foundBackItem);
+		}
+		
+		forwardLookup.Add(frontItem, backItem);
+		backwardLookup.Add(backItem, frontItem);
+	}
+
+	public void Rebind(U backItem, T frontItem)
+	{
+		if (backwardLookup.TryGetValue(backItem, out var foundFrontItem))
+		{
+			forwardLookup.Remove(foundFrontItem);
+			backwardLookup.Remove(backItem);
+		}
+		
+		forwardLookup.Add(frontItem, backItem);
+		backwardLookup.Add(backItem, frontItem);
+	}
 
 	public void Unbind(T frontItem)
 	{
