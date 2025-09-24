@@ -94,18 +94,22 @@ public class BindingMap<T, U> :
 
 	public void Bind(T frontItem, U backItem)
 	{
+		bool existingBinding = false;
 		if (backwardLookup.ContainsKey(backItem))
 		{
-			Debug.LogWarning($"back item {backItem.ToString()} is already bound");
-			return;
+			Debug.LogWarning($"... back item {backItem.ToString()} is already bound");
+			existingBinding = true;
 		}
 		
 		if(forwardLookup.ContainsKey(frontItem))
 		{
-			Debug.LogWarning($"front item {backItem.ToString()} is already bound");
-			return;
+			Debug.LogWarning($"... front item {backItem.ToString()} is already bound");
+			existingBinding = true;
 		}
 
+		if (existingBinding)
+			return;
+		
 		forwardLookup.Add(frontItem, backItem);
 		backwardLookup.Add(backItem, frontItem);
 		
