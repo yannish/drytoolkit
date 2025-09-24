@@ -6,8 +6,9 @@ using System.Collections.Generic;
 
 public interface IBindable
 {
-	List<UnityEngine.Object> forward { get; }
-	List<UnityEngine.Object> backward { get; }
+	System.Collections.IList Entries { get; }
+	// List<UnityEngine.Object> forward { get; }
+	// List<UnityEngine.Object> backward { get; }
 }
 
 
@@ -41,10 +42,17 @@ public class BindingMap<T, U> :
 
 	[HideInInspector, SerializeField]
 	public List<MapEntry> entries = new List<MapEntry>();
-
+	
+	public System.Collections.IList Entries => entries;
+	
 	public List<UnityEngine.Object> forward => entries.Select(t => t.forwardEntry as UnityEngine.Object).ToList();
 
 	public List<UnityEngine.Object> backward => entries.Select(t => t.backwardEntry as UnityEngine.Object).ToList();
+	
+	public T[] forwardMembers => forwardLookup.Keys.ToArray();
+	
+	public U[] backwardMembers => backwardLookup.Keys.ToArray();
+
 
 	public void OnBeforeSerialize()
 	{
