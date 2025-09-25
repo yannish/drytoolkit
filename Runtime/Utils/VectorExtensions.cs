@@ -35,6 +35,14 @@ public static class VectorExtensions
         return Mathf.InverseLerp(fromRange.Min(), fromRange.Max(), value);
     }
 
+    public static float RemapToSignedUnit(this float value) => ToRange(value, new Vector2(-1, 1f));
+    
+    public static float RemapRange01(this float value) => ToRange(value, new Vector2(0f, 1f));
+
+    public static Vector3 UnitToSignedUnit(this Vector3 vec) => vec * 2f - Vector3.one;
+
+    public static float UnitToSignedUnit(this float value) => value * 2f - 1f;
+    
     public static float ToRange(this float value, Vector2 toRange)
     {
         return Mathf.Lerp(toRange.Min(), toRange.Max(), value);
