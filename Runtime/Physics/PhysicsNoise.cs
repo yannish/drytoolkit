@@ -4,6 +4,9 @@ public class PhysicsNoise : MonoBehaviour
 {
 	public Rigidbody rb;
 
+	[Range(0f, 1f)] public float torqueFade = 1f;
+	[Range(0f, 1f)] public float forceFade = 1f;
+	
     [Header("TORQUE:")]
     public NoiseSource torqueNoiseSource;
     public float torque;
@@ -45,7 +48,8 @@ public class PhysicsNoise : MonoBehaviour
     		torque * torqueMultiplier.z * torqueNoiseSampleRemapped.z * Mathf.Ceil(torqueNoiseSample.z - minTorqueNoiseSample.z)
     	);
 
-    	rb.AddTorque(torqueToApply, ForceMode.Acceleration);
+	    if(torqueFade > 0f)
+    		rb.AddTorque(torqueToApply * torqueFade, ForceMode.Acceleration);
 
 
     	forceNoiseSource.TickNoise();
@@ -61,6 +65,7 @@ public class PhysicsNoise : MonoBehaviour
     	var forceStrength = forceNoiseSample.x * Mathf.Ceil(forceNoiseSample.x - minForceNoiseSample) * force;
     	var forceToApply = forceNoiseDir * forceStrength;
 
-    	rb.AddForce(forceToApply, ForceMode.Acceleration);
+	    if(forceFade > 0f)
+    		rb.AddForce(forceToApply * forceFade, ForceMode.Acceleration);
     }
 }

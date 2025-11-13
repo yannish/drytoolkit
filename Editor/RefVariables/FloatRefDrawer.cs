@@ -60,24 +60,34 @@ public class FloatRefDrawer : PropertyDrawer
         // Keep in sync with SO value
         objectField.RegisterValueChangedCallback(evt =>
         {
+            // Debug.LogWarning("objFieldvalue changed...");
             if (evt.newValue is FloatVar so)
             {
                 var soSerialized = new SerializedObject(so);
                 var soValueProp = soSerialized.FindProperty("value");
 
+                Debug.LogWarning("new asset being pointed at.");
+                
+                // soFloatField.SetEnabled(false);
+                soFloatField.Unbind();
                 soFloatField.BindProperty(soValueProp);
                 soFloatField.value = so.value;
                 soFloatField.SetEnabled(true);
 
                 soFloatField.RegisterValueChangedCallback(ev2 =>
                 {
-                    so.value = ev2.newValue;
+                    // Debug.LogWarning($"setting so: {so.name} to value : {evt.newValue}", so);
+                    // so.value = ev2.newValue;
                     EditorUtility.SetDirty(so);
                 });
             }
             else
             {
+                // Debug.LogWarning("null floatVar...");
+                soFloatField.Unbind();
+                // soFloatField.UnregisterValueChangedCallback();
                 soFloatField.SetEnabled(false);
+                // soFloatField.Regis
                 soFloatField.value = 0;
             }
         });
