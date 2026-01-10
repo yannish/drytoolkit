@@ -1382,6 +1382,282 @@ Transform:
   m_Children: []
   m_Father: {fileID: 74752769}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &545090061
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 545090063}
+  - component: {fileID: 545090062}
+  m_Layer: 0
+  m_Name: quickMono
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &545090062
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 545090061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 95d745893b8744849bf78d198005949a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  quickSub:
+    nestedMap:
+      entries:
+      - forwardEntry: 0
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 1
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 2
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 3
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 4
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 5
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 6
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 7
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 8
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 9
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 10
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 11
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 12
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 13
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 14
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 15
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 16
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 17
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 18
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 19
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 20
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 21
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 22
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 23
+        backwardEntry: {fileID: 0}
+      - forwardEntry: 24
+        backwardEntry: {fileID: 0}
+  map:
+    entries:
+    - forwardEntry: 0
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 1
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 2
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 3
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 4
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 5
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 6
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 7
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 8
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 9
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 10
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 11
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 12
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 13
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 14
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 15
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 16
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 17
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 18
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 19
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 20
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 21
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 22
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 23
+      backwardEntry: {fileID: 0}
+    - forwardEntry: 24
+      backwardEntry: {fileID: 0}
+  map2:
+    entries:
+    - forwardEntry: 0
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 1
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 2
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 3
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 4
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 5
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 6
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 7
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 8
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 9
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 10
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 11
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 12
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 13
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 14
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 15
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 16
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 17
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 18
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 19
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 20
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 21
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 22
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 23
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+    - forwardEntry: 24
+      backwardEntry:
+        someInt: 0
+        someFloat: 0
+        someString: 
+--- !u!4 &545090063
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 545090061}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 38.260822, y: 0.67654955, z: 4.9663424}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &550008032 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8257107840023021597, guid: 2fb2acb07bc06de47b85e18e1c1d96ab, type: 3}
@@ -5349,3 +5625,4 @@ SceneRoots:
   - {fileID: 765474323}
   - {fileID: 1274968582}
   - {fileID: 1381034003}
+  - {fileID: 545090063}
