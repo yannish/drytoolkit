@@ -5,7 +5,8 @@ public class MinMaxRange
 {
     public float min, max;
 
-    public MinMaxRange(float min, float max) {
+    public MinMaxRange(float min, float max) 
+    {
         this.min = min;
         this.max = max;
     }
