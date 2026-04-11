@@ -4,7 +4,7 @@ using UnityEngine;
 [Serializable]
 public class FloatRef
 {
-    public bool useConstant = false;
+    public bool useConstant = true;
 
     public float constantValue;
 

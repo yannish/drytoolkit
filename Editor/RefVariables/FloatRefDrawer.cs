@@ -1,293 +1,109 @@
-using System;
-using System.Collections.Generic;
-using Sirenix.Utilities;
-using Unity.Properties;
 using UnityEditor;
 using UnityEditor.UIElements;
-using UnityEngine;
 using UnityEngine.UIElements;
 
 [CustomPropertyDrawer(typeof(FloatRef))]
 public class FloatRefDrawer : PropertyDrawer
 {
-    /// <summary> Cached style to use to draw the popup button. </summary>
-    private GUIStyle popupStyle;
+    const float InputWidth   = 55f;
+    const float ToggleOffset = 20f; // 18px btn + 2px marginRight
 
     public override VisualElement CreatePropertyGUI(SerializedProperty property)
     {
-        var root = new VisualElement();
-        
-        root.style.flexDirection = FlexDirection.Row;
-        
-        var useConstantProp = property.FindPropertyRelative("useConstant");
+        var useConstantProp   = property.FindPropertyRelative("useConstant");
         var constantValueProp = property.FindPropertyRelative("constantValue");
-        var variableProp = property.FindPropertyRelative("variable");
+        var variableProp      = property.FindPropertyRelative("variable");
 
-        var constantField = new FloatField(property.displayName);//+ " - [const]");
+        var root = new VisualElement();
+        root.style.flexDirection = FlexDirection.Row;
+
+        // --- Toggle button ---
+        var toggleBtn = new Button();
+        toggleBtn.style.width        = 18;
+        toggleBtn.style.height       = 18;
+        toggleBtn.style.alignSelf    = Align.Center;
+        toggleBtn.style.flexShrink   = 0;
+        toggleBtn.style.marginRight  = 2;
+        toggleBtn.style.paddingLeft  = 0;
+        toggleBtn.style.paddingRight = 0;
+        toggleBtn.style.fontSize     = 9;
+
+        // --- Constant mode ---
+        var constantField = new FloatField(property.displayName);
         constantField.BindProperty(constantValueProp);
         constantField.style.flexGrow = 1;
-        constantField.labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
-        constantField.labelElement.style.unityTextAlign = TextAnchor.MiddleLeft;
-        constantField.labelElement.style.flexShrink = 0;
-        constantField.style.display = useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
 
-        
-        var modeLabel = new Label();
-        modeLabel.text = useConstantProp.boolValue ? "[OVR]" : "[REF]";
-        modeLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        
-        
-        var soFloatField = new FloatField(property.displayName);//  + " - [ref]");
-        var input = soFloatField.Q("unity-text-input"); 
-        input.style.minWidth = 100;
-        // input.style.maxWidth = soInputFieldWidth;
-        input.style.flexGrow = 1;
-        // soValueField.labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
-        soFloatField.labelElement.style.unityTextAlign = TextAnchor.MiddleLeft;
-        soFloatField.style.flexGrow = 1;
-        soFloatField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
+        // --- Reference mode ---
+        var refRow = new VisualElement();
+        refRow.style.flexDirection = FlexDirection.Row;
+        refRow.style.flexGrow      = 1;
 
-        
-        var objectField = new ObjectField()
-        {
-            objectType = typeof(FloatVar),
-            allowSceneObjects = false
-        };
+        // FloatField keeps its label so drag-to-scrub works; width is set by GeometryChangedEvent
+        var soValueField = new FloatField(property.displayName);
+        soValueField.style.flexShrink = 0;
+        soValueField.style.flexGrow   = 0;
+
+        var objectField = new ObjectField();
+        objectField.objectType        = typeof(FloatVar);
+        objectField.allowSceneObjects = false;
+        objectField.style.flexGrow    = 1;
+        objectField.style.flexShrink  = 1;
         objectField.BindProperty(variableProp);
-        // objectField.style.flexGrow = 1;
-        objectField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
 
-        // Keep in sync with SO value
-        objectField.RegisterValueChangedCallback(evt =>
+        refRow.Add(soValueField);
+        refRow.Add(objectField);
+
+        // Bind soValueField to the selected FloatVar
+        void BindSoValue(FloatVar floatVar)
         {
-            if (evt.newValue is FloatVar so)
+            soValueField.Unbind();
+            if (floatVar != null)
             {
-                var soSerialized = new SerializedObject(so);
-                var soValueProp = soSerialized.FindProperty("value");
-
-                soFloatField.BindProperty(soValueProp);
-                soFloatField.value = so.value;
-                soFloatField.SetEnabled(true);
-
-                soFloatField.RegisterValueChangedCallback(ev2 =>
-                {
-                    so.value = ev2.newValue;
-                    EditorUtility.SetDirty(so);
-                });
+                soValueField.BindProperty(new SerializedObject(floatVar).FindProperty("value"));
+                soValueField.SetEnabled(true);
             }
             else
             {
-                soFloatField.SetEnabled(false);
-                soFloatField.value = 0;
+                soValueField.SetValueWithoutNotify(0f);
+                soValueField.SetEnabled(false);
             }
-        });
+        }
 
+        objectField.RegisterValueChangedCallback(evt => BindSoValue(evt.newValue as FloatVar));
 
-        // --- PaneOptions-style toggle button ---
-        var imguiButton = new IMGUIContainer(() =>
-        {
-            if (GUILayout.Button(GUIContent.none, GUI.skin.GetStyle("PaneOptions")))
-            {
-                useConstantProp.boolValue = !useConstantProp.boolValue;
-                
-                modeLabel.text = useConstantProp.boolValue ? "[OVR]" : "[REF]";
-                modeLabel.style.unityFontStyleAndWeight = useConstantProp.boolValue ? FontStyle.Bold : FontStyle.Normal;
-                
-                constantField.style.display = useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-                objectField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-                soFloatField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-                
-                property.serializedObject.ApplyModifiedProperties();
-            }
-        });
-        imguiButton.style.alignSelf = Align.Center;
-        imguiButton.style.width = 12;
-        
+        // Correct label widths so [toggle + label] = 40% and [inputs] = 60%
         root.RegisterCallback<GeometryChangedEvent>(evt =>
         {
-            constantField.labelElement.style.width = root.layout.width * 0.4f - imguiButton.layout.width ;// - imguiButton.style.width.value);
-            soFloatField.labelElement.style.width = root.layout.width * 0.4f  - imguiButton.layout.width;
-
-            var totalWidth = soFloatField.labelElement.style.width.value.value;// + soInputFieldWidth;
-            soFloatField.style.width = totalWidth;// + soInputFieldWidth;
-
-            objectField.style.maxWidth = (root.layout.width - soFloatField.style.width.value.value) * 0.7f;
+            if (evt.newRect.width <= 0) return;
+            float labelWidth = evt.newRect.width * 0.4f - ToggleOffset;
+            constantField.labelElement.style.width = labelWidth;
+            soValueField.labelElement.style.width  = labelWidth;
+            soValueField.style.width               = labelWidth + InputWidth;
         });
-        
-        // var modeButton = new Button()
-        // {
-        //     text = "⋮",
-        //     style =
-        //     {
-        //         width = 20,
-        //         unityTextAlign = TextAnchor.MiddleCenter,
-        //         unityFontStyleAndWeight = FontStyle.Bold,
-        //     }
-        // };
-        //
-        // modeButton.clicked += () =>
-        // {
-        //     Debug.LogWarning("CLICKED BUTTON");
-        //     
-        //     modeButton.Blur();
-        //     
-        //     useConstantProp.boolValue = !useConstantProp.boolValue;
-        //     constantField.style.display = useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-        //     objectField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-        //     soValueField.style.display = !useConstantProp.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-        //     // constantField.style.visibility = useConstantProp.boolValue ? Visibility.Visible : Visibility.Hidden;
-        //     // objectField.style.visibility = !useConstantProp.boolValue ? Visibility.Visible : Visibility.Hidden;
-        //     // soValueField.style.visibility = !useConstantProp.boolValue ? Visibility.Visible : Visibility.Hidden;
-        //     property.serializedObject.ApplyModifiedProperties();
-        //     // Refresh();
-        // };
-        
-        // modeButton.text = "⋮"; // or a gear icon if you want
-        // modeButton.style.width = 20;
-        // modeButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        // modeButton.style.unityTextAlign = TextAnchor.MiddleCenter;
-        // modeButton.AddToClassList("unity-pane-options"); // ✅ Unity built-in style
 
-        // root.Add(modeButton);
-        root.Add(imguiButton);
+        // Show/hide and update toggle label
+        void Refresh(bool isConst)
+        {
+            toggleBtn.text = isConst ? "C" : "R";
+            constantField.style.display = isConst ? DisplayStyle.Flex : DisplayStyle.None;
+            refRow.style.display        = isConst ? DisplayStyle.None : DisplayStyle.Flex;
+        }
+
+        toggleBtn.clicked += () =>
+        {
+            useConstantProp.boolValue = !useConstantProp.boolValue;
+            property.serializedObject.ApplyModifiedProperties();
+            Refresh(useConstantProp.boolValue);
+        };
+
+        // Initialize
+        BindSoValue(variableProp.objectReferenceValue as FloatVar);
+        Refresh(useConstantProp.boolValue);
+
+        root.Add(toggleBtn);
         root.Add(constantField);
-        root.Add(soFloatField);
-        root.Add(objectField);
-        // root.Add(modeLabel);
+        root.Add(refRow);
 
         return root;
     }
-    
-    // public override VisualElement CreatePropertyGUI(SerializedProperty property)
-    // {
-    //     // Create property container element.
-    //     var container = new VisualElement();
-    //     container.style.flexDirection = FlexDirection.Row;
-    //     container.style.flexGrow = 1.0f;
-    //     
-    //     // Create property fields.
-    //     var useConstantProp = new PropertyField(property.FindPropertyRelative("useConstant"));
-    //     var constantValueProp = new PropertyField(property.FindPropertyRelative("constantValue"));
-    //     var variableProp = new PropertyField(property.FindPropertyRelative("variable"), property.name);
-    //
-    //     // Add fields to the container.
-    //     container.Add(useConstantProp);
-    //     container.Add(constantValueProp);
-    //     container.Add(variableProp);
-    //
-    //     return container;
-    // }
-    
-    // public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
-    // {
-    //     if (popupStyle == null)
-    //     {
-    //         popupStyle = new GUIStyle(GUI.skin.GetStyle("PaneOptions"));
-    //         popupStyle.imagePosition = ImagePosition.ImageOnly;
-    //     }
-    //     
-    //     // Debug.LogWarning($"propWidth: {position.width}");
-    //     
-    //     SerializedProperty useConstantProp = property.FindPropertyRelative("useConstant");
-    //     SerializedProperty constantValueProp = property.FindPropertyRelative("constantValue");
-    //     SerializedProperty variableProp = property.FindPropertyRelative("variable");
-    //     
-    //     FloatVar floatRefVariable = variableProp.objectReferenceValue as FloatVar;
-    //     
-    //     Rect labelRect = new Rect(position);
-    //     labelRect.width *= RefVariablesUtil.labelWidth;
-    //     
-    //     label = EditorGUI.BeginProperty(position, label, property);
-    //
-    //     
-    //     //... DRAW CONSTANT / REFERENCE TOGGLE:
-    //     Rect buttonRect = new Rect(position);
-    //     buttonRect.yMin += popupStyle.margin.top;
-    //     buttonRect.width = popupStyle.fixedWidth + popupStyle.margin.right;
-    //     // position.xMin = buttonRect.xMax;
-    //     if (GUI.Button(buttonRect, "", popupStyle))
-    //     {
-    //         Debug.LogWarning("clicked da buton");
-    //         useConstantProp.boolValue = !useConstantProp.boolValue;
-    //     }
-    //     
-    //     
-    //     labelRect.width -= buttonRect.width;
-    //     labelRect.xMin += buttonRect.width;
-    //     // labelRect.xMin -= buttonRect.width;
-    //     
-    //     // position.width -= labelRect.width;
-    //     // position.xMin = labelRect.xMax + popupStyle.margin.right;
-    //
-    //     //... DRAW PREFIX LABEL:
-    //     EditorGUI.PrefixLabel(labelRect, label);
-    //     
-    //     if (!useConstantProp.boolValue && floatRefVariable != null)
-    //     {
-    //         var so = new SerializedObject(floatRefVariable);
-    //         SerializedProperty valueProp = so.FindProperty("value");
-    //         // SerializedProperty valueProp = variableProp.FindPropertyRelative("value");
-    //         if(valueProp == null)
-    //             Debug.LogWarning("value prop's null");
-    //         else
-    //         {
-    //             EditorGUI.PropertyField(labelRect, valueProp, GUIContent.none);
-    //         }
-    //     }
-    //
-    //     // //... DRAW CONSTANT / REFERENCE TOGGLE:
-    //     // Rect buttonRect = new Rect(position);
-    //     // buttonRect.yMin += popupStyle.margin.top;
-    //     // buttonRect.width = popupStyle.fixedWidth + popupStyle.margin.right;
-    //     // position.xMin = buttonRect.xMax;
-    //     // if (GUI.Button(buttonRect, "", popupStyle))
-    //     // {
-    //     //     Debug.LogWarning("clicked da buton");
-    //     //     useConstantProp.boolValue = !useConstantProp.boolValue;
-    //     // }
-    //     
-    //     
-    //     // float floatRectWidth = 0.12f;
-    //     // Rect floatRect = new Rect(position);
-    //     
-    //     // if (
-    //     //     !useConstantProp.boolValue
-    //     //     && floatRefVariable != null
-    //     //     )
-    //     // {
-    //     //     var oldPositionWidth = position.width;
-    //     //     position.width *= (1f - floatRectWidth);
-    //     //     position.width -= popupStyle.margin.right;
-    //     //
-    //     //     floatRect = new Rect(position);
-    //     //     floatRect.width = oldPositionWidth - position.width;
-    //     //     position.x = floatRect.xMax + popupStyle.margin.right + 6f;
-    //     //     position.width -= 6f;
-    //     //
-    //     //     EditorGUI.PropertyField(floatRect, useConstantProp);
-    //     //     
-    //     //     // var newValue = EditorGUI.FloatField(
-    //     //     //     floatRect,
-    //     //     //     floatRefVariable.value
-    //     //     // );
-    //     //
-    //     //     // floatRefVariable.SetValue(newValue);
-    //     // }
-    //     
-    //     EditorGUI.PropertyField(
-    //         position,
-    //         useConstantProp.boolValue ? constantValueProp : variableProp,
-    //         GUIContent.none
-    //     );
-    //
-    //     using (var checkScope = new EditorGUI.ChangeCheckScope())
-    //     {
-    //         if (checkScope.changed)
-    //         {
-    //             Debug.LogWarning("check!");
-    //         }
-    //     }
-    //     
-    //     EditorGUI.EndProperty();
-    // }
 }
