@@ -30,7 +30,7 @@ public class FloatReferenceDrawer : PropertyDrawer
         SerializedProperty variable = property.FindPropertyRelative("Variable");
 
         SerializedProperty variableFloatProp;
-        SerializedObject variableSO = new SerializedObject(variable.objectReferenceValue);
+        SerializedObject variableSO;// = new SerializedObject();
         if (variable.objectReferenceValue != null)
         {
             variableSO = new SerializedObject(variable.objectReferenceValue);
