@@ -5,7 +5,7 @@ using UnityEngine;
 public class DebugReaderSetupWindow : EditorWindow
 {
     private const string FolderPrefKey = "DebugReader.RootFolder";
-    private const string DefaultFolder = "Assets/DebugSettings";
+    private const string DefaultFolder = "Assets/DebugReader";
 
     private string _folder;
 
@@ -85,7 +85,7 @@ public class DebugReaderSetupWindow : EditorWindow
         using (new EditorGUILayout.HorizontalScope())
         {
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Use default  (Assets/DebugSettings)", GUILayout.Width(240)))
+            if (GUILayout.Button("Use default  (Assets/DebugReader)", GUILayout.Width(240)))
             {
                 _folder = DefaultFolder;
                 EditorPrefs.SetString(FolderPrefKey, _folder);
