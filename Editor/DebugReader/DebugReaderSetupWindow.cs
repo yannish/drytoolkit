@@ -2,19 +2,18 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-public class DebugSettingsSetupWindow : EditorWindow
+public class DebugReaderSetupWindow : EditorWindow
 {
-    private const string FolderPrefKey = "DebugSettings.RootFolder";
+    private const string FolderPrefKey = "DebugReader.RootFolder";
     private const string DefaultFolder = "Assets/DebugSettings";
 
     private string _folder;
 
     // -------------------------------------------------------------------------
 
-    [MenuItem("Tools/Debug Settings/Setup")]
     public static void Open()
     {
-        var w = GetWindow<DebugSettingsSetupWindow>(true, "Debug Settings Setup");
+        var w = GetWindow<DebugReaderSetupWindow>(true, "Debug Reader Setup");
         w.minSize = new Vector2(440, 400);
         w.maxSize = new Vector2(440, 400);
         w.ShowUtility();
@@ -22,7 +21,7 @@ public class DebugSettingsSetupWindow : EditorWindow
 
     private void OnEnable()
     {
-        var registryFolder = DebugSettingsCodegen.GetRootFolder();
+        var registryFolder = DebugReaderCodegen.GetRootFolder();
         _folder = registryFolder ?? EditorPrefs.GetString(FolderPrefKey, DefaultFolder);
     }
 
@@ -35,7 +34,7 @@ public class DebugSettingsSetupWindow : EditorWindow
         var code  = new GUIStyle(EditorStyles.helpBox) { wordWrap = false };
 
         EditorGUILayout.Space(10);
-        EditorGUILayout.LabelField("Debug Settings Setup", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("Debug Reader Setup", EditorStyles.boldLabel);
         EditorGUILayout.Space(10);
 
         DrawDivider();
@@ -103,11 +102,11 @@ public class DebugSettingsSetupWindow : EditorWindow
         EditorGUILayout.LabelField("2  —  Create the registry", bold);
         EditorGUILayout.Space(2);
 
-        bool registryExists = AssetDatabase.FindAssets("t:DebugSettingsRegistry").Length > 0;
+        bool registryExists = AssetDatabase.FindAssets("t:DebugReaderRegistry").Length > 0;
 
         if (registryExists)
         {
-            var path = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:DebugSettingsRegistry")[0]);
+            var path = AssetDatabase.GUIDToAssetPath(AssetDatabase.FindAssets("t:DebugReaderRegistry")[0]);
             EditorGUILayout.LabelField($"✓  Registry already exists at  {path}", small);
         }
         else
@@ -126,8 +125,8 @@ public class DebugSettingsSetupWindow : EditorWindow
     {
         CreateFolderRecursive(_folder);
 
-        var assetPath = $"{_folder}/DebugSettingsRegistry.asset";
-        var registry  = CreateInstance<DebugSettingsRegistry>();
+        var assetPath = $"{_folder}/DebugReaderRegistry.asset";
+        var registry  = CreateInstance<DebugReaderRegistry>();
         AssetDatabase.CreateAsset(registry, assetPath);
         AssetDatabase.SaveAssets();
         EditorPrefs.SetString(FolderPrefKey, _folder);

@@ -7,12 +7,12 @@ using UnityEngine;
 // Scans all user assemblies for [DebugCommand] methods once per domain reload
 // and caches the results. The inspector reads only from this cache — no per-frame reflection.
 [InitializeOnLoad]
-public static class DebugCommandCache
+public static class DebugReaderCommandCache
 {
     // key (e.g. "Climbing.ResetState") → method to invoke
     public static readonly Dictionary<string, MethodInfo> Commands = new();
 
-    static DebugCommandCache()
+    static DebugReaderCommandCache()
     {
         Commands.Clear();
 

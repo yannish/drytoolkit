@@ -5,18 +5,18 @@
 using UnityEditor;
 using UnityEngine;
 
-public static class DebugRuntime
+public static class DebugReaderRuntime
 {
-    private static DebugSettingsRegistry _registry;
+    private static DebugReaderRegistry _registry;
 
-    private static DebugSettingsRegistry Registry
+    private static DebugReaderRegistry Registry
     {
         get
         {
             if (_registry != null) return _registry;
-            var guids = AssetDatabase.FindAssets("t:DebugSettingsRegistry");
+            var guids = AssetDatabase.FindAssets("t:DebugReaderRegistry");
             if (guids.Length > 0)
-                _registry = AssetDatabase.LoadAssetAtPath<DebugSettingsRegistry>(
+                _registry = AssetDatabase.LoadAssetAtPath<DebugReaderRegistry>(
                     AssetDatabase.GUIDToAssetPath(guids[0]));
             return _registry;
         }
@@ -35,7 +35,7 @@ public static class DebugRuntime
             Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
             return false;
         }
-        return ((DebugBool)asset).value;
+        return ((DebugReaderBool)asset).value;
     }
 
     public static float GetFloat(string key)
@@ -49,7 +49,7 @@ public static class DebugRuntime
             Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
             return 0f;
         }
-        return ((DebugFloat)asset).value;
+        return ((DebugReaderFloat)asset).value;
     }
 
     public static Color GetColor(string key)
@@ -63,7 +63,7 @@ public static class DebugRuntime
             Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
             return Color.white;
         }
-        return ((DebugColor)asset).value;
+        return ((DebugReaderColor)asset).value;
     }
 
     public static void InvalidateCache() => _registry = null;

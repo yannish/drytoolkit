@@ -9,7 +9,7 @@
         "Unity.Animation.Rigging",
         "Unity.Collections",
         "Unity.Timeline",
-        ""
+        "DrytoolsDebugReader"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

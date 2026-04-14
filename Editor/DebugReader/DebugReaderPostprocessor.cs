@@ -1,7 +1,7 @@
 using System.IO;
 using UnityEditor;
 
-public class DebugSettingsPostprocessor : AssetPostprocessor
+public class DebugReaderPostprocessor : AssetPostprocessor
 {
     private static void OnPostprocessAllAssets(
         string[] importedAssets,
@@ -28,20 +28,20 @@ public class DebugSettingsPostprocessor : AssetPostprocessor
 
     private static void RunCodegen()
     {
-        DebugRuntime.InvalidateCache();
+        DebugReaderRuntime.InvalidateCache();
 
-        var registryGuids = AssetDatabase.FindAssets("t:DebugSettingsRegistry");
+        var registryGuids = AssetDatabase.FindAssets("t:DebugReaderRegistry");
         if (registryGuids.Length == 0) return;
 
         var registryPath   = AssetDatabase.GUIDToAssetPath(registryGuids[0]);
         var registryFolder = Path.GetDirectoryName(registryPath).Replace('\\', '/');
-        var registry       = AssetDatabase.LoadAssetAtPath<DebugSettingsRegistry>(registryPath);
+        var registry       = AssetDatabase.LoadAssetAtPath<DebugReaderRegistry>(registryPath);
 
-        DebugSettingsCodegen.OrganizeAssets(registryFolder);
-        DebugSettingsCodegen.RefreshRegistry(registry);
+        DebugReaderCodegen.OrganizeAssets(registryFolder);
+        DebugReaderCodegen.RefreshRegistry(registry);
 
         if (registry.autoRefresh)
-            DebugSettingsCodegen.GenerateCode();
+            DebugReaderCodegen.GenerateCode();
     }
 
     private static bool AnyAreDebugSettings(string[] paths)
@@ -50,7 +50,7 @@ public class DebugSettingsPostprocessor : AssetPostprocessor
         {
             if (!path.EndsWith(".asset")) continue;
             var type = AssetDatabase.GetMainAssetTypeAtPath(path);
-            if (type == typeof(DebugBool) || type == typeof(DebugFloat) || type == typeof(DebugColor))
+            if (type == typeof(DebugReaderBool) || type == typeof(DebugReaderFloat) || type == typeof(DebugReaderColor))
                 return true;
         }
         return false;

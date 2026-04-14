@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public abstract class DebugSettingBase : ScriptableObject
+public abstract class DebugReaderSettingBase : ScriptableObject
 {
     public string GroupName
     {

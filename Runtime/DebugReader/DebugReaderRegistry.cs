@@ -2,8 +2,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Debug Settings/Registry", fileName = "DebugSettingsRegistry")]
-public class DebugSettingsRegistry : ScriptableObject
+[CreateAssetMenu(menuName = "Debug Reader/Registry", fileName = "DebugReaderRegistry")]
+public class DebugReaderRegistry : ScriptableObject
 {
     [Serializable]
     public struct GroupState
@@ -11,18 +11,19 @@ public class DebugSettingsRegistry : ScriptableObject
         public string groupName;
         public bool muted;
         public bool foldoutOpen;
+        public bool pinned;
     }
 
     [Tooltip("When enabled, DebugReader.cs is regenerated (and scripts recompile) automatically each time a setting asset is created or deleted. " +
              "Disable when creating many settings in a row to avoid recompiling between each — then hit Refresh when done.")]
     public bool autoRefresh = true;
 
-    [SerializeField] private List<DebugSettingBase> _settings = new();
+    [SerializeField] private List<DebugReaderSettingBase> _settings = new();
     [SerializeField] private List<GroupState> _groupStates = new();
 
-    public IReadOnlyList<DebugSettingBase> Settings => _settings;
+    public IReadOnlyList<DebugReaderSettingBase> Settings => _settings;
 
-    public void SetSettings(List<DebugSettingBase> settings)
+    public void SetSettings(List<DebugReaderSettingBase> settings)
     {
         _settings = settings;
         SyncGroupStates();
@@ -60,6 +61,7 @@ public class DebugSettingsRegistry : ScriptableObject
             _groupStates[i] = gs;
             return;
         }
+        _groupStates.Add(new GroupState { groupName = groupName, muted = muted, foldoutOpen = true });
     }
 
     public bool GetGroupFoldout(string groupName)
@@ -79,9 +81,30 @@ public class DebugSettingsRegistry : ScriptableObject
             _groupStates[i] = gs;
             return;
         }
+        _groupStates.Add(new GroupState { groupName = groupName, muted = false, foldoutOpen = open });
     }
 
-    public DebugSettingBase GetSetting(string fullKey)
+    public bool IsGroupPinned(string groupName)
+    {
+        foreach (var gs in _groupStates)
+            if (gs.groupName == groupName) return gs.pinned;
+        return false;
+    }
+
+    public void SetGroupPinned(string groupName, bool pinned)
+    {
+        for (int i = 0; i < _groupStates.Count; i++)
+        {
+            if (_groupStates[i].groupName != groupName) continue;
+            var gs = _groupStates[i];
+            gs.pinned = pinned;
+            _groupStates[i] = gs;
+            return;
+        }
+        _groupStates.Add(new GroupState { groupName = groupName, muted = false, foldoutOpen = true, pinned = pinned });
+    }
+
+    public DebugReaderSettingBase GetSetting(string fullKey)
     {
         foreach (var s in _settings)
             if (s != null && s.FullKey == fullKey) return s;

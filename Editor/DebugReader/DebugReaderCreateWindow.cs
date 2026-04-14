@@ -3,22 +3,22 @@ using System.IO;
 using UnityEditor;
 using UnityEngine;
 
-public class DebugSettingCreateWindow : EditorWindow
+public class DebugReaderCreateWindow : EditorWindow
 {
     private Type   _settingType;
     private string _registryFolder;
-    private DebugSettingsRegistry _registry;
+    private DebugReaderRegistry _registry;
 
     private string _inputName  = "";
     private bool   _focusDone  = false;
 
-    public static void Show(Type settingType, string registryFolder, DebugSettingsRegistry registry)
+    public static void Show(Type settingType, string registryFolder, DebugReaderRegistry registry)
     {
-        var window = CreateInstance<DebugSettingCreateWindow>();
+        var window = CreateInstance<DebugReaderCreateWindow>();
         window._settingType     = settingType;
         window._registryFolder  = registryFolder;
         window._registry        = registry;
-        window.titleContent     = new GUIContent($"New Debug {settingType.Name.Replace("Debug", "")}");
+        window.titleContent     = new GUIContent($"New Debug {settingType.Name.Replace("DebugReader", "")}");
         window.minSize          = new Vector2(320, 80);
         window.maxSize          = new Vector2(480, 80);
         window.ShowAuxWindow();
@@ -100,7 +100,7 @@ public class DebugSettingCreateWindow : EditorWindow
         string fullName,
         Type settingType,
         string registryFolder,
-        DebugSettingsRegistry registry)
+        DebugReaderRegistry registry)
     {
         int dot       = fullName.IndexOf('.');
         string group  = fullName.Substring(0, dot);
