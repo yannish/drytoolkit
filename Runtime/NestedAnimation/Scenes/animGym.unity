@@ -579,7 +579,7 @@ Transform:
   m_GameObject: {fileID: 168325942}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 38.09023, y: 0.21342526, z: 5.113262}
+  m_LocalPosition: {x: 39.91, y: 0.21342526, z: 2.669}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -597,6 +597,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5d216b64ca84dc44968fb3b1a70b37c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  quickClass:
+    quickFloat: 0
+    quickInt: 0
+    quickString: 
+  quickStruct:
+    quickFloat: 0
+    quickInt: 0
+    quickString: 
+  range:
+    min: 1.6999993
+    max: 3
   quickFloat: 0
   floatRef:
     useConstant: 1
@@ -606,7 +617,7 @@ MonoBehaviour:
     UseConstant: 0
     ConstantValue: 0
     Variable: {fileID: 11400000, guid: 84094af883868874898ac79aa7d09938, type: 2}
-  clipConfigA: {fileID: 0}
+  clipConfigA: {fileID: 11400000, guid: 014913f1008f8ce46a61295dfffc43ff, type: 2}
   clipConfigB: {fileID: 0}
   clipConfigC: {fileID: 0}
   clipConfigD: {fileID: 0}
@@ -1234,6 +1245,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &361001606
 MeshFilter:
@@ -1383,14 +1395,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 410087039}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -2099,6 +2111,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &723246312
 MeshFilter:
@@ -3836,7 +3849,7 @@ MonoBehaviour:
     variable: {fileID: 11400000, guid: e509d9aa0ec2da648a0f87841fd8ede9, type: 2}
   aDifferentFloatRef:
     useConstant: 0
-    constantValue: 3.73
+    constantValue: 8.83
     variable: {fileID: 11400000, guid: e509d9aa0ec2da648a0f87841fd8ede9, type: 2}
   quickTarget:
     quickTargetFloat: 5.87
@@ -3966,6 +3979,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1117955162
 MeshFilter:
@@ -4290,6 +4304,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1246616515
 MeshFilter:
@@ -4496,6 +4511,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1381034002
 MeshFilter:
@@ -5307,6 +5323,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1640065735
 MeshFilter:
@@ -5789,6 +5806,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1796520162
 MeshFilter:
@@ -6009,6 +6027,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1827377464
 MeshFilter:
@@ -6419,8 +6438,8 @@ SceneRoots:
   - {fileID: 765474323}
   - {fileID: 1274968582}
   - {fileID: 1381034003}
-  - {fileID: 269000687}
   - {fileID: 168325944}
+  - {fileID: 269000687}
   - {fileID: 1086892553}
   - {fileID: 927475796}
   - {fileID: 1086820874}

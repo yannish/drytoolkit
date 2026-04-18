@@ -1,14 +1,20 @@
 using UnityEditor;
 using UnityEngine;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
 
 [CustomPropertyDrawer(typeof(ShowIfAttribute))]
 public class ShowIfPropertyDrawer : PropertyDrawer
 {
+    // Keyed by (target type, condition member name). Null value = searched and not found.
+    private static readonly Dictionary<(Type, string), Func<object, bool>> _memberCache
+        = new Dictionary<(Type, string), Func<object, bool>>();
+
     public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
         if (!ShouldShow(property))
-            return 0; // Hide the property by setting its height to zero
+            return 0;
 
         return EditorGUI.GetPropertyHeight(property, label);
     }
@@ -18,9 +24,7 @@ public class ShowIfPropertyDrawer : PropertyDrawer
         if (ShouldShow(property))
         {
             using (new EditorGUI.IndentLevelScope())
-            {
                 EditorGUI.PropertyField(position, property, label, true);
-            }
         }
     }
 
@@ -28,60 +32,73 @@ public class ShowIfPropertyDrawer : PropertyDrawer
     {
         ShowIfAttribute showIf = (ShowIfAttribute)attribute;
         SerializedObject serializedObject = property.serializedObject;
-        SerializedProperty conditionProperty = serializedObject.FindProperty(showIf.conditionField);
-        SerializedProperty nestedProperty = serializedObject.FindProperty(property.propertyPath);
-            // .FindPropertyRelative(showIf.conditionField);
-        SerializedProperty extraNestedProperty = nestedProperty.FindPropertyRelative(showIf.conditionField);
-            
-        if (extraNestedProperty != null)
-        {
-            Debug.LogWarning("found property through its path!");
-        }
-            
-        // if (nestedProperty != null)
-        // {
-        //     // Debug.LogWarning("found property, it was nested!");
-        // }
-        
-        //... check "nest" here
-        
-        //... check "array" here
-        
-        if (conditionProperty != null)
+
+        // --- Path 1: SerializedProperty (serialized fields, fast) ---
+        SerializedProperty conditionProp = serializedObject.FindProperty(showIf.conditionField);
+        if (conditionProp != null)
         {
             if (showIf.compareValue == null)
-                return conditionProperty.boolValue; // Default behavior (boolean toggle)
+                return conditionProp.boolValue;
 
-            switch (conditionProperty.propertyType)
+            switch (conditionProp.propertyType)
             {
-                case SerializedPropertyType.Boolean:
-                    return conditionProperty.boolValue.Equals(showIf.compareValue);
-                case SerializedPropertyType.Enum:
-                    return conditionProperty.enumValueIndex.Equals((int)showIf.compareValue);
-                case SerializedPropertyType.Integer:
-                    return conditionProperty.intValue.Equals((int)showIf.compareValue);
-                case SerializedPropertyType.Float:
-                    return conditionProperty.floatValue.Equals((float)showIf.compareValue);
-                case SerializedPropertyType.String:
-                    return conditionProperty.stringValue.Equals((string)showIf.compareValue);
+                case SerializedPropertyType.Boolean: return conditionProp.boolValue.Equals(showIf.compareValue);
+                case SerializedPropertyType.Enum:    return conditionProp.enumValueIndex.Equals((int)showIf.compareValue);
+                case SerializedPropertyType.Integer: return conditionProp.intValue.Equals((int)showIf.compareValue);
+                case SerializedPropertyType.Float:   return conditionProp.floatValue.Equals((float)showIf.compareValue);
+                case SerializedPropertyType.String:  return conditionProp.stringValue.Equals((string)showIf.compareValue);
             }
         }
-        else
+
+        // --- Path 2: Reflection fallback (non-serialized fields, properties, methods) ---
+        object target = serializedObject.targetObject;
+        Type targetType = target.GetType();
+        var cacheKey = (targetType, showIf.conditionField);
+
+        if (!_memberCache.TryGetValue(cacheKey, out Func<object, bool> cachedDelegate))
         {
-            // Try reflection (for private fields, properties, etc.)
-            object target = property.serializedObject.targetObject;
-            FieldInfo field = target.GetType().GetField(
-                showIf.conditionField,
-                BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance
-                );
-            
+            cachedDelegate = FindRawBoolDelegate(targetType, showIf.conditionField);
+            _memberCache[cacheKey] = cachedDelegate;
+        }
+
+        if (cachedDelegate == null)
+            return true;
+
+        bool rawValue = cachedDelegate(target);
+        return showIf.compareValue == null ? rawValue : rawValue.Equals(showIf.compareValue);
+    }
+
+    // Walks the type hierarchy looking for a bool-returning field, property, or method.
+    // Returns a cached extractor lambda, or null if nothing is found.
+    private static Func<object, bool> FindRawBoolDelegate(Type type, string name)
+    {
+        const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public
+                                 | BindingFlags.Instance | BindingFlags.DeclaredOnly;
+
+        for (Type current = type; current != null && current != typeof(object); current = current.BaseType)
+        {
+            FieldInfo field = current.GetField(name, flags);
             if (field != null)
             {
-                object fieldValue = field.GetValue(target);
-                return fieldValue.Equals(showIf.compareValue ?? true);
+                FieldInfo f = field;
+                return obj => (bool)f.GetValue(obj);
+            }
+
+            PropertyInfo prop = current.GetProperty(name, flags);
+            if (prop != null && prop.CanRead && prop.PropertyType == typeof(bool))
+            {
+                PropertyInfo p = prop;
+                return obj => (bool)p.GetValue(obj);
+            }
+
+            MethodInfo method = current.GetMethod(name, flags);
+            if (method != null && method.GetParameters().Length == 0 && method.ReturnType == typeof(bool))
+            {
+                MethodInfo m = method;
+                return obj => (bool)m.Invoke(obj, null);
             }
         }
 
-        return true; // Default: Show property if condition is invalid
+        return null;
     }
 }
