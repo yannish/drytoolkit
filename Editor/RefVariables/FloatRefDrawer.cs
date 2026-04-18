@@ -1,109 +1,114 @@
 using UnityEditor;
-using UnityEditor.UIElements;
-using UnityEngine.UIElements;
+using UnityEngine;
 
 [CustomPropertyDrawer(typeof(FloatRef))]
 public class FloatRefDrawer : PropertyDrawer
 {
-    const float InputWidth   = 55f;
-    const float ToggleOffset = 20f; // 18px btn + 2px marginRight
+    // Using IMGUI (OnGUI) rather than CreatePropertyGUI (UIElements) to avoid
+    // Unity 6's PropertyField internal change-tracker calling boxedValue on
+    // Generic-typed serialized properties, which logs "Unsupported type FloatRef"
+    // every editor frame via Internal_CallUpdateFunctions.
+    //
+    // Drag-to-scrub on the label is preserved: the toggle button is positioned
+    // before the label, and the label is passed into PropertyField (not
+    // GUIContent.none), so Unity renders it as a live drag region.
+    // EditorGUIUtility.labelWidth is adjusted temporarily so the label + button
+    // still land on the standard 40 % column mark.
 
-    public override VisualElement CreatePropertyGUI(SerializedProperty property)
+    const float ValueWidth = 55f;
+    const float ValueGap   = 2f;
+
+    private GUIStyle _buttonStyle;
+
+    public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
     {
+        return EditorGUIUtility.singleLineHeight;
+    }
+
+    public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
+    {
+        if (_buttonStyle == null)
+        {
+            _buttonStyle = new GUIStyle(GUI.skin.GetStyle("PaneOptions"));
+            _buttonStyle.imagePosition = ImagePosition.ImageOnly;
+        }
+
         var useConstantProp   = property.FindPropertyRelative("useConstant");
         var constantValueProp = property.FindPropertyRelative("constantValue");
         var variableProp      = property.FindPropertyRelative("variable");
 
-        var root = new VisualElement();
-        root.style.flexDirection = FlexDirection.Row;
+        label = EditorGUI.BeginProperty(position, label, property);
+        EditorGUI.BeginChangeCheck();
 
-        // --- Toggle button ---
-        var toggleBtn = new Button();
-        toggleBtn.style.width        = 18;
-        toggleBtn.style.height       = 18;
-        toggleBtn.style.alignSelf    = Align.Center;
-        toggleBtn.style.flexShrink   = 0;
-        toggleBtn.style.marginRight  = 2;
-        toggleBtn.style.paddingLeft  = 0;
-        toggleBtn.style.paddingRight = 0;
-        toggleBtn.style.fontSize     = 9;
+        int indent = EditorGUI.indentLevel;
+        EditorGUI.indentLevel = 0;
 
-        // --- Constant mode ---
-        var constantField = new FloatField(property.displayName);
-        constantField.BindProperty(constantValueProp);
-        constantField.style.flexGrow = 1;
+        // Toggle button sits at the very left of the field area.
+        float btnWidth = _buttonStyle.fixedWidth + _buttonStyle.margin.right;
+        Rect buttonRect = new Rect(
+            position.x,
+            position.y + _buttonStyle.margin.top,
+            btnWidth,
+            position.height
+        );
 
-        // --- Reference mode ---
-        var refRow = new VisualElement();
-        refRow.style.flexDirection = FlexDirection.Row;
-        refRow.style.flexGrow      = 1;
+        bool useConst = useConstantProp.boolValue;
+        if (GUI.Button(buttonRect, useConst ? "C" : "R", _buttonStyle))
+            useConstantProp.boolValue = !useConst;
 
-        // FloatField keeps its label so drag-to-scrub works; width is set by GeometryChangedEvent
-        var soValueField = new FloatField(property.displayName);
-        soValueField.style.flexShrink = 0;
-        soValueField.style.flexGrow   = 0;
+        // Field rect starts right after the button.
+        // Shrink labelWidth by btnWidth so the label column still aligns with
+        // the standard inspector 40 % mark (btn + label together = 40 %).
+        Rect fieldRect = new Rect(
+            position.x + btnWidth,
+            position.y,
+            position.width - btnWidth,
+            position.height
+        );
 
-        var objectField = new ObjectField();
-        objectField.objectType        = typeof(FloatVar);
-        objectField.allowSceneObjects = false;
-        objectField.style.flexGrow    = 1;
-        objectField.style.flexShrink  = 1;
-        objectField.BindProperty(variableProp);
+        float savedLabelWidth = EditorGUIUtility.labelWidth;
+        EditorGUIUtility.labelWidth = savedLabelWidth - btnWidth;
 
-        refRow.Add(soValueField);
-        refRow.Add(objectField);
-
-        // Bind soValueField to the selected FloatVar
-        void BindSoValue(FloatVar floatVar)
+        if (useConstantProp.boolValue)
         {
-            soValueField.Unbind();
+            // Passing 'label' (not GUIContent.none) makes IMGUI render the label
+            // as a drag region → drag-to-scrub works.
+            EditorGUI.PropertyField(fieldRect, constantValueProp, label);
+        }
+        else
+        {
+            var floatVar = variableProp.objectReferenceValue as FloatVar;
             if (floatVar != null)
             {
-                soValueField.BindProperty(new SerializedObject(floatVar).FindProperty("value"));
-                soValueField.SetEnabled(true);
+                // [draggable label + live value] | [object field]
+                float labelPlusValue = EditorGUIUtility.labelWidth + ValueWidth;
+                Rect valueRect  = new Rect(fieldRect.x, fieldRect.y,
+                    labelPlusValue, fieldRect.height);
+                Rect objectRect = new Rect(fieldRect.x + labelPlusValue + ValueGap, fieldRect.y,
+                    fieldRect.width - labelPlusValue - ValueGap, fieldRect.height);
+
+                var varSO = new SerializedObject(floatVar);
+                varSO.Update();
+                // Again, pass 'label' so the label portion remains draggable.
+                EditorGUI.PropertyField(valueRect, varSO.FindProperty("value"), label);
+                if (varSO.hasModifiedProperties)
+                    varSO.ApplyModifiedProperties();
+
+                EditorGUI.PropertyField(objectRect, variableProp, GUIContent.none);
             }
             else
             {
-                soValueField.SetValueWithoutNotify(0f);
-                soValueField.SetEnabled(false);
+                // No variable assigned yet — just show the object field with label.
+                EditorGUI.PropertyField(fieldRect, variableProp, label);
             }
         }
 
-        objectField.RegisterValueChangedCallback(evt => BindSoValue(evt.newValue as FloatVar));
+        EditorGUIUtility.labelWidth = savedLabelWidth;
+        EditorGUI.indentLevel = indent;
 
-        // Correct label widths so [toggle + label] = 40% and [inputs] = 60%
-        root.RegisterCallback<GeometryChangedEvent>(evt =>
-        {
-            if (evt.newRect.width <= 0) return;
-            float labelWidth = evt.newRect.width * 0.4f - ToggleOffset;
-            constantField.labelElement.style.width = labelWidth;
-            soValueField.labelElement.style.width  = labelWidth;
-            soValueField.style.width               = labelWidth + InputWidth;
-        });
-
-        // Show/hide and update toggle label
-        void Refresh(bool isConst)
-        {
-            toggleBtn.text = isConst ? "C" : "R";
-            constantField.style.display = isConst ? DisplayStyle.Flex : DisplayStyle.None;
-            refRow.style.display        = isConst ? DisplayStyle.None : DisplayStyle.Flex;
-        }
-
-        toggleBtn.clicked += () =>
-        {
-            useConstantProp.boolValue = !useConstantProp.boolValue;
+        if (EditorGUI.EndChangeCheck())
             property.serializedObject.ApplyModifiedProperties();
-            Refresh(useConstantProp.boolValue);
-        };
 
-        // Initialize
-        BindSoValue(variableProp.objectReferenceValue as FloatVar);
-        Refresh(useConstantProp.boolValue);
-
-        root.Add(toggleBtn);
-        root.Add(constantField);
-        root.Add(refRow);
-
-        return root;
+        EditorGUI.EndProperty();
     }
 }
