@@ -162,27 +162,10 @@ public class BindingMapPropertyDrawer : PropertyDrawer
                 Rect forwardRect = new Rect(rowRect.x, rowRect.y, halfWidth, rowRect.height);
                 Rect backwardRect = new Rect(rowRect.x + halfWidth + 4f, rowRect.y, halfWidth, rowRect.height);
 
-                if (forwardProp.propertyType == SerializedPropertyType.Generic)
-                {
-                    var style = new GUIStyle(EditorStyles.boldLabel);
-                    style.alignment = TextAnchor.MiddleRight;
-                    EditorGUI.LabelField(forwardRect,$"[{forwardProp.boxedValue}]", style);
-                }
-                else
-                {
-                    EditorGUI.PropertyField(forwardRect, forwardProp, GUIContent.none, true);
-                }
-
-                if (backwardProp.propertyType == SerializedPropertyType.Generic)
-                {
-                    var style = new GUIStyle(EditorStyles.boldLabel);
-                    style.alignment = TextAnchor.MiddleRight;
-                    EditorGUI.LabelField(backwardRect, $"[{backwardProp.boxedValue}]", style);
-                }
-                else
-                {
-                    EditorGUI.PropertyField(backwardRect, backwardProp, GUIContent.none, true);
-                }
+                // Use PropertyField for all types — boxedValue is unsupported for
+                // Generic (custom serializable) types like FloatRef and logs errors.
+                EditorGUI.PropertyField(forwardRect, forwardProp, GUIContent.none, true);
+                EditorGUI.PropertyField(backwardRect, backwardProp, GUIContent.none, true);
 
             }
             GUI.enabled = true;
