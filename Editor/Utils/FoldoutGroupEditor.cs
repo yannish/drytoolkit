@@ -160,8 +160,8 @@ namespace drytoolkit.Editor.Utils
 
             foreach (var field in fields)
             {
-                var foldoutAttr = field.GetCustomAttribute<FoldoutGroupAttribute>();
-                var endAttr = field.GetCustomAttribute<EndFoldoutGroupAttribute>();
+                var foldoutAttr = field.GetCustomAttribute<FoldAttribute>();
+                var endAttr = field.GetCustomAttribute<EndFoldAttribute>();
 
                 if (foldoutAttr != null)
                 {

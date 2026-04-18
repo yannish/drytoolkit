@@ -4,7 +4,7 @@ using UnityEngine;
 namespace drytoolkit.Runtime.Utils
 {
     [AttributeUsage(AttributeTargets.Field)]
-    public class FoldoutGroupAttribute : PropertyAttribute
+    public class FoldAttribute : PropertyAttribute
     {
         public readonly string title;
         public readonly string titleFrom;
