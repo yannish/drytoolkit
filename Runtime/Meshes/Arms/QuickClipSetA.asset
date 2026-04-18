@@ -12,4 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe948d0690f9d0b4190b9350937e45f1, type: 3}
   m_Name: QuickClipSetA
   m_EditorClassIdentifier: 
-  clips: []
+  clipDataList:
+  - clip: {fileID: 7400000, guid: b66410e3a9899964cbd9169871dab09d, type: 2}
+    mute: 1
+  - clip: {fileID: 7400000, guid: b780dd096033ee341a4dadfbab760f4c, type: 2}
+    mute: 0
+  - clip: {fileID: 7400000, guid: 8532216b469b98e41ab223de823b08a1, type: 2}
+    mute: 1
+  randomFloat: 4.03
