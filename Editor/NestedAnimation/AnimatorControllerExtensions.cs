@@ -8,8 +8,12 @@ public class AnimatorControllerExtension : Editor
 {
     public static event Action OnClipAssetsChanged;
     
+    public static event Action OnClipSetsChanged;
+    
     public static void NotifyClipsChanged() => OnClipAssetsChanged?.Invoke();
 
+    public static void NotifyClipSetsChanged() => OnClipSetsChanged?.Invoke();
+    
     
     [MenuItem("Assets/Generate Clip #&c", false, 2000)]
     private static void GenerateClip()

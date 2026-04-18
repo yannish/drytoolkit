@@ -10,8 +10,17 @@ public class AnimationClipAssetPostProcessor : AssetPostprocessor
         bool deletedClip = deletedAssets.Any(path => path.EndsWith(".anim"));
         if (hasNewClip || deletedClip)
         {
-            // Debug.LogWarning("processing a new animation clip change");
-            AnimatorControllerExtension.NotifyClipsChanged(); // As in Option 1
+            AnimatorControllerExtension.NotifyClipsChanged(); 
+        }
+
+        var all = importedAssets.Concat(deletedAssets).Concat(movedAssets).Concat(movedAssets).Concat(movedFromPath).ToArray();
+        
+        foreach (var path in all)
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<ClipSet>(path);
+            if(asset != null)
+                Debug.LogWarning("this was a clipset!");
+            AnimatorControllerExtension.NotifyClipSetsChanged();
         }
     }
 }
