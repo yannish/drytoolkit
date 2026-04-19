@@ -12,6 +12,27 @@ public class DebugReaderWindow : EditorWindow
     private string              _searchQuery = "";
     private bool                _wantFocus;
 
+    // Pin icons — loaded once per session from Assets/drytoolkit/Editor/Icons/.
+    // Drop 16×16 PNGs named pin-on.png / pin-off.png there to replace the text fallback.
+    private static GUIContent _iconPinOn;
+    private static GUIContent _iconPinOff;
+
+    private static GUIContent PinIcon(bool pinned)
+    {
+        ref var slot = ref pinned ? ref _iconPinOn : ref _iconPinOff;
+        if (slot != null) return slot;
+
+        var path = pinned
+            ? "Assets/drytoolkit/Editor/Icons/pin-on.png"
+            : "Assets/drytoolkit/Editor/Icons/pin-off.png";
+
+        var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        slot = tex != null
+            ? new GUIContent(tex,    pinned ? "Unpin"      : "Pin to top")
+            : new GUIContent(pinned ? "●"  : "○", pinned ? "Unpin" : "Pin to top");
+        return slot;
+    }
+
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public static void Open()
@@ -212,7 +233,7 @@ public class DebugReaderWindow : EditorWindow
                 bool isPinned  = _registry.IsGroupPinned(groupName);
                 var  prevColor = GUI.color;
                 GUI.color = isPinned ? new Color(1f, 0.85f, 0.2f) : prevColor;
-                if (GUILayout.Button(isPinned ? "★" : "☆", GUILayout.Width(22)))
+                if (GUILayout.Button(PinIcon(isPinned), GUILayout.Width(22), GUILayout.Height(18)))
                 {
                     _registry.SetGroupPinned(groupName, !isPinned);
                     EditorUtility.SetDirty(_registry);
@@ -280,8 +301,14 @@ public class DebugReaderWindow : EditorWindow
         var valueProp = so.FindProperty("value");
         if (valueProp == null) return;
 
-        using (new EditorGUI.DisabledScope(groupMuted))
-            EditorGUILayout.PropertyField(valueProp, new GUIContent(setting.SettingName));
+        using (new EditorGUILayout.HorizontalScope())
+        {
+            using (new EditorGUI.DisabledScope(groupMuted))
+                EditorGUILayout.PropertyField(valueProp, new GUIContent(setting.SettingName));
+
+            // Object field — click to select/ping the backing SO in the Project window for renaming
+            EditorGUILayout.ObjectField(setting, typeof(DebugReaderSettingBase), false, GUILayout.Width(300));
+        }
 
         so.ApplyModifiedProperties();
     }
