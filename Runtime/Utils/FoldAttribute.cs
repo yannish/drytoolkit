@@ -9,7 +9,7 @@ namespace drytoolkit.Runtime.Utils
         public readonly string title;
         public readonly string titleFrom;
 
-        public FoldoutGroupAttribute(string title, string titleFrom = null)
+        public FoldAttribute(string title, string titleFrom = null)
         {
             this.title = title;
             this.titleFrom = titleFrom;
