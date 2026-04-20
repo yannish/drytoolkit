@@ -50,11 +50,8 @@ namespace drytoolkit.Editor.Utils
 
         // ── Static caches (cleared on domain reload) ───────────────────────────
 
-        private static readonly Dictionary<Type, List<Segment>> _segmentCache
-            = new Dictionary<Type, List<Segment>>();
-
-        private static readonly Dictionary<Type, (List<ButtonRow> top, List<ButtonRow> bottom)> _buttonCache
-            = new Dictionary<Type, (List<ButtonRow>, List<ButtonRow>)>();
+        private static readonly Dictionary<Type, (List<Segment> segments, List<ButtonRow> top, List<ButtonRow> bottom)> _typeCache
+            = new Dictionary<Type, (List<Segment>, List<ButtonRow>, List<ButtonRow>)>();
 
         private static readonly Dictionary<(Type, string), Func<object, string>> _titleFromCache
             = new Dictionary<(Type, string), Func<object, string>>();
@@ -73,10 +70,10 @@ namespace drytoolkit.Editor.Utils
 
         protected virtual void OnEnable()
         {
-            _segments = BuildOrFetchSegments(target.GetType());
-            var buttonRows = BuildOrFetchButtonRows(target.GetType());
-            _topButtons = buttonRows.top;
-            _bottomButtons = buttonRows.bottom;
+            var (segments, top, bottom) = BuildOrFetchAll(target.GetType());
+            _segments = segments;
+            _topButtons = top;
+            _bottomButtons = bottom;
 
             _animBools = new List<AnimBool>();
             foreach (var seg in _segments)
@@ -173,40 +170,105 @@ namespace drytoolkit.Editor.Utils
         private void DrawButtonRows(List<ButtonRow> rows)
         {
             foreach (var row in rows)
+                DrawButtonRow(row);
+        }
+
+        private void DrawButtonRow(ButtonRow row)
+        {
+            if (row.buttons.Count == 1)
             {
-                if (row.buttons.Count == 1)
+                var btn = row.buttons[0];
+                if (GUILayout.Button(btn.label))
+                    btn.method.Invoke(target, null);
+            }
+            else
+            {
+                using (new GUILayout.HorizontalScope())
                 {
-                    var btn = row.buttons[0];
-                    if (GUILayout.Button(btn.label))
-                        btn.method.Invoke(target, null);
-                }
-                else
-                {
-                    using (new GUILayout.HorizontalScope())
+                    foreach (var btn in row.buttons)
                     {
-                        foreach (var btn in row.buttons)
-                        {
-                            if (GUILayout.Button(btn.label))
-                                btn.method.Invoke(target, null);
-                        }
+                        if (GUILayout.Button(btn.label))
+                            btn.method.Invoke(target, null);
                     }
                 }
             }
         }
 
-        // ── Button building ────────────────────────────────────────────────────
+        // ── Member scanning ────────────────────────────────────────────────────
 
-        private static (List<ButtonRow> top, List<ButtonRow> bottom) BuildOrFetchButtonRows(Type type)
+        private static (List<Segment> segments, List<ButtonRow> top, List<ButtonRow> bottom) BuildOrFetchAll(Type type)
         {
-            if (_buttonCache.TryGetValue(type, out var cached))
+            if (_typeCache.TryGetValue(type, out var cached))
                 return cached;
 
+            var members = GetMembersInOrder(type);
+            var segments = new List<Segment>();
             var topRows = new List<ButtonRow>();
             var bottomRows = new List<ButtonRow>();
+            var groupsByTitle = new Dictionary<string, GroupedSegment>();
+            int groupIndex = 0;
 
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public
-                                     | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            foreach (var member in members)
+            {
+                if (member is FieldInfo field)
+                {
+                    var foldAttr = field.GetCustomAttribute<FoldAttribute>();
 
+                    if (foldAttr != null)
+                    {
+                        if (!groupsByTitle.TryGetValue(foldAttr.title, out var group))
+                        {
+                            group = new GroupedSegment
+                            {
+                                title = foldAttr.title,
+                                titleFrom = foldAttr.titleFrom,
+                                groupIndex = groupIndex++
+                            };
+                            groupsByTitle[foldAttr.title] = group;
+                            segments.Add(group);
+                        }
+                        group.propertyPaths.Add(field.Name);
+                    }
+                    else
+                    {
+                        if (segments.Count == 0 || !(segments[segments.Count - 1] is UngroupedSegment))
+                            segments.Add(new UngroupedSegment());
+
+                        ((UngroupedSegment)segments[segments.Count - 1]).propertyPaths.Add(field.Name);
+                    }
+                }
+                else if (member is MethodInfo method)
+                {
+                    var attr = method.GetCustomAttribute<EditorButtonAttribute>();
+                    string label = attr.label ?? ObjectNames.NicifyVariableName(method.Name);
+                    var info = new ButtonInfo { method = method, label = label };
+                    AddButtonToList(attr.position == ButtonPosition.Top ? topRows : bottomRows, info, attr.group);
+                }
+            }
+
+            var result = (segments, topRows, bottomRows);
+            _typeCache[type] = result;
+            return result;
+        }
+
+        private static void AddButtonToList(List<ButtonRow> list, ButtonInfo info, string buttonGroup)
+        {
+            var last = list.Count > 0 ? list[list.Count - 1] : null;
+            if (buttonGroup != null && last != null
+                && last.buttons[0].method.GetCustomAttribute<EditorButtonAttribute>()?.group == buttonGroup)
+            {
+                last.buttons.Add(info);
+            }
+            else
+            {
+                var row = new ButtonRow();
+                row.buttons.Add(info);
+                list.Add(row);
+            }
+        }
+
+        private static List<MemberInfo> GetMembersInOrder(Type type)
+        {
             var typeChain = new Stack<Type>();
             for (Type t = type; t != null && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject)
                                           && t != typeof(Behaviour) && t != typeof(Component)
@@ -215,134 +277,34 @@ namespace drytoolkit.Editor.Utils
                 typeChain.Push(t);
             }
 
-            while (typeChain.Count > 0)
-            {
-                foreach (var method in typeChain.Pop().GetMethods(flags))
-                {
-                    var attr = method.GetCustomAttribute<EditorButtonAttribute>();
-                    if (attr == null || method.GetParameters().Length > 0) continue;
-
-                    string label = attr.label ?? ObjectNames.NicifyVariableName(method.Name);
-                    var info = new ButtonInfo { method = method, label = label };
-                    var targetList = attr.position == ButtonPosition.Top ? topRows : bottomRows;
-
-                    if (attr.group != null)
-                    {
-                        var last = targetList.Count > 0 ? targetList[targetList.Count - 1] : null;
-                        if (last != null && last.buttons.Count > 0
-                            && last.buttons[0].method.GetCustomAttribute<EditorButtonAttribute>()?.group == attr.group)
-                        {
-                            last.buttons.Add(info);
-                        }
-                        else
-                        {
-                            var row = new ButtonRow();
-                            row.buttons.Add(info);
-                            targetList.Add(row);
-                        }
-                    }
-                    else
-                    {
-                        var row = new ButtonRow();
-                        row.buttons.Add(info);
-                        targetList.Add(row);
-                    }
-                }
-            }
-
-            var result = (topRows, bottomRows);
-            _buttonCache[type] = result;
-            return result;
-        }
-
-        // ── Segment building ───────────────────────────────────────────────────
-
-        private static List<Segment> BuildOrFetchSegments(Type type)
-        {
-            if (_segmentCache.TryGetValue(type, out var cached))
-                return cached;
-
-            var fields = GetSerializedFieldsInOrder(type);
-            var segments = new List<Segment>();
-            GroupedSegment currentGroup = null;
-            int groupIndex = 0;
-
-            foreach (var field in fields)
-            {
-                var foldoutAttr = field.GetCustomAttribute<FoldAttribute>();
-                var endAttr = field.GetCustomAttribute<EndFoldAttribute>();
-
-                if (foldoutAttr != null)
-                {
-                    if (currentGroup != null)
-                        segments.Add(currentGroup);
-
-                    currentGroup = new GroupedSegment
-                    {
-                        title = foldoutAttr.title,
-                        titleFrom = foldoutAttr.titleFrom,
-                        groupIndex = groupIndex++
-                    };
-                    currentGroup.propertyPaths.Add(field.Name);
-
-                    if (endAttr != null)
-                    {
-                        segments.Add(currentGroup);
-                        currentGroup = null;
-                    }
-                }
-                else if (currentGroup != null)
-                {
-                    currentGroup.propertyPaths.Add(field.Name);
-
-                    if (endAttr != null)
-                    {
-                        segments.Add(currentGroup);
-                        currentGroup = null;
-                    }
-                }
-                else
-                {
-                    if (segments.Count == 0 || !(segments[segments.Count - 1] is UngroupedSegment))
-                        segments.Add(new UngroupedSegment());
-
-                    ((UngroupedSegment)segments[segments.Count - 1]).propertyPaths.Add(field.Name);
-                }
-            }
-
-            if (currentGroup != null)
-                segments.Add(currentGroup);
-
-            _segmentCache[type] = segments;
-            return segments;
-        }
-
-        private static List<FieldInfo> GetSerializedFieldsInOrder(Type type)
-        {
-            // Walk up to (but not including) MonoBehaviour / ScriptableObject, preserving order base→derived.
-            var typeChain = new Stack<Type>();
-            for (Type t = type; t != null && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject)
-                                          && t != typeof(Behaviour) && t != typeof(Component)
-                                          && t != typeof(UnityEngine.Object) && t != typeof(object); t = t.BaseType)
-            {
-                typeChain.Push(t);
-            }
-
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public
                                      | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
 
-            var result = new List<FieldInfo>();
+            var result = new List<MemberInfo>();
             while (typeChain.Count > 0)
             {
-                foreach (var field in typeChain.Pop().GetFields(flags))
+                var t = typeChain.Pop();
+                var members = new List<MemberInfo>();
+
+                foreach (var field in t.GetFields(flags))
                 {
                     if (field.IsStatic || field.IsLiteral) continue;
                     bool isPublic = field.IsPublic && field.GetCustomAttribute<NonSerializedAttribute>() == null;
                     bool isSerializeField = !field.IsPublic && field.GetCustomAttribute<SerializeField>() != null;
                     if (isPublic || isSerializeField)
-                        result.Add(field);
+                        members.Add(field);
                 }
+
+                foreach (var method in t.GetMethods(flags))
+                {
+                    if (method.GetCustomAttribute<EditorButtonAttribute>() != null && method.GetParameters().Length == 0)
+                        members.Add(method);
+                }
+
+                members.Sort((a, b) => a.MetadataToken.CompareTo(b.MetadataToken));
+                result.AddRange(members);
             }
+
             return result;
         }
 
