@@ -32,7 +32,22 @@ namespace drytoolkit.Editor.Utils
             public string title;
             public string titleFrom;
             public int groupIndex;
-            public readonly List<string> propertyPaths = new List<string>();
+            public readonly List<SegmentItem> items = new List<SegmentItem>();
+        }
+
+        // ── Segment item types ─────────────────────────────────────────────────
+
+        private abstract class SegmentItem { }
+
+        private class FieldItem : SegmentItem
+        {
+            public string path;
+        }
+
+        private class ButtonRowItem : SegmentItem
+        {
+            public string group;
+            public readonly ButtonRow row = new ButtonRow();
         }
 
         // ── Button types ───────────────────────────────────────────────────────
@@ -153,11 +168,18 @@ namespace drytoolkit.Editor.Utils
 
                 if (EditorGUILayout.BeginFadeGroup(animBool.faded))
                 {
-                    foreach (var path in seg.propertyPaths)
+                    foreach (var item in seg.items)
                     {
-                        var prop = serializedObject.FindProperty(path);
-                        if (prop != null)
-                            EditorGUILayout.PropertyField(prop, true);
+                        if (item is FieldItem fi)
+                        {
+                            var prop = serializedObject.FindProperty(fi.path);
+                            if (prop != null)
+                                EditorGUILayout.PropertyField(prop, true);
+                        }
+                        else if (item is ButtonRowItem bri)
+                        {
+                            DrawButtonRow(bri.row);
+                        }
                     }
                 }
                 EditorGUILayout.EndFadeGroup();
@@ -216,18 +238,9 @@ namespace drytoolkit.Editor.Utils
 
                     if (foldAttr != null)
                     {
-                        if (!groupsByTitle.TryGetValue(foldAttr.title, out var group))
-                        {
-                            group = new GroupedSegment
-                            {
-                                title = foldAttr.title,
-                                titleFrom = foldAttr.titleFrom,
-                                groupIndex = groupIndex++
-                            };
-                            groupsByTitle[foldAttr.title] = group;
-                            segments.Add(group);
-                        }
-                        group.propertyPaths.Add(field.Name);
+                        var group = GetOrCreateGroup(foldAttr.title, foldAttr.titleFrom,
+                                                     groupsByTitle, segments, ref groupIndex);
+                        group.items.Add(new FieldItem { path = field.Name });
                     }
                     else
                     {
@@ -242,13 +255,57 @@ namespace drytoolkit.Editor.Utils
                     var attr = method.GetCustomAttribute<EditorButtonAttribute>();
                     string label = attr.label ?? ObjectNames.NicifyVariableName(method.Name);
                     var info = new ButtonInfo { method = method, label = label };
-                    AddButtonToList(attr.position == ButtonPosition.Top ? topRows : bottomRows, info, attr.group);
+
+                    if (attr.fold != null)
+                    {
+                        var group = GetOrCreateGroup(attr.fold, titleFrom: null,
+                                                     groupsByTitle, segments, ref groupIndex);
+                        AddButtonToGroup(group, info, attr.group);
+                    }
+                    else
+                    {
+                        AddButtonToList(attr.position == ButtonPosition.Top ? topRows : bottomRows, info, attr.group);
+                    }
                 }
             }
 
             var result = (segments, topRows, bottomRows);
             _typeCache[type] = result;
             return result;
+        }
+
+        private static GroupedSegment GetOrCreateGroup(
+            string title, string titleFrom,
+            Dictionary<string, GroupedSegment> groupsByTitle,
+            List<Segment> segments, ref int groupIndex)
+        {
+            if (!groupsByTitle.TryGetValue(title, out var group))
+            {
+                group = new GroupedSegment
+                {
+                    title = title,
+                    titleFrom = titleFrom,
+                    groupIndex = groupIndex++
+                };
+                groupsByTitle[title] = group;
+                segments.Add(group);
+            }
+            return group;
+        }
+
+        private static void AddButtonToGroup(GroupedSegment group, ButtonInfo info, string buttonGroup)
+        {
+            var lastItem = group.items.Count > 0 ? group.items[group.items.Count - 1] : null;
+            if (buttonGroup != null && lastItem is ButtonRowItem lastBri && lastBri.group == buttonGroup)
+            {
+                lastBri.row.buttons.Add(info);
+            }
+            else
+            {
+                var rowItem = new ButtonRowItem { group = buttonGroup };
+                rowItem.row.buttons.Add(info);
+                group.items.Add(rowItem);
+            }
         }
 
         private static void AddButtonToList(List<ButtonRow> list, ButtonInfo info, string buttonGroup)
