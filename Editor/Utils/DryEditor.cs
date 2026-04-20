@@ -6,16 +6,17 @@ using drytoolkit.Runtime.Utils;
 using UnityEditor;
 using UnityEditor.AnimatedValues;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace drytoolkit.Editor.Utils
 {
     [CustomEditor(typeof(DryMonoBehaviour), true)]
-    internal class DryMonoBehaviourEditor : FoldoutGroupEditor { }
+    internal class DryMonoBehaviourEditor : DryEditor { }
 
     [CustomEditor(typeof(DryScriptableObject), true)]
-    internal class DryScriptableObjectEditor : FoldoutGroupEditor { }
+    internal class DryScriptableObjectEditor : DryEditor { }
 
-    public abstract class FoldoutGroupEditor : UnityEditor.Editor
+    public abstract class DryEditor : UnityEditor.Editor
     {
         // ── Segment types ──────────────────────────────────────────────────────
 
@@ -34,10 +35,26 @@ namespace drytoolkit.Editor.Utils
             public readonly List<string> propertyPaths = new List<string>();
         }
 
+        // ── Button types ───────────────────────────────────────────────────────
+
+        private class ButtonInfo
+        {
+            public MethodInfo method;
+            public string label;
+        }
+
+        private class ButtonRow
+        {
+            public readonly List<ButtonInfo> buttons = new List<ButtonInfo>();
+        }
+
         // ── Static caches (cleared on domain reload) ───────────────────────────
 
         private static readonly Dictionary<Type, List<Segment>> _segmentCache
             = new Dictionary<Type, List<Segment>>();
+
+        private static readonly Dictionary<Type, (List<ButtonRow> top, List<ButtonRow> bottom)> _buttonCache
+            = new Dictionary<Type, (List<ButtonRow>, List<ButtonRow>)>();
 
         private static readonly Dictionary<(Type, string), Func<object, string>> _titleFromCache
             = new Dictionary<(Type, string), Func<object, string>>();
@@ -49,12 +66,17 @@ namespace drytoolkit.Editor.Utils
 
         private List<Segment> _segments;
         private List<AnimBool> _animBools;
+        private List<ButtonRow> _topButtons;
+        private List<ButtonRow> _bottomButtons;
 
         // ── Unity callbacks ────────────────────────────────────────────────────
 
         protected virtual void OnEnable()
         {
             _segments = BuildOrFetchSegments(target.GetType());
+            var buttonRows = BuildOrFetchButtonRows(target.GetType());
+            _topButtons = buttonRows.top;
+            _bottomButtons = buttonRows.bottom;
 
             _animBools = new List<AnimBool>();
             foreach (var seg in _segments)
@@ -82,17 +104,17 @@ namespace drytoolkit.Editor.Utils
             serializedObject.Update();
             serializedObject.DrawScriptField();
 
+            DrawButtonRows(_topButtons);
+
             foreach (var seg in _segments)
             {
                 if (seg is UngroupedSegment u)
-                {
                     DrawUngrouped(u);
-                }
                 else if (seg is GroupedSegment g)
-                {
                     DrawGroup(g);
-                }
             }
+
+            DrawButtonRows(_bottomButtons);
 
             serializedObject.ApplyModifiedProperties();
         }
@@ -144,6 +166,93 @@ namespace drytoolkit.Editor.Utils
                 EditorGUILayout.EndFadeGroup();
                 EditorGUI.indentLevel--;
             }
+        }
+
+        // ── Button rendering ───────────────────────────────────────────────────
+
+        private void DrawButtonRows(List<ButtonRow> rows)
+        {
+            foreach (var row in rows)
+            {
+                if (row.buttons.Count == 1)
+                {
+                    var btn = row.buttons[0];
+                    if (GUILayout.Button(btn.label))
+                        btn.method.Invoke(target, null);
+                }
+                else
+                {
+                    using (new GUILayout.HorizontalScope())
+                    {
+                        foreach (var btn in row.buttons)
+                        {
+                            if (GUILayout.Button(btn.label))
+                                btn.method.Invoke(target, null);
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── Button building ────────────────────────────────────────────────────
+
+        private static (List<ButtonRow> top, List<ButtonRow> bottom) BuildOrFetchButtonRows(Type type)
+        {
+            if (_buttonCache.TryGetValue(type, out var cached))
+                return cached;
+
+            var topRows = new List<ButtonRow>();
+            var bottomRows = new List<ButtonRow>();
+
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public
+                                     | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+
+            var typeChain = new Stack<Type>();
+            for (Type t = type; t != null && t != typeof(MonoBehaviour) && t != typeof(ScriptableObject)
+                                          && t != typeof(Behaviour) && t != typeof(Component)
+                                          && t != typeof(Object) && t != typeof(object); t = t.BaseType)
+            {
+                typeChain.Push(t);
+            }
+
+            while (typeChain.Count > 0)
+            {
+                foreach (var method in typeChain.Pop().GetMethods(flags))
+                {
+                    var attr = method.GetCustomAttribute<EditorButtonAttribute>();
+                    if (attr == null || method.GetParameters().Length > 0) continue;
+
+                    string label = attr.label ?? ObjectNames.NicifyVariableName(method.Name);
+                    var info = new ButtonInfo { method = method, label = label };
+                    var targetList = attr.position == ButtonPosition.Top ? topRows : bottomRows;
+
+                    if (attr.group != null)
+                    {
+                        var last = targetList.Count > 0 ? targetList[targetList.Count - 1] : null;
+                        if (last != null && last.buttons.Count > 0
+                            && last.buttons[0].method.GetCustomAttribute<EditorButtonAttribute>()?.group == attr.group)
+                        {
+                            last.buttons.Add(info);
+                        }
+                        else
+                        {
+                            var row = new ButtonRow();
+                            row.buttons.Add(info);
+                            targetList.Add(row);
+                        }
+                    }
+                    else
+                    {
+                        var row = new ButtonRow();
+                        row.buttons.Add(info);
+                        targetList.Add(row);
+                    }
+                }
+            }
+
+            var result = (topRows, bottomRows);
+            _buttonCache[type] = result;
+            return result;
         }
 
         // ── Segment building ───────────────────────────────────────────────────
