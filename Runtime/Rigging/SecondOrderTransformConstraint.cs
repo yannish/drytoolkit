@@ -195,7 +195,7 @@ public struct SecondOrderTransformJob : IWeightedAnimationJob
         if (impulseTorque.IsCreated)
         {
             Quaternion impulseQuat = new Quaternion(impulseTorque.Value.x, impulseTorque.Value.y, impulseTorque.Value.z, 0);
-            Quaternion deltaVel =MultiplyQuaternion(0.5f, currRot * impulseQuat);
+            Quaternion deltaVel = MultiplyQuaternion(0.5f, currRot * impulseQuat);
             // modify the quaternion velocity
             yDyn.Impulse(deltaVel.y);
             xDyn.Impulse(deltaVel.x);

@@ -71,6 +71,9 @@ namespace drytoolkit.Editor.Utils
         private static readonly Dictionary<(Type, string), Func<object, string>> _titleFromCache
             = new Dictionary<(Type, string), Func<object, string>>();
 
+        private static readonly Dictionary<(Type, string), Func<object, bool>> _showIfCache
+            = new Dictionary<(Type, string), Func<object, bool>>();
+
         private static readonly Dictionary<(int, int), bool> _expandedState
             = new Dictionary<(int, int), bool>();
 
@@ -197,23 +200,91 @@ namespace drytoolkit.Editor.Utils
 
         private void DrawButtonRow(ButtonRow row)
         {
-            if (row.buttons.Count == 1)
+            // Collect buttons that pass their showIf condition (if any).
+            var visible = new List<ButtonInfo>(row.buttons.Count);
+            foreach (var btn in row.buttons)
             {
-                var btn = row.buttons[0];
-                if (GUILayout.Button(btn.label))
-                    btn.method.Invoke(target, null);
+                var attr = btn.method.GetCustomAttribute<EditorButtonAttribute>();
+                if (attr.showIf == null || EvaluateShowIf(attr.showIf, attr.showIfValue, target, serializedObject))
+                    visible.Add(btn);
+            }
+
+            if (visible.Count == 0) return;
+
+            if (visible.Count == 1)
+            {
+                if (GUILayout.Button(visible[0].label))
+                    visible[0].method.Invoke(target, null);
             }
             else
             {
                 using (new GUILayout.HorizontalScope())
                 {
-                    foreach (var btn in row.buttons)
+                    foreach (var btn in visible)
                     {
                         if (GUILayout.Button(btn.label))
                             btn.method.Invoke(target, null);
                     }
                 }
             }
+        }
+
+        // ── ShowIf evaluation ──────────────────────────────────────────────────
+
+        private static bool EvaluateShowIf(string conditionName, object compareValue, Object targetObj, SerializedObject so)
+        {
+            // Fast path: serialized property.
+            var conditionProp = so.FindProperty(conditionName);
+            if (conditionProp != null)
+            {
+                if (compareValue == null)
+                    return conditionProp.boolValue;
+
+                switch (conditionProp.propertyType)
+                {
+                    case SerializedPropertyType.Boolean: return conditionProp.boolValue.Equals(compareValue);
+                    case SerializedPropertyType.Enum:    return conditionProp.enumValueIndex.Equals((int)compareValue);
+                    case SerializedPropertyType.Integer: return conditionProp.intValue.Equals((int)compareValue);
+                    case SerializedPropertyType.Float:   return conditionProp.floatValue.Equals((float)compareValue);
+                    case SerializedPropertyType.String:  return conditionProp.stringValue.Equals((string)compareValue);
+                }
+            }
+
+            // Reflection fallback: non-serialized fields, properties, zero-arg bool methods.
+            var key = (targetObj.GetType(), conditionName);
+            if (!_showIfCache.TryGetValue(key, out var del))
+            {
+                del = BuildBoolDelegate(targetObj.GetType(), conditionName);
+                _showIfCache[key] = del;
+            }
+
+            if (del == null) return true;
+
+            bool raw = del(targetObj);
+            return compareValue == null ? raw : raw.Equals(compareValue);
+        }
+
+        private static Func<object, bool> BuildBoolDelegate(Type type, string name)
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public
+                                     | BindingFlags.Instance  | BindingFlags.DeclaredOnly;
+
+            for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
+            {
+                var field = t.GetField(name, flags);
+                if (field != null)
+                    return obj => (bool)field.GetValue(obj);
+
+                var prop = t.GetProperty(name, flags);
+                if (prop != null && prop.CanRead && prop.PropertyType == typeof(bool))
+                    return obj => (bool)prop.GetValue(obj);
+
+                var method = t.GetMethod(name, flags);
+                if (method != null && method.GetParameters().Length == 0 && method.ReturnType == typeof(bool))
+                    return obj => (bool)method.Invoke(obj, null);
+            }
+
+            return null;
         }
 
         // ── Member scanning ────────────────────────────────────────────────────
