@@ -66,6 +66,22 @@ public static class DebugReaderRuntime
         return ((DebugReaderColor)asset).value;
     }
 
+    public static void SetBool(string key, bool value)
+    {
+        var reg = Registry;
+        if (reg == null) return;
+
+        var asset = reg.GetSetting(key);
+        if (asset == null)
+        {
+            Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
+            return;
+        }
+
+        ((DebugReaderBool)asset).value = value;
+        EditorUtility.SetDirty(asset);
+    }
+
     public static void InvalidateCache() => _registry = null;
 
     private static string GroupOf(string key)

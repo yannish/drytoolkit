@@ -74,7 +74,7 @@ public class DebugReaderWindow : EditorWindow
 
         DrawToolbar();
 
-        EditorGUILayout.Space(8);
+        EditorGUILayout.Space(4);
 
         bool hasQuery = !string.IsNullOrEmpty(_searchQuery);
         var  query    = hasQuery ? _searchQuery.ToLowerInvariant() : null;
@@ -101,53 +101,64 @@ public class DebugReaderWindow : EditorWindow
         var pinned   = visible.Where(g =>  _registry.IsGroupPinned(g)).ToList();
         var unpinned = visible.Where(g => !_registry.IsGroupPinned(g)).ToList();
 
-        _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
-
-        if (visible.Count == 0)
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            EditorGUILayout.HelpBox(
-                hasQuery
-                    ? $"No settings or commands match \"{_searchQuery}\"."
-                    : "No debug settings found. Create Debug Reader assets (right-click > Create > Debug Reader) then hit Refresh.",
-                MessageType.Info);
-        }
-        else
-        {
-            foreach (var g in pinned)
+            using (new EditorGUILayout.HorizontalScope())
             {
-                settingsByGroup.TryGetValue(g, out var gs);
-                commandsByGroup.TryGetValue(g, out var gc);
-                DrawGroup(g, gs, gc, forceExpand: hasQuery);
+                GUI.SetNextControlName("DebugReaderSearch");
+                _searchQuery = EditorGUILayout.TextField(_searchQuery, EditorStyles.toolbarSearchField);
+                if (_wantFocus)
+                {
+                    EditorGUI.FocusTextInControl("DebugReaderSearch");
+                    _wantFocus = false;
+                }
+
+                if (GUILayout.Button("Collapse All", GUILayout.Width(85)))
+                    CollapseAll();
+                if (GUILayout.Button("Expand All", GUILayout.Width(75)))
+                    ExpandAll();
             }
 
-            if (pinned.Count > 0 && unpinned.Count > 0)
-                DrawPinnedDivider();
+            EditorGUILayout.Space(4);
 
-            foreach (var g in unpinned)
+            _scrollPos = EditorGUILayout.BeginScrollView(_scrollPos);
+
+            if (visible.Count == 0)
             {
-                settingsByGroup.TryGetValue(g, out var gs);
-                commandsByGroup.TryGetValue(g, out var gc);
-                DrawGroup(g, gs, gc, forceExpand: hasQuery);
+                EditorGUILayout.HelpBox(
+                    hasQuery
+                        ? $"No settings or commands match \"{_searchQuery}\"."
+                        : "No debug settings found. Create Debug Reader assets (right-click > Create > Debug Reader) then hit Refresh.",
+                    MessageType.Info);
             }
-        }
+            else
+            {
+                foreach (var g in pinned)
+                {
+                    settingsByGroup.TryGetValue(g, out var gs);
+                    commandsByGroup.TryGetValue(g, out var gc);
+                    DrawGroup(g, gs, gc, forceExpand: hasQuery);
+                }
 
-        EditorGUILayout.EndScrollView();
+                if (pinned.Count > 0 && unpinned.Count > 0)
+                    DrawPinnedDivider();
+
+                foreach (var g in unpinned)
+                {
+                    settingsByGroup.TryGetValue(g, out var gs);
+                    commandsByGroup.TryGetValue(g, out var gc);
+                    DrawGroup(g, gs, gc, forceExpand: hasQuery);
+                }
+            }
+
+            EditorGUILayout.EndScrollView();
+        }
     }
 
     // ── Toolbar ───────────────────────────────────────────────────────────────
 
     private void DrawToolbar()
     {
-        EditorGUILayout.Space(4);
-
-        GUI.SetNextControlName("DebugReaderSearch");
-        _searchQuery = EditorGUILayout.TextField(_searchQuery, EditorStyles.toolbarSearchField);
-        if (_wantFocus)
-        {
-            EditorGUI.FocusTextInControl("DebugReaderSearch");
-            _wantFocus = false;
-        }
-
         EditorGUILayout.Space(4);
 
         var registryFolder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_registry)).Replace('\\', '/');
@@ -177,11 +188,15 @@ public class DebugReaderWindow : EditorWindow
 
         EditorGUILayout.Space(4);
 
-        using (new EditorGUILayout.HorizontalScope())
+        using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            if (GUILayout.Button("+ Bool"))  DebugReaderCreateWindow.Show(typeof(DebugReaderBool),  registryFolder, _registry);
-            if (GUILayout.Button("+ Float")) DebugReaderCreateWindow.Show(typeof(DebugReaderFloat), registryFolder, _registry);
-            if (GUILayout.Button("+ Color")) DebugReaderCreateWindow.Show(typeof(DebugReaderColor), registryFolder, _registry);
+            EditorGUILayout.LabelField("CREATE:", EditorStyles.centeredGreyMiniLabel);
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("+ Bool"))  DebugReaderCreateWindow.Show(typeof(DebugReaderBool),  registryFolder, _registry);
+                if (GUILayout.Button("+ Float")) DebugReaderCreateWindow.Show(typeof(DebugReaderFloat), registryFolder, _registry);
+                if (GUILayout.Button("+ Color")) DebugReaderCreateWindow.Show(typeof(DebugReaderColor), registryFolder, _registry);
+            }
         }
     }
 
@@ -311,6 +326,28 @@ public class DebugReaderWindow : EditorWindow
         }
 
         so.ApplyModifiedProperties();
+    }
+
+    // ── Collapse all ──────────────────────────────────────────────────────────
+
+    private void CollapseAll() => SetAllFoldouts(false);
+    private void ExpandAll()   => SetAllFoldouts(true);
+
+    private void SetAllFoldouts(bool open)
+    {
+        if (_registry == null) return;
+
+        var allGroups = _registry.Settings
+            .Where(s => s != null)
+            .Select(s => s.GroupName)
+            .Union(DebugReaderCommandCache.Commands.Keys.Select(GroupOf))
+            .Distinct();
+
+        foreach (var group in allGroups)
+            _registry.SetGroupFoldout(group, open);
+
+        EditorUtility.SetDirty(_registry);
+        Repaint();
     }
 
     // ── No registry ───────────────────────────────────────────────────────────
