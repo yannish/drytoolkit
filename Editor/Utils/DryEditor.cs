@@ -79,10 +79,10 @@ namespace drytoolkit.Editor.Utils
 
         // ── Per-editor-instance state ──────────────────────────────────────────
 
-        private List<Segment> _segments;
-        private List<AnimBool> _animBools;
-        private List<ButtonRow> _topButtons;
-        private List<ButtonRow> _bottomButtons;
+        private List<Segment> _segments = new List<Segment>();
+        private List<AnimBool> _animBools = new List<AnimBool>();
+        private List<ButtonRow> _topButtons = new List<ButtonRow>();
+        private List<ButtonRow> _bottomButtons = new List<ButtonRow>();
 
         // ── Unity callbacks ────────────────────────────────────────────────────
 
