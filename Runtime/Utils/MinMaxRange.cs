@@ -11,13 +11,20 @@ public class MinMaxRange
         this.max = max;
     }
 
-    public float Lerp(float t)
-    {
-        return Mathf.Lerp(min, max, t);
-    }
+    public float Lerp(float t) => Mathf.Lerp(min, max, t);
 
-    public float Randomize()
+    public float InverseLerp(float t) => Mathf.InverseLerp(min, max, t);
+
+    public float Randomize() => Random.Range(min, max);
+
+    public float Evaluate(float t)
     {
-        return Random.Range(min, max);
+        if (t < min)
+            return min;
+
+        if (t < max)
+            return Mathf.Lerp(min, max, t);
+
+        return max;
     }
 }
