@@ -50,7 +50,8 @@ public class DebugReaderPostprocessor : AssetPostprocessor
         {
             if (!path.EndsWith(".asset")) continue;
             var type = AssetDatabase.GetMainAssetTypeAtPath(path);
-            if (type == typeof(DebugReaderBool) || type == typeof(DebugReaderFloat) || type == typeof(DebugReaderColor))
+            if (type == typeof(DebugReaderBool) || type == typeof(DebugReaderFloat) || type == typeof(DebugReaderColor) ||
+                type == typeof(DebugReaderVector2) || type == typeof(DebugReaderVector3))
                 return true;
         }
         return false;

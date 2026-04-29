@@ -169,8 +169,16 @@ public static class VectorExtensions
         return Mathf.Max(Mathf.Max(vec.x, vec.y), vec.z);
     }
 
+    public static bool LessThanSquared(this Vector3 vec, float b)
+    {
+        return vec.sqrMagnitude < Mathf.Pow(b, 2f);
+    }
 
-
+    public static bool GreaterThanSquared(this Vector3 vec, float b)
+    {
+        return vec.sqrMagnitude > Mathf.Pow(b, 2f);
+    }
+    
     //public static void DrawSquare(
     //	Vector3 p0, 
     //	Vector3 p1, 

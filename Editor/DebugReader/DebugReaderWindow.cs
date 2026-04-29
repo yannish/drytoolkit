@@ -163,39 +163,41 @@ public class DebugReaderWindow : EditorWindow
 
         var registryFolder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_registry)).Replace('\\', '/');
 
-        using (new EditorGUILayout.HorizontalScope())
-        {
-            var refreshLabel = _registry.autoRefresh ? "Refresh" : "Refresh & Regenerate";
-            if (GUILayout.Button(refreshLabel))
-            {
-                DebugReaderCodegen.OrganizeAssets(registryFolder);
-                DebugReaderCodegen.RefreshRegistry(_registry);
-                DebugReaderCodegen.GenerateCode();
-                GUIUtility.ExitGUI();
-            }
-
-            var prevColor = GUI.color;
-            GUI.color = _registry.autoRefresh ? prevColor : new Color(1f, 0.85f, 0.4f);
-            var newAutoRefresh = GUILayout.Toggle(_registry.autoRefresh, "Auto-regenerate", GUI.skin.button, GUILayout.Width(120));
-            GUI.color = prevColor;
-
-            if (newAutoRefresh != _registry.autoRefresh)
-            {
-                _registry.autoRefresh = newAutoRefresh;
-                EditorUtility.SetDirty(_registry);
-            }
-        }
-
-        EditorGUILayout.Space(4);
-
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
-            EditorGUILayout.LabelField("CREATE:", EditorStyles.centeredGreyMiniLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("+ Bool"))  DebugReaderCreateWindow.Show(typeof(DebugReaderBool),  registryFolder, _registry);
-                if (GUILayout.Button("+ Float")) DebugReaderCreateWindow.Show(typeof(DebugReaderFloat), registryFolder, _registry);
-                if (GUILayout.Button("+ Color")) DebugReaderCreateWindow.Show(typeof(DebugReaderColor), registryFolder, _registry);
+                GUILayout.Label("CREATE:", EditorStyles.boldLabel);
+                if (GUILayout.Button("+ Bool"))    DebugReaderCreateWindow.Show(typeof(DebugReaderBool),    registryFolder, _registry);
+                if (GUILayout.Button("+ Float"))   DebugReaderCreateWindow.Show(typeof(DebugReaderFloat),   registryFolder, _registry);
+                if (GUILayout.Button("+ Color"))   DebugReaderCreateWindow.Show(typeof(DebugReaderColor),   registryFolder, _registry);
+                if (GUILayout.Button("+ Vector2")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector2), registryFolder, _registry);
+                if (GUILayout.Button("+ Vector3")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector3), registryFolder, _registry);
+            }
+
+            EditorGUILayout.Space(6);
+
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                var refreshLabel = _registry.autoRefresh ? "Refresh" : "Refresh & Regenerate";
+                if (GUILayout.Button(refreshLabel))
+                {
+                    DebugReaderCodegen.OrganizeAssets(registryFolder);
+                    DebugReaderCodegen.RefreshRegistry(_registry);
+                    DebugReaderCodegen.GenerateCode();
+                    GUIUtility.ExitGUI();
+                }
+
+                var prevColor = GUI.color;
+                GUI.color = _registry.autoRefresh ? prevColor : new Color(1f, 0.85f, 0.4f);
+                var newAutoRefresh = GUILayout.Toggle(_registry.autoRefresh, "Auto-regenerate", GUI.skin.button, GUILayout.Width(120));
+                GUI.color = prevColor;
+
+                if (newAutoRefresh != _registry.autoRefresh)
+                {
+                    _registry.autoRefresh = newAutoRefresh;
+                    EditorUtility.SetDirty(_registry);
+                }
             }
         }
     }

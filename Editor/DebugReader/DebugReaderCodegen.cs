@@ -67,11 +67,15 @@ public static class DebugReaderCodegen
                 var key      = setting.FullKey;
 
                 if (setting is DebugReaderBool)
-                    sb.AppendLine($"        public static bool  {propName} => DebugReaderRuntime.GetBool(\"{key}\");");
+                    sb.AppendLine($"        public static bool    {propName} => DebugReaderRuntime.GetBool(\"{key}\");");
                 else if (setting is DebugReaderFloat)
-                    sb.AppendLine($"        public static float {propName} => DebugReaderRuntime.GetFloat(\"{key}\");");
+                    sb.AppendLine($"        public static float   {propName} => DebugReaderRuntime.GetFloat(\"{key}\");");
                 else if (setting is DebugReaderColor)
-                    sb.AppendLine($"        public static Color {propName} => DebugReaderRuntime.GetColor(\"{key}\");");
+                    sb.AppendLine($"        public static Color   {propName} => DebugReaderRuntime.GetColor(\"{key}\");");
+                else if (setting is DebugReaderVector2)
+                    sb.AppendLine($"        public static Vector2 {propName} => DebugReaderRuntime.GetVector2(\"{key}\");");
+                else if (setting is DebugReaderVector3)
+                    sb.AppendLine($"        public static Vector3 {propName} => DebugReaderRuntime.GetVector3(\"{key}\");");
             }
 
             sb.AppendLine("    }");
@@ -101,7 +105,7 @@ public static class DebugReaderCodegen
     public static void OrganizeAssets(string registryFolder)
     {
         var guids = new HashSet<string>();
-        foreach (var filter in new[] { "t:DebugReaderBool", "t:DebugReaderFloat", "t:DebugReaderColor" })
+        foreach (var filter in new[] { "t:DebugReaderBool", "t:DebugReaderFloat", "t:DebugReaderColor", "t:DebugReaderVector2", "t:DebugReaderVector3" })
             foreach (var guid in AssetDatabase.FindAssets(filter, new[] { registryFolder }))
                 guids.Add(guid);
 
@@ -132,7 +136,7 @@ public static class DebugReaderCodegen
     private static List<DebugReaderSettingBase> FindAllSettings()
     {
         var guids = new HashSet<string>();
-        foreach (var filter in new[] { "t:DebugReaderBool", "t:DebugReaderFloat", "t:DebugReaderColor" })
+        foreach (var filter in new[] { "t:DebugReaderBool", "t:DebugReaderFloat", "t:DebugReaderColor", "t:DebugReaderVector2", "t:DebugReaderVector3" })
             foreach (var guid in AssetDatabase.FindAssets(filter))
                 guids.Add(guid);
 
