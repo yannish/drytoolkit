@@ -66,6 +66,34 @@ public static class DebugReaderRuntime
         return ((DebugReaderColor)asset).value;
     }
 
+    public static Vector2 GetVector2(string key)
+    {
+        var reg = Registry;
+        if (reg == null) return Vector2.zero;
+
+        var asset = reg.GetSetting(key);
+        if (asset == null)
+        {
+            Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
+            return Vector2.zero;
+        }
+        return ((DebugReaderVector2)asset).value;
+    }
+
+    public static Vector3 GetVector3(string key)
+    {
+        var reg = Registry;
+        if (reg == null) return Vector3.zero;
+
+        var asset = reg.GetSetting(key);
+        if (asset == null)
+        {
+            Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
+            return Vector3.zero;
+        }
+        return ((DebugReaderVector3)asset).value;
+    }
+
     public static void SetBool(string key, bool value)
     {
         var reg = Registry;
