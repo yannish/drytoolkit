@@ -40,8 +40,10 @@ public class DebugReaderPostprocessor : AssetPostprocessor
         DebugReaderCodegen.OrganizeAssets(registryFolder);
         DebugReaderCodegen.RefreshRegistry(registry);
 
-        if (registry.autoRefresh)
-            DebugReaderCodegen.GenerateCode();
+        // Always regenerate. GenerateCode() short-circuits if the content hasn't changed
+        // (no write, no reimport, no recompile), so this is safe to call unconditionally.
+        // The delayCall deduplication above ensures we only run once per import batch.
+        DebugReaderCodegen.GenerateCode();
     }
 
     private static bool AnyAreDebugSettings(string[] paths)

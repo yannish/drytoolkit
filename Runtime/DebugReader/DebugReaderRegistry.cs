@@ -14,10 +14,6 @@ public class DebugReaderRegistry : ScriptableObject
         public bool pinned;
     }
 
-    [Tooltip("When enabled, DebugReader.cs is regenerated (and scripts recompile) automatically each time a setting asset is created or deleted. " +
-             "Disable when creating many settings in a row to avoid recompiling between each — then hit Refresh when done.")]
-    public bool autoRefresh = true;
-
     [SerializeField] private List<DebugReaderSettingBase> _settings = new();
     [SerializeField] private List<GroupState> _groupStates = new();
 
