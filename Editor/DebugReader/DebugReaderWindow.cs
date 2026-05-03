@@ -177,12 +177,27 @@ public class DebugReaderWindow : EditorWindow
 
             EditorGUILayout.Space(6);
 
-            if (GUILayout.Button("Refresh & Regenerate"))
+            using (new EditorGUILayout.HorizontalScope())
             {
-                DebugReaderCodegen.OrganizeAssets(registryFolder);
-                DebugReaderCodegen.RefreshRegistry(_registry);
-                DebugReaderCodegen.GenerateCode();
-                GUIUtility.ExitGUI();
+                if (GUILayout.Button("Refresh & Regenerate"))
+                {
+                    DebugReaderCodegen.OrganizeAssets(registryFolder);
+                    DebugReaderCodegen.RefreshRegistry(_registry);
+                    DebugReaderCodegen.GenerateCode();
+                    GUIUtility.ExitGUI();
+                }
+
+                var prevColor = GUI.color;
+                GUI.color = _registry.autoRefresh ? new Color(0.5f, 1f, 0.5f) : new Color(1f, 0.85f, 0.4f);
+                var toggleLabel = _registry.autoRefresh ? "Auto-regen: ON" : "Auto-regen: OFF";
+                var newAutoRefresh = GUILayout.Toggle(_registry.autoRefresh, toggleLabel, GUI.skin.button, GUILayout.Width(120));
+                GUI.color = prevColor;
+
+                if (newAutoRefresh != _registry.autoRefresh)
+                {
+                    _registry.autoRefresh = newAutoRefresh;
+                    EditorUtility.SetDirty(_registry);
+                }
             }
         }
     }

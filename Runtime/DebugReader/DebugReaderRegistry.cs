@@ -17,6 +17,8 @@ public class DebugReaderRegistry : ScriptableObject
     [SerializeField] private List<DebugReaderSettingBase> _settings = new();
     [SerializeField] private List<GroupState> _groupStates = new();
 
+    public bool autoRefresh = true;
+
     public IReadOnlyList<DebugReaderSettingBase> Settings => _settings;
 
     public void SetSettings(List<DebugReaderSettingBase> settings)
