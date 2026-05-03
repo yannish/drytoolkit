@@ -24,7 +24,7 @@ namespace drytoolkit.Editor.Utils
 
         private class UngroupedSegment : Segment
         {
-            public readonly List<string> propertyPaths = new List<string>();
+            public readonly List<SegmentItem> items = new List<SegmentItem>();
         }
 
         private class GroupedSegment : Segment
@@ -42,6 +42,11 @@ namespace drytoolkit.Editor.Utils
         private class FieldItem : SegmentItem
         {
             public string path;
+        }
+
+        private class ReflectedFieldItem : SegmentItem
+        {
+            public FieldInfo field;
         }
 
         private class ButtonRowItem : SegmentItem
@@ -83,6 +88,7 @@ namespace drytoolkit.Editor.Utils
         private List<AnimBool> _animBools = new List<AnimBool>();
         private List<ButtonRow> _topButtons = new List<ButtonRow>();
         private List<ButtonRow> _bottomButtons = new List<ButtonRow>();
+        private bool _hasInspectableFields;
 
         // ── Unity callbacks ────────────────────────────────────────────────────
 
@@ -92,6 +98,7 @@ namespace drytoolkit.Editor.Utils
             _segments = segments;
             _topButtons = top;
             _bottomButtons = bottom;
+            _hasInspectableFields = HasAnyReflectedField(segments);
 
             _animBools = new List<AnimBool>();
             foreach (var seg in _segments)
@@ -113,6 +120,8 @@ namespace drytoolkit.Editor.Utils
                 ab.valueChanged.RemoveListener(Repaint);
             _animBools = null;
         }
+
+        public override bool RequiresConstantRepaint() => _hasInspectableFields;
 
         public override void OnInspectorGUI()
         {
@@ -146,12 +155,8 @@ namespace drytoolkit.Editor.Utils
 
         private void DrawUngrouped(UngroupedSegment seg)
         {
-            foreach (var path in seg.propertyPaths)
-            {
-                var prop = serializedObject.FindProperty(path);
-                if (prop != null)
-                    EditorGUILayout.PropertyField(prop, true);
-            }
+            foreach (var item in seg.items)
+                DrawSegmentItem(item);
         }
 
         private void DrawGroup(GroupedSegment seg)
@@ -172,21 +177,28 @@ namespace drytoolkit.Editor.Utils
                 if (EditorGUILayout.BeginFadeGroup(animBool.faded))
                 {
                     foreach (var item in seg.items)
-                    {
-                        if (item is FieldItem fi)
-                        {
-                            var prop = serializedObject.FindProperty(fi.path);
-                            if (prop != null)
-                                EditorGUILayout.PropertyField(prop, true);
-                        }
-                        else if (item is ButtonRowItem bri)
-                        {
-                            DrawButtonRow(bri.row);
-                        }
-                    }
+                        DrawSegmentItem(item);
                 }
                 EditorGUILayout.EndFadeGroup();
                 EditorGUI.indentLevel--;
+            }
+        }
+
+        private void DrawSegmentItem(SegmentItem item)
+        {
+            if (item is FieldItem fi)
+            {
+                var prop = serializedObject.FindProperty(fi.path);
+                if (prop != null)
+                    EditorGUILayout.PropertyField(prop, true);
+            }
+            else if (item is ReflectedFieldItem rfi)
+            {
+                DrawReflectedField(rfi.field);
+            }
+            else if (item is ButtonRowItem bri)
+            {
+                DrawButtonRow(bri.row);
             }
         }
 
@@ -227,6 +239,63 @@ namespace drytoolkit.Editor.Utils
                     }
                 }
             }
+        }
+
+        // ── Inspectable field rendering ────────────────────────────────────────
+
+        private void DrawReflectedField(FieldInfo field)
+        {
+            object value = field.GetValue(target);
+            var label = new GUIContent(ObjectNames.NicifyVariableName(field.Name));
+            bool wasEnabled = GUI.enabled;
+            GUI.enabled = false;
+            DrawFieldValue(field.FieldType, value, label);
+            GUI.enabled = wasEnabled;
+        }
+
+        private static void DrawFieldValue(Type type, object value, GUIContent label)
+        {
+            if (value == null)
+            {
+                EditorGUILayout.LabelField(label, new GUIContent("null"));
+                return;
+            }
+
+            if (type == typeof(int))    { EditorGUILayout.IntField(label, (int)value);       return; }
+            if (type == typeof(float))  { EditorGUILayout.FloatField(label, (float)value);   return; }
+            if (type == typeof(double)) { EditorGUILayout.DoubleField(label, (double)value); return; }
+            if (type == typeof(bool))   { EditorGUILayout.Toggle(label, (bool)value);        return; }
+            if (type == typeof(string)) { EditorGUILayout.TextField(label, (string)value);   return; }
+
+            if (type == typeof(Vector2))    { EditorGUILayout.Vector2Field(label, (Vector2)value);       return; }
+            if (type == typeof(Vector3))    { EditorGUILayout.Vector3Field(label, (Vector3)value);       return; }
+            if (type == typeof(Vector4))    { EditorGUILayout.Vector4Field(label, (Vector4)value);       return; }
+            if (type == typeof(Vector2Int)) { EditorGUILayout.Vector2IntField(label, (Vector2Int)value); return; }
+            if (type == typeof(Vector3Int)) { EditorGUILayout.Vector3IntField(label, (Vector3Int)value); return; }
+            if (type == typeof(Color))      { EditorGUILayout.ColorField(label, (Color)value);           return; }
+            if (type == typeof(Bounds))     { EditorGUILayout.BoundsField(label, (Bounds)value);         return; }
+            if (type == typeof(Rect))       { EditorGUILayout.RectField(label, (Rect)value);             return; }
+
+            if (type == typeof(Quaternion))
+            {
+                var q = (Quaternion)value;
+                EditorGUILayout.Vector4Field(label, new Vector4(q.x, q.y, q.z, q.w));
+                return;
+            }
+
+            if (type.IsEnum)
+            {
+                EditorGUILayout.EnumPopup(label, (Enum)value);
+                return;
+            }
+
+            if (typeof(Object).IsAssignableFrom(type))
+            {
+                EditorGUILayout.ObjectField(label, (Object)value, type, true);
+                return;
+            }
+
+            EditorGUILayout.LabelField(label, new GUIContent(value.ToString()));
         }
 
         // ── ShowIf evaluation ──────────────────────────────────────────────────
@@ -306,19 +375,24 @@ namespace drytoolkit.Editor.Utils
                 if (member is FieldInfo field)
                 {
                     var foldAttr = field.GetCustomAttribute<FoldAttribute>();
+                    bool isInspectable = field.GetCustomAttribute<InspectableAttribute>() != null;
+
+                    SegmentItem item = isInspectable
+                        ? (SegmentItem)new ReflectedFieldItem { field = field }
+                        : (SegmentItem)new FieldItem { path = field.Name };
 
                     if (foldAttr != null)
                     {
                         var group = GetOrCreateGroup(foldAttr.title, foldAttr.titleFrom,
                                                      groupsByTitle, segments, ref groupIndex);
-                        group.items.Add(new FieldItem { path = field.Name });
+                        group.items.Add(item);
                     }
                     else
                     {
                         if (segments.Count == 0 || !(segments[segments.Count - 1] is UngroupedSegment))
                             segments.Add(new UngroupedSegment());
 
-                        ((UngroupedSegment)segments[segments.Count - 1]).propertyPaths.Add(field.Name);
+                        ((UngroupedSegment)segments[segments.Count - 1]).items.Add(item);
                     }
                 }
                 else if (member is MethodInfo method)
@@ -417,9 +491,12 @@ namespace drytoolkit.Editor.Utils
                 foreach (var field in t.GetFields(flags))
                 {
                     if (field.IsStatic || field.IsLiteral) continue;
-                    bool isPublic = field.IsPublic && field.GetCustomAttribute<NonSerializedAttribute>() == null;
-                    bool isSerializeField = !field.IsPublic && field.GetCustomAttribute<SerializeField>() != null;
-                    if (isPublic || isSerializeField)
+
+                    bool isSerializable = (field.IsPublic && field.GetCustomAttribute<NonSerializedAttribute>() == null)
+                                      || (!field.IsPublic && field.GetCustomAttribute<SerializeField>() != null);
+                    bool isInspectable = field.GetCustomAttribute<InspectableAttribute>() != null;
+
+                    if (isSerializable || (isInspectable && !isSerializable))
                         members.Add(field);
                 }
 
@@ -434,6 +511,20 @@ namespace drytoolkit.Editor.Utils
             }
 
             return result;
+        }
+
+        private static bool HasAnyReflectedField(List<Segment> segments)
+        {
+            foreach (var seg in segments)
+            {
+                var items = seg is UngroupedSegment u ? u.items
+                          : seg is GroupedSegment g   ? g.items
+                          : null;
+                if (items == null) continue;
+                foreach (var item in items)
+                    if (item is ReflectedFieldItem) return true;
+            }
+            return false;
         }
 
         // ── Title resolution ───────────────────────────────────────────────────
