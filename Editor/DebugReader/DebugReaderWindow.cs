@@ -9,8 +9,9 @@ public class DebugReaderWindow : EditorWindow
 {
     private DebugReaderRegistry _registry;
     private Vector2             _scrollPos;
-    private string              _searchQuery = "";
+    private string              _searchQuery    = "";
     private bool                _wantFocus;
+    private string              _registryFolder = "";
 
     // Pin icons — loaded once per session from Assets/drytoolkit/Editor/Icons/.
     // Drop 16×16 PNGs named pin-on.png / pin-off.png there to replace the text fallback.
@@ -72,6 +73,8 @@ public class DebugReaderWindow : EditorWindow
             if (_registry == null) { DrawNoRegistry(); return; }
         }
 
+        _registryFolder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_registry)).Replace('\\', '/');
+
         DrawToolbar();
 
         EditorGUILayout.Space(4);
@@ -103,8 +106,10 @@ public class DebugReaderWindow : EditorWindow
 
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
+            EditorGUILayout.Space(2);
             using (new EditorGUILayout.HorizontalScope())
             {
+                GUILayout.Space(2);
                 GUI.SetNextControlName("DebugReaderSearch");
                 _searchQuery = EditorGUILayout.TextField(_searchQuery, EditorStyles.toolbarSearchField);
                 if (_wantFocus)
@@ -161,18 +166,16 @@ public class DebugReaderWindow : EditorWindow
     {
         EditorGUILayout.Space(4);
 
-        var registryFolder = Path.GetDirectoryName(AssetDatabase.GetAssetPath(_registry)).Replace('\\', '/');
-
         using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
         {
             using (new EditorGUILayout.HorizontalScope())
             {
                 GUILayout.Label("CREATE:", EditorStyles.boldLabel);
-                if (GUILayout.Button("+ Bool"))    DebugReaderCreateWindow.Show(typeof(DebugReaderBool),    registryFolder, _registry);
-                if (GUILayout.Button("+ Float"))   DebugReaderCreateWindow.Show(typeof(DebugReaderFloat),   registryFolder, _registry);
-                if (GUILayout.Button("+ Color"))   DebugReaderCreateWindow.Show(typeof(DebugReaderColor),   registryFolder, _registry);
-                if (GUILayout.Button("+ Vector2")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector2), registryFolder, _registry);
-                if (GUILayout.Button("+ Vector3")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector3), registryFolder, _registry);
+                if (GUILayout.Button("+ Bool"))    DebugReaderCreateWindow.Show(typeof(DebugReaderBool),    _registryFolder, _registry);
+                if (GUILayout.Button("+ Float"))   DebugReaderCreateWindow.Show(typeof(DebugReaderFloat),   _registryFolder, _registry);
+                if (GUILayout.Button("+ Color"))   DebugReaderCreateWindow.Show(typeof(DebugReaderColor),   _registryFolder, _registry);
+                if (GUILayout.Button("+ Vector2")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector2), _registryFolder, _registry);
+                if (GUILayout.Button("+ Vector3")) DebugReaderCreateWindow.Show(typeof(DebugReaderVector3), _registryFolder, _registry);
             }
 
             EditorGUILayout.Space(6);
@@ -181,7 +184,7 @@ public class DebugReaderWindow : EditorWindow
             {
                 if (GUILayout.Button("Refresh & Regenerate"))
                 {
-                    DebugReaderCodegen.OrganizeAssets(registryFolder);
+                    DebugReaderCodegen.OrganizeAssets(_registryFolder);
                     DebugReaderCodegen.RefreshRegistry(_registry);
                     DebugReaderCodegen.GenerateCode();
                     GUIUtility.ExitGUI();
@@ -233,19 +236,29 @@ public class DebugReaderWindow : EditorWindow
         {
             using (new EditorGUILayout.HorizontalScope())
             {
+                var displayName = groupName.ToUpper();
                 if (forceExpand)
                 {
-                    EditorGUILayout.LabelField(groupName, EditorStyles.boldLabel);
+                    EditorGUILayout.LabelField(displayName, EditorStyles.boldLabel);
                 }
                 else
                 {
-                    bool newFoldout = EditorGUILayout.Foldout(foldout, groupName, true, EditorStyles.boldLabel);
+                    bool newFoldout = EditorGUILayout.Foldout(foldout, displayName, true, EditorStyles.boldLabel);
                     if (newFoldout != foldout)
                     {
                         _registry.SetGroupFoldout(groupName, newFoldout);
                         EditorUtility.SetDirty(_registry);
                     }
                 }
+
+                var prefill = groupName + ".";
+                if (GUILayout.Button("+B",  GUILayout.Width(24))) DebugReaderCreateWindow.Show(typeof(DebugReaderBool),    _registryFolder, _registry, prefill);
+                if (GUILayout.Button("+F",  GUILayout.Width(24))) DebugReaderCreateWindow.Show(typeof(DebugReaderFloat),   _registryFolder, _registry, prefill);
+                if (GUILayout.Button("+C",  GUILayout.Width(24))) DebugReaderCreateWindow.Show(typeof(DebugReaderColor),   _registryFolder, _registry, prefill);
+                if (GUILayout.Button("+V2", GUILayout.Width(30))) DebugReaderCreateWindow.Show(typeof(DebugReaderVector2), _registryFolder, _registry, prefill);
+                if (GUILayout.Button("+V3", GUILayout.Width(30))) DebugReaderCreateWindow.Show(typeof(DebugReaderVector3), _registryFolder, _registry, prefill);
+
+                GUILayout.Space(6);
 
                 bool isPinned  = _registry.IsGroupPinned(groupName);
                 var  prevColor = GUI.color;

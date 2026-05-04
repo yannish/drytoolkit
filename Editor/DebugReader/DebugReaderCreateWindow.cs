@@ -12,12 +12,13 @@ public class DebugReaderCreateWindow : EditorWindow
     private string _inputName  = "";
     private bool   _focusDone  = false;
 
-    public static void Show(Type settingType, string registryFolder, DebugReaderRegistry registry)
+    public static void Show(Type settingType, string registryFolder, DebugReaderRegistry registry, string prefill = "")
     {
         var window = CreateInstance<DebugReaderCreateWindow>();
         window._settingType     = settingType;
         window._registryFolder  = registryFolder;
         window._registry        = registry;
+        window._inputName       = prefill;
         window.titleContent     = new GUIContent($"New Debug {settingType.Name.Replace("DebugReader", "")}");
         window.minSize          = new Vector2(320, 80);
         window.maxSize          = new Vector2(480, 80);
@@ -56,10 +57,12 @@ public class DebugReaderCreateWindow : EditorWindow
             EditorGUILayout.HelpBox(
                 "Use the format  Group.SettingName  (one dot, no spaces, both parts non-empty).",
                 MessageType.Warning);
-            maxSize = new Vector2(480, 116);
+            minSize = new Vector2(320, 140);
+            maxSize = new Vector2(480, 140);
         }
         else
         {
+            minSize = new Vector2(320, 80);
             maxSize = new Vector2(480, 80);
         }
     }
