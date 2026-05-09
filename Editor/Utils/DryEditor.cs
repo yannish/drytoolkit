@@ -49,6 +49,11 @@ namespace drytoolkit.Editor.Utils
             public FieldInfo field;
         }
 
+        private class ReflectedPropertyItem : SegmentItem
+        {
+            public PropertyInfo property;
+        }
+
         private class ButtonRowItem : SegmentItem
         {
             public string group;
@@ -196,6 +201,10 @@ namespace drytoolkit.Editor.Utils
             {
                 DrawReflectedField(rfi.field);
             }
+            else if (item is ReflectedPropertyItem rpi)
+            {
+                DrawReflectedProperty(rpi.property);
+            }
             else if (item is ButtonRowItem bri)
             {
                 DrawButtonRow(bri.row);
@@ -250,6 +259,16 @@ namespace drytoolkit.Editor.Utils
             bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
             DrawFieldValue(field.FieldType, value, label);
+            GUI.enabled = wasEnabled;
+        }
+
+        private void DrawReflectedProperty(PropertyInfo property)
+        {
+            object value = property.GetValue(target);
+            var label = new GUIContent(ObjectNames.NicifyVariableName(property.Name));
+            bool wasEnabled = GUI.enabled;
+            GUI.enabled = false;
+            DrawFieldValue(property.PropertyType, value, label);
             GUI.enabled = wasEnabled;
         }
 
@@ -395,6 +414,25 @@ namespace drytoolkit.Editor.Utils
                         ((UngroupedSegment)segments[segments.Count - 1]).items.Add(item);
                     }
                 }
+                else if (member is PropertyInfo prop)
+                {
+                    var foldAttr = prop.GetCustomAttribute<FoldAttribute>();
+                    SegmentItem item = new ReflectedPropertyItem { property = prop };
+
+                    if (foldAttr != null)
+                    {
+                        var group = GetOrCreateGroup(foldAttr.title, foldAttr.titleFrom,
+                                                     groupsByTitle, segments, ref groupIndex);
+                        group.items.Add(item);
+                    }
+                    else
+                    {
+                        if (segments.Count == 0 || !(segments[segments.Count - 1] is UngroupedSegment))
+                            segments.Add(new UngroupedSegment());
+
+                        ((UngroupedSegment)segments[segments.Count - 1]).items.Add(item);
+                    }
+                }
                 else if (member is MethodInfo method)
                 {
                     var attr = method.GetCustomAttribute<EditorButtonAttribute>();
@@ -500,6 +538,12 @@ namespace drytoolkit.Editor.Utils
                         members.Add(field);
                 }
 
+                foreach (var prop in t.GetProperties(flags))
+                {
+                    if (prop.CanRead && prop.GetCustomAttribute<InspectableAttribute>() != null)
+                        members.Add(prop);
+                }
+
                 foreach (var method in t.GetMethods(flags))
                 {
                     if (method.GetCustomAttribute<EditorButtonAttribute>() != null && method.GetParameters().Length == 0)
@@ -522,7 +566,7 @@ namespace drytoolkit.Editor.Utils
                           : null;
                 if (items == null) continue;
                 foreach (var item in items)
-                    if (item is ReflectedFieldItem) return true;
+                    if (item is ReflectedFieldItem || item is ReflectedPropertyItem) return true;
             }
             return false;
         }
