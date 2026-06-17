@@ -28,6 +28,35 @@ public static class Draw
 #endif
     }
 
+    // Draws a dashed circle with a fixed number of dashes rather than a world-space dash length.
+    // dashCount is the number of drawn segments; gaps are equal in size to the dashes.
+    public static void DashedCircle(Vector3 center, Vector3 normal, float radius, int dashCount)
+    {
+#if UNITY_EDITOR
+        if (radius <= 0f || dashCount < 1) return;
+
+        float anglePerDash = 360f / dashCount * 0.5f;
+
+        var up   = Mathf.Abs(Vector3.Dot(normal.normalized, Vector3.up)) < 0.99f ? Vector3.up : Vector3.forward;
+        var from = Vector3.Cross(normal, up).normalized;
+
+        for (int i = 0; i < dashCount; i++)
+        {
+            var dashFrom = Quaternion.AngleAxis(i * anglePerDash * 2f, normal) * from;
+            Handles.DrawWireArc(center, normal, dashFrom, anglePerDash, radius);
+        }
+#endif
+    }
+
+    // Billboard variant of the fixed dash-count overload.
+    public static void DashedCircle(Vector3 center, float radius, int dashCount)
+    {
+#if UNITY_EDITOR
+        if (Camera.current != null)
+            DashedCircle(center, Camera.current.transform.forward, radius, dashCount);
+#endif
+    }
+
     // Billboard variant — normal is derived from the scene view camera so the circle faces the viewer.
     public static void DashedCircle(Vector3 center, float radius, float dashLength = 0.1f)
     {
