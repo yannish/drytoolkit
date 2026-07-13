@@ -58,24 +58,49 @@ public static class DebugReaderCodegen
         foreach (var group in groups)
         {
             var className = Sanitize(group.Key);
+            var groupKey  = group.Key;
             sb.AppendLine($"    public static class {className}");
             sb.AppendLine("    {");
 
             foreach (var setting in group.OrderBy(s => s.SettingName))
             {
-                var propName = Sanitize(setting.SettingName);
-                var key      = setting.FullKey;
+                var propName  = Sanitize(setting.SettingName);
+                var fieldName = FieldName(propName);
+                var key       = setting.FullKey;
 
-                if (setting is DebugReaderBool)
-                    sb.AppendLine($"        public static bool    {propName} => DebugReaderRuntime.GetBool(\"{key}\");");
-                else if (setting is DebugReaderFloat)
-                    sb.AppendLine($"        public static float   {propName} => DebugReaderRuntime.GetFloat(\"{key}\");");
-                else if (setting is DebugReaderColor)
-                    sb.AppendLine($"        public static Color   {propName} => DebugReaderRuntime.GetColor(\"{key}\");");
-                else if (setting is DebugReaderVector2)
-                    sb.AppendLine($"        public static Vector2 {propName} => DebugReaderRuntime.GetVector2(\"{key}\");");
-                else if (setting is DebugReaderVector3)
-                    sb.AppendLine($"        public static Vector3 {propName} => DebugReaderRuntime.GetVector3(\"{key}\");");
+                string typeName, returnType, nullValue;
+                bool   hasMute;
+
+                if      (setting is DebugReaderBool)    { typeName = "DebugReaderBool";    returnType = "bool";    nullValue = "false";         hasMute = true;  }
+                else if (setting is DebugReaderFloat)   { typeName = "DebugReaderFloat";   returnType = "float";   nullValue = "0f";            hasMute = false; }
+                else if (setting is DebugReaderColor)   { typeName = "DebugReaderColor";   returnType = "Color";   nullValue = "Color.white";   hasMute = false; }
+                else if (setting is DebugReaderVector2) { typeName = "DebugReaderVector2"; returnType = "Vector2"; nullValue = "Vector2.zero";  hasMute = false; }
+                else if (setting is DebugReaderVector3) { typeName = "DebugReaderVector3"; returnType = "Vector3"; nullValue = "Vector3.zero";  hasMute = false; }
+                else continue;
+
+                sb.AppendLine($"        private static {typeName} {fieldName};");
+                sb.AppendLine();
+                sb.AppendLine($"        public static {returnType} {propName}");
+                sb.AppendLine("        {");
+                sb.AppendLine("            get");
+                sb.AppendLine("            {");
+                sb.AppendLine($"                if (ReferenceEquals({fieldName}, null))");
+                sb.AppendLine($"                    {fieldName} = DebugReaderRuntime.Resolve<{typeName}>(\"{key}\");");
+
+                if (hasMute)
+                {
+                    sb.AppendLine($"                return !ReferenceEquals({fieldName}, null)");
+                    sb.AppendLine($"                    && !DebugReaderRuntime.IsGroupMuted(\"{groupKey}\")");
+                    sb.AppendLine($"                    && {fieldName}.value;");
+                }
+                else
+                {
+                    sb.AppendLine($"                return ReferenceEquals({fieldName}, null) ? {nullValue} : {fieldName}.value;");
+                }
+
+                sb.AppendLine("            }");
+                sb.AppendLine("        }");
+                sb.AppendLine();
             }
 
             sb.AppendLine("    }");
@@ -151,6 +176,9 @@ public static class DebugReaderCodegen
         results.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.Ordinal));
         return results;
     }
+
+    private static string FieldName(string propName) =>
+        propName.Length == 0 ? "_field" : "_" + char.ToLower(propName[0]) + propName.Substring(1);
 
     private static string Sanitize(string name)
     {
