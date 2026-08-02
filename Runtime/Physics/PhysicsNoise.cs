@@ -26,9 +26,25 @@ public class PhysicsNoise : MonoBehaviour
 
     private void Awake()
     {
-	    if(rb == null)
-    		rb = GetComponent<Rigidbody>();
+	    if (rb == null)
+	    {
+		    var foundRbProvider = GetComponent<IRigidbodyProvider>();
+		    if (foundRbProvider != null)
+		    {
+			    rb = foundRbProvider.Rigidbody;
+		    }
+		    else
+		    {
+				rb = GetComponent<Rigidbody>();
+		    }
+	    }
 
+	    if (rb == null)
+	    {
+		    Debug.LogWarning("no rigidbody found for PhysicsNoise component.");
+		    return;
+	    }
+	    
     	torqueNoiseSource.Initialize();
     	forceDirNoiseSource.Initialize();
     	forceNoiseSource.Initialize();
