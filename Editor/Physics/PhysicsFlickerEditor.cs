@@ -49,6 +49,15 @@ public class PhysicsFlickerInspector : Editor
                 if (hitPhysFlicker != null && hitPhysFlicker == physFlicker)
                 {
                     Rigidbody rb = hit.collider.gameObject.GetComponentInParent<Rigidbody>();
+                    if (rb == null)
+                    {
+                        IRigidbodyProvider rbProvider = hit.collider.gameObject.GetComponentInParent<IRigidbodyProvider>();
+                        if (rbProvider != null)
+                        {
+                            rb = rbProvider.Rigidbody;
+                        }
+                    }
+                    
                     if (rb != null)
                         rb.AddForceAtPosition(
                             ray.direction.normalized * hitPhysFlicker.flickForce,
