@@ -61,11 +61,6 @@ public class PhysicsFlickerInspector : Editor
                         hit.point,
                         ForceMode.Acceleration
                         );
-                
-                var hitPhysFlicker = hit.collider.gameObject.GetComponentInParent<PhysicsFlicker>();
-                if (hitPhysFlicker != null && hitPhysFlicker == physFlicker)
-                {
-                }
             }
         }
     }
