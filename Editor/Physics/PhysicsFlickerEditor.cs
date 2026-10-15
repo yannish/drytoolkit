@@ -45,17 +45,22 @@ public class PhysicsFlickerInspector : Editor
                 Handles.DrawWireDisc(hit.point, hit.normal, 0.5f);
                 Handles.DrawLine(hit.point, hit.point + hit.normal);
                 
-                var hitPhysFlicker = hit.collider.gameObject.GetComponentInParent<PhysicsFlicker>();
-                if (hitPhysFlicker != null && hitPhysFlicker == physFlicker)
+                Rigidbody rb = hit.collider.gameObject.GetComponentInParent<Rigidbody>();
+                if (rb == null)
                 {
-                    Rigidbody rb = hit.collider.gameObject.GetComponentInParent<Rigidbody>();
-                    if (rb != null)
-                        rb.AddForceAtPosition(
-                            ray.direction.normalized * hitPhysFlicker.flickForce,
-                            hit.point,
-                            ForceMode.Acceleration
-                            );
+                    IRigidbodyProvider rbProvider = hit.collider.gameObject.GetComponentInParent<IRigidbodyProvider>();
+                    if (rbProvider != null)
+                    {
+                        rb = rbProvider.Rigidbody;
+                    }
                 }
+                
+                if (rb != null)
+                    rb.AddForceAtPosition(
+                        ray.direction.normalized * physFlicker.flickForce,
+                        hit.point,
+                        ForceMode.Acceleration
+                        );
             }
         }
     }

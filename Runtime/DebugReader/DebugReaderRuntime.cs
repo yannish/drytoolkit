@@ -22,19 +22,34 @@ public static class DebugReaderRuntime
         }
     }
 
+    // ── Generated-code hot path ───────────────────────────────────────────────
+
+    // Called once per property per domain load to resolve the backing SO reference.
+    // After the first call the generated code holds the reference directly and never
+    // calls this again, so the linear scan in GetSetting is not a hot-path concern.
+    public static T Resolve<T>(string key) where T : DebugReaderSettingBase
+    {
+        var asset = Registry?.GetSetting(key) as T;
+        if (asset == null)
+            Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
+        return asset;
+    }
+
+    public static bool IsGroupMuted(string groupName) => Registry?.IsGroupMuted(groupName) ?? false;
+
+    // ── Direct callers (not generated code) ──────────────────────────────────
+
     public static bool GetBool(string key)
     {
         var reg = Registry;
         if (reg == null) return false;
-
-        if (reg.IsGroupMuted(GroupOf(key))) return false;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
             Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
             return false;
         }
+        if (reg.IsGroupMuted(asset.GroupName)) return false;
         return ((DebugReaderBool)asset).value;
     }
 
@@ -42,7 +57,6 @@ public static class DebugReaderRuntime
     {
         var reg = Registry;
         if (reg == null) return 0f;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
@@ -56,7 +70,6 @@ public static class DebugReaderRuntime
     {
         var reg = Registry;
         if (reg == null) return Color.white;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
@@ -70,7 +83,6 @@ public static class DebugReaderRuntime
     {
         var reg = Registry;
         if (reg == null) return Vector2.zero;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
@@ -84,7 +96,6 @@ public static class DebugReaderRuntime
     {
         var reg = Registry;
         if (reg == null) return Vector3.zero;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
@@ -98,24 +109,16 @@ public static class DebugReaderRuntime
     {
         var reg = Registry;
         if (reg == null) return;
-
         var asset = reg.GetSetting(key);
         if (asset == null)
         {
             Debug.LogWarning($"[DebugReader] No asset found for '{key}'. It may have been renamed or deleted — update or remove the DebugReader callsite.");
             return;
         }
-
         ((DebugReaderBool)asset).value = value;
         EditorUtility.SetDirty(asset);
     }
 
     public static void InvalidateCache() => _registry = null;
-
-    private static string GroupOf(string key)
-    {
-        int dot = key.IndexOf('.');
-        return dot > 0 ? key.Substring(0, dot) : string.Empty;
-    }
 }
 #endif

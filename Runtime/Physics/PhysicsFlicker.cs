@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 [SelectionBase]
@@ -10,14 +11,27 @@ public class PhysicsFlicker : MonoBehaviour
     public bool drawDebug;
     public float flickForce = 10f;
 
-    public Rigidbody rb;
+    private Rigidbody rb;
+
+    private void Awake()
+    {
+        rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            var foundRbProvider = GetComponent<IRigidbodyProvider>();
+            if(foundRbProvider != null)
+                rb = foundRbProvider.Rigidbody;
+        }
+    }
 
     public void OnDrawGizmos()
     {
-        if (rb == null)
+        if (!Application.isPlaying || !drawDebug || rb == null)
             return;
 
-        if (drawDebug)
+        using (new ColorContext(Color.green))
+        {
             Gizmos.DrawWireSphere(rb.worldCenterOfMass, 1f);
+        }
     }
 }
