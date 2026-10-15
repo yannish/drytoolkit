@@ -27,7 +27,15 @@ public static class Draw
         }
 #endif
     }
-
+    
+    public static void DiscAndLine(Vector3 center, Vector3 normal, float radius = 0.5f, float length = 1f, float scale = 1f)
+    {
+#if UNITY_EDITOR
+        Handles.DrawWireDisc(center, normal, radius);
+        Handles.DrawLine(center, center + normal * length);
+#endif
+    }
+    
     // Billboard variant — normal is derived from the scene view camera so the circle faces the viewer.
     public static void DashedCircle(Vector3 center, float radius, float dashLength = 0.1f)
     {
