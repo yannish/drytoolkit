@@ -60,8 +60,8 @@ public static class Draw
     public static void DiscAndLine(Vector3 center, Vector3 normal, float radius = 0.5f, float length = 1f, float scale = 1f)
     {
 #if UNITY_EDITOR
-        Handles.DrawWireDisc(center, normal, radius);
-        Handles.DrawLine(center, center + normal * length);
+        Handles.DrawWireDisc(center, normal, radius * scale);
+        Handles.DrawLine(center, center + normal * length * scale);
 #endif
     }
 
