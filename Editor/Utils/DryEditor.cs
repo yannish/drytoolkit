@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using drytoolkit.Runtime;
@@ -47,11 +48,13 @@ namespace drytoolkit.Editor.Utils
         private class ReflectedFieldItem : SegmentItem
         {
             public FieldInfo field;
+            public string countFrom;
         }
 
         private class ReflectedPropertyItem : SegmentItem
         {
             public PropertyInfo property;
+            public string countFrom;
         }
 
         private class ButtonRowItem : SegmentItem
@@ -86,6 +89,12 @@ namespace drytoolkit.Editor.Utils
 
         private static readonly Dictionary<(int, int), bool> _expandedState
             = new Dictionary<(int, int), bool>();
+
+        private static readonly Dictionary<(Type, string), Func<object, int>> _countFromCache
+            = new Dictionary<(Type, string), Func<object, int>>();
+
+        private static readonly Dictionary<(int, string), bool> _listExpandedState
+            = new Dictionary<(int, string), bool>();
 
         // ── Per-editor-instance state ──────────────────────────────────────────
 
@@ -156,6 +165,12 @@ namespace drytoolkit.Editor.Utils
             fontStyle = FontStyle.Bold
         };
 
+        private static GUIStyle _countLabelStyle;
+        private static GUIStyle CountLabelStyle => _countLabelStyle ??= new GUIStyle(EditorStyles.miniLabel)
+        {
+            alignment = TextAnchor.MiddleRight
+        };
+
         // ── Rendering ─────────────────────────────────────────────────────────
 
         private void DrawUngrouped(UngroupedSegment seg)
@@ -199,11 +214,11 @@ namespace drytoolkit.Editor.Utils
             }
             else if (item is ReflectedFieldItem rfi)
             {
-                DrawReflectedField(rfi.field);
+                DrawReflectedField(rfi.field, rfi.countFrom);
             }
             else if (item is ReflectedPropertyItem rpi)
             {
-                DrawReflectedProperty(rpi.property);
+                DrawReflectedProperty(rpi.property, rpi.countFrom);
             }
             else if (item is ButtonRowItem bri)
             {
@@ -252,24 +267,145 @@ namespace drytoolkit.Editor.Utils
 
         // ── Inspectable field rendering ────────────────────────────────────────
 
-        private void DrawReflectedField(FieldInfo field)
+        private void DrawReflectedField(FieldInfo field, string countFrom)
         {
-            object value = field.GetValue(target);
-            var label = new GUIContent(ObjectNames.NicifyVariableName(field.Name));
+            DrawReflectedMember(field.Name, field.FieldType, field.GetValue(target), countFrom);
+        }
+
+        private void DrawReflectedProperty(PropertyInfo property, string countFrom)
+        {
+            DrawReflectedMember(property.Name, property.PropertyType, property.GetValue(target), countFrom);
+        }
+
+        private void DrawReflectedMember(string name, Type type, object value, string countFrom)
+        {
+            var label = new GUIContent(ObjectNames.NicifyVariableName(name));
+
+            if (IsListType(type))
+            {
+                DrawCountedList(name, type, (IList)value, countFrom, label);
+                return;
+            }
+
             bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
-            DrawFieldValue(field.FieldType, value, label);
+            DrawFieldValue(type, value, label);
             GUI.enabled = wasEnabled;
         }
 
-        private void DrawReflectedProperty(PropertyInfo property)
+        // ── Counted list rendering ─────────────────────────────────────────────
+
+        private static bool IsListType(Type type) => typeof(IList).IsAssignableFrom(type);
+
+        private static Type GetListElementType(Type listType)
         {
-            object value = property.GetValue(target);
-            var label = new GUIContent(ObjectNames.NicifyVariableName(property.Name));
+            if (listType.IsArray) return listType.GetElementType();
+            if (listType.IsGenericType) return listType.GetGenericArguments()[0];
+            return typeof(object);
+        }
+
+        private void DrawCountedList(string name, Type type, IList list, string countFrom, GUIContent label)
+        {
+            if (countFrom == null)
+            {
+                EditorGUILayout.HelpBox($"{label.text}: arrays and lists need [Inspectable(countFrom: ...)].", MessageType.Error);
+                return;
+            }
+
+            var cacheKey = (target.GetType(), countFrom);
+            if (!_countFromCache.TryGetValue(cacheKey, out var countDel))
+            {
+                countDel = BuildIntDelegate(target.GetType(), countFrom);
+                _countFromCache[cacheKey] = countDel;
+            }
+
+            if (countDel == null)
+            {
+                EditorGUILayout.HelpBox($"{label.text}: countFrom \"{countFrom}\" is not an int field, property or zero-arg method.", MessageType.Error);
+                return;
+            }
+
+            if (list == null)
+            {
+                EditorGUILayout.LabelField(label, new GUIContent("null"));
+                return;
+            }
+
+            int capacity = list.Count;
+            int count = Mathf.Clamp(countDel(target), 0, capacity);
+
+            // Foldout stays interactive; only the elements are drawn disabled.
+            var stateKey = (target.GetInstanceID(), name);
+            _listExpandedState.TryGetValue(stateKey, out bool expanded);
+
+            Rect headerRect = EditorGUILayout.GetControlRect();
+            expanded = EditorGUI.Foldout(headerRect, expanded, label, true);
+            EditorGUI.LabelField(headerRect, $"{count} / {capacity}", CountLabelStyle);
+            _listExpandedState[stateKey] = expanded;
+
+            if (!expanded) return;
+
+            Type elementType = GetListElementType(type);
             bool wasEnabled = GUI.enabled;
             GUI.enabled = false;
-            DrawFieldValue(property.PropertyType, value, label);
+            EditorGUI.indentLevel++;
+
+            for (int i = 0; i < count; i++)
+            {
+                object element = list[i];
+                var elementLabel = new GUIContent($"[{i}]");
+
+                if (element is RaycastHit hit)
+                    DrawHit(elementLabel, hit.collider, hit.distance);
+                else if (element is RaycastHit2D hit2D)
+                    DrawHit(elementLabel, hit2D.collider, hit2D.distance);
+                else
+                    DrawFieldValue(element?.GetType() ?? elementType, element, elementLabel);
+            }
+
+            EditorGUI.indentLevel--;
             GUI.enabled = wasEnabled;
+        }
+
+        private static void DrawHit(GUIContent label, Object collider, float distance)
+        {
+            const float distanceWidth = 60f;
+
+            Rect rect = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), label);
+
+            // PrefixLabel already applied the indent; stop the fields indenting again.
+            int indent = EditorGUI.indentLevel;
+            EditorGUI.indentLevel = 0;
+
+            var objectRect = new Rect(rect.x, rect.y, rect.width - distanceWidth - 4f, rect.height);
+            var distanceRect = new Rect(rect.xMax - distanceWidth, rect.y, distanceWidth, rect.height);
+            EditorGUI.ObjectField(objectRect, collider, typeof(Object), true);
+            EditorGUI.LabelField(distanceRect, $"d {distance:0.00}", CountLabelStyle);
+
+            EditorGUI.indentLevel = indent;
+        }
+
+        private static Func<object, int> BuildIntDelegate(Type type, string name)
+        {
+            const BindingFlags flags = BindingFlags.NonPublic | BindingFlags.Public
+                                     | BindingFlags.Instance  | BindingFlags.DeclaredOnly;
+
+            for (Type t = type; t != null && t != typeof(object); t = t.BaseType)
+            {
+                var field = t.GetField(name, flags);
+                if (field != null && field.FieldType == typeof(int))
+                    return obj => (int)field.GetValue(obj);
+
+                var prop = t.GetProperty(name, flags);
+                if (prop != null && prop.CanRead && prop.PropertyType == typeof(int))
+                    return obj => (int)prop.GetValue(obj);
+
+                var method = t.GetMethod(name, flags, null, Type.EmptyTypes, null);
+                if (method != null && method.ReturnType == typeof(int))
+                    return obj => (int)method.Invoke(obj, null);
+            }
+
+            return null;
         }
 
         private static void DrawFieldValue(Type type, object value, GUIContent label)
@@ -394,10 +530,10 @@ namespace drytoolkit.Editor.Utils
                 if (member is FieldInfo field)
                 {
                     var foldAttr = field.GetCustomAttribute<FoldAttribute>();
-                    bool isInspectable = field.GetCustomAttribute<InspectableAttribute>() != null;
+                    var inspectableAttr = field.GetCustomAttribute<InspectableAttribute>();
 
-                    SegmentItem item = isInspectable
-                        ? (SegmentItem)new ReflectedFieldItem { field = field }
+                    SegmentItem item = inspectableAttr != null
+                        ? (SegmentItem)new ReflectedFieldItem { field = field, countFrom = inspectableAttr.countFrom }
                         : (SegmentItem)new FieldItem { path = field.Name };
 
                     if (foldAttr != null)
@@ -417,7 +553,8 @@ namespace drytoolkit.Editor.Utils
                 else if (member is PropertyInfo prop)
                 {
                     var foldAttr = prop.GetCustomAttribute<FoldAttribute>();
-                    SegmentItem item = new ReflectedPropertyItem { property = prop };
+                    var inspectableAttr = prop.GetCustomAttribute<InspectableAttribute>();
+                    SegmentItem item = new ReflectedPropertyItem { property = prop, countFrom = inspectableAttr?.countFrom };
 
                     if (foldAttr != null)
                     {
