@@ -93,7 +93,7 @@ namespace drytoolkit.Editor.Utils
         private static readonly Dictionary<(Type, string), Func<object, int>> _countFromCache
             = new Dictionary<(Type, string), Func<object, int>>();
 
-        private static readonly Dictionary<(int, string), bool> _listExpandedState
+        private static readonly Dictionary<(int, string), bool> _foldoutState
             = new Dictionary<(int, string), bool>();
 
         // ── Per-editor-instance state ──────────────────────────────────────────
@@ -267,33 +267,136 @@ namespace drytoolkit.Editor.Utils
 
         // ── Inspectable field rendering ────────────────────────────────────────
 
+        // Foldouts stay interactive; only leaf values are drawn disabled.
+
+        private const int MaxNestingDepth = 6;
+
         private void DrawReflectedField(FieldInfo field, string countFrom)
         {
-            DrawReflectedMember(field.Name, field.FieldType, field.GetValue(target), countFrom);
+            DrawMember(field.Name, field.FieldType, field.GetValue(target), target,
+                       inspectable: true, countFrom, field.Name, depth: 0);
         }
 
         private void DrawReflectedProperty(PropertyInfo property, string countFrom)
         {
-            DrawReflectedMember(property.Name, property.PropertyType, property.GetValue(target), countFrom);
+            DrawMember(property.Name, property.PropertyType, property.GetValue(target), target,
+                       inspectable: true, countFrom, property.Name, depth: 0);
         }
 
-        private void DrawReflectedMember(string name, Type type, object value, string countFrom)
+        /// <param name="owner">Object declaring the member; countFrom is resolved against it.</param>
+        /// <param name="path">Unique key for foldout state, e.g. "_caches[2].colliders".</param>
+        private void DrawMember(string name, Type type, object value, object owner,
+                                bool inspectable, string countFrom, string path, int depth)
         {
             var label = new GUIContent(ObjectNames.NicifyVariableName(name));
 
             if (IsListType(type))
             {
-                DrawCountedList(name, type, (IList)value, countFrom, label);
+                // [Inspectable] lists must say how many slots are valid; plain nested lists show everything.
+                int? count = null;
+                if (inspectable)
+                {
+                    if (!TryResolveCount(owner, countFrom, label, out int resolved)) return;
+                    count = resolved;
+                }
+
+                DrawList(type, (IList)value, label, path, count, depth);
                 return;
             }
 
-            bool wasEnabled = GUI.enabled;
-            GUI.enabled = false;
-            DrawFieldValue(type, value, label);
-            GUI.enabled = wasEnabled;
+            DrawValue(type, value, label, path, depth);
         }
 
-        // ── Counted list rendering ─────────────────────────────────────────────
+        private void DrawValue(Type type, object value, GUIContent label, string path, int depth)
+        {
+            using (new EditorGUI.DisabledScope(true))
+            {
+                if (value == null)                 { EditorGUILayout.LabelField(label, new GUIContent("null"));   return; }
+                if (value is RaycastHit hit)       { DrawHit(label, hit.collider, hit.distance);                  return; }
+                if (value is RaycastHit2D hit2D)   { DrawHit(label, hit2D.collider, hit2D.distance);              return; }
+                if (TryDrawSimpleValue(type, value, label)) return;
+            }
+
+            if (value is IList list)
+            {
+                DrawList(type, list, label, path, count: null, depth);
+                return;
+            }
+
+            if (depth < MaxNestingDepth)
+            {
+                var members = GetNestedMembers(value.GetType());
+                if (members.Count > 0)
+                {
+                    DrawNested(value, members, label, path, depth);
+                    return;
+                }
+            }
+
+            using (new EditorGUI.DisabledScope(true))
+                EditorGUILayout.LabelField(label, new GUIContent(value.ToString()));
+        }
+
+        private bool DrawFoldout(Rect rect, string path, GUIContent label)
+        {
+            var key = (target.GetInstanceID(), path);
+            _foldoutState.TryGetValue(key, out bool expanded);
+            expanded = EditorGUI.Foldout(rect, expanded, label, true);
+            _foldoutState[key] = expanded;
+            return expanded;
+        }
+
+        // ── Nested struct / class rendering ────────────────────────────────────
+
+        private class NestedMember
+        {
+            public MemberInfo member;
+            public Type type;
+            public bool inspectable;
+            public string countFrom;
+
+            public object GetValue(object owner) => member is FieldInfo f
+                ? f.GetValue(owner)
+                : ((PropertyInfo)member).GetValue(owner);
+        }
+
+        private static readonly Dictionary<Type, List<NestedMember>> _nestedMembersCache
+            = new Dictionary<Type, List<NestedMember>>();
+
+        // Same visibility rules as the top level: serialized fields, plus [Inspectable] fields and properties.
+        private static List<NestedMember> GetNestedMembers(Type type)
+        {
+            if (_nestedMembersCache.TryGetValue(type, out var cached))
+                return cached;
+
+            var result = new List<NestedMember>();
+            foreach (var member in GetMembersInOrder(type))
+            {
+                var attr = member.GetCustomAttribute<InspectableAttribute>();
+                if (member is FieldInfo field)
+                    result.Add(new NestedMember { member = field, type = field.FieldType, inspectable = attr != null, countFrom = attr?.countFrom });
+                else if (member is PropertyInfo prop)
+                    result.Add(new NestedMember { member = prop, type = prop.PropertyType, inspectable = true, countFrom = attr?.countFrom });
+            }
+
+            _nestedMembersCache[type] = result;
+            return result;
+        }
+
+        private void DrawNested(object value, List<NestedMember> members, GUIContent label, string path, int depth)
+        {
+            if (!DrawFoldout(EditorGUILayout.GetControlRect(), path, label)) return;
+
+            EditorGUI.indentLevel++;
+            foreach (var m in members)
+            {
+                DrawMember(m.member.Name, m.type, m.GetValue(value), value,
+                           m.inspectable, m.countFrom, $"{path}.{m.member.Name}", depth + 1);
+            }
+            EditorGUI.indentLevel--;
+        }
+
+        // ── List rendering ─────────────────────────────────────────────────────
 
         private static bool IsListType(Type type) => typeof(IList).IsAssignableFrom(type);
 
@@ -304,67 +407,62 @@ namespace drytoolkit.Editor.Utils
             return typeof(object);
         }
 
-        private void DrawCountedList(string name, Type type, IList list, string countFrom, GUIContent label)
+        private static bool TryResolveCount(object owner, string countFrom, GUIContent label, out int count)
         {
+            count = 0;
+
             if (countFrom == null)
             {
                 EditorGUILayout.HelpBox($"{label.text}: arrays and lists need [Inspectable(countFrom: ...)].", MessageType.Error);
-                return;
+                return false;
             }
 
-            var cacheKey = (target.GetType(), countFrom);
+            var cacheKey = (owner.GetType(), countFrom);
             if (!_countFromCache.TryGetValue(cacheKey, out var countDel))
             {
-                countDel = BuildIntDelegate(target.GetType(), countFrom);
+                countDel = BuildIntDelegate(owner.GetType(), countFrom);
                 _countFromCache[cacheKey] = countDel;
             }
 
             if (countDel == null)
             {
                 EditorGUILayout.HelpBox($"{label.text}: countFrom \"{countFrom}\" is not an int field, property or zero-arg method.", MessageType.Error);
-                return;
+                return false;
             }
 
+            count = countDel(owner);
+            return true;
+        }
+
+        /// <param name="count">Number of leading elements to show; null shows all of them.</param>
+        private void DrawList(Type listType, IList list, GUIContent label, string path, int? count, int depth)
+        {
             if (list == null)
             {
-                EditorGUILayout.LabelField(label, new GUIContent("null"));
+                using (new EditorGUI.DisabledScope(true))
+                    EditorGUILayout.LabelField(label, new GUIContent("null"));
                 return;
             }
 
             int capacity = list.Count;
-            int count = Mathf.Clamp(countDel(target), 0, capacity);
-
-            // Foldout stays interactive; only the elements are drawn disabled.
-            var stateKey = (target.GetInstanceID(), name);
-            _listExpandedState.TryGetValue(stateKey, out bool expanded);
+            int shown = count.HasValue ? Mathf.Clamp(count.Value, 0, capacity) : capacity;
 
             Rect headerRect = EditorGUILayout.GetControlRect();
-            expanded = EditorGUI.Foldout(headerRect, expanded, label, true);
-            EditorGUI.LabelField(headerRect, $"{count} / {capacity}", CountLabelStyle);
-            _listExpandedState[stateKey] = expanded;
+            bool expanded = DrawFoldout(headerRect, path, label);
+            EditorGUI.LabelField(headerRect, count.HasValue ? $"{shown} / {capacity}" : capacity.ToString(), CountLabelStyle);
 
             if (!expanded) return;
 
-            Type elementType = GetListElementType(type);
-            bool wasEnabled = GUI.enabled;
-            GUI.enabled = false;
+            Type elementType = GetListElementType(listType);
             EditorGUI.indentLevel++;
 
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < shown; i++)
             {
                 object element = list[i];
-                var elementLabel = new GUIContent($"[{i}]");
-
-                if (element is RaycastHit hit)
-                    DrawHit(elementLabel, hit.collider, hit.distance);
-                else if (element is RaycastHit2D hit2D)
-                    DrawHit(elementLabel, hit2D.collider, hit2D.distance);
-                else
-                    DrawFieldValue(element?.GetType() ?? elementType, element, elementLabel);
+                DrawValue(element?.GetType() ?? elementType, element, new GUIContent($"[{i}]"), $"{path}[{i}]", depth + 1);
             }
 
             EditorGUI.indentLevel--;
-            GUI.enabled = wasEnabled;
         }
 
         private static void DrawHit(GUIContent label, Object collider, float distance)
@@ -408,49 +506,43 @@ namespace drytoolkit.Editor.Utils
             return null;
         }
 
-        private static void DrawFieldValue(Type type, object value, GUIContent label)
+        private static bool TryDrawSimpleValue(Type type, object value, GUIContent label)
         {
-            if (value == null)
-            {
-                EditorGUILayout.LabelField(label, new GUIContent("null"));
-                return;
-            }
+            if (type == typeof(int))    { EditorGUILayout.IntField(label, (int)value);       return true; }
+            if (type == typeof(float))  { EditorGUILayout.FloatField(label, (float)value);   return true; }
+            if (type == typeof(double)) { EditorGUILayout.DoubleField(label, (double)value); return true; }
+            if (type == typeof(bool))   { EditorGUILayout.Toggle(label, (bool)value);        return true; }
+            if (type == typeof(string)) { EditorGUILayout.TextField(label, (string)value);   return true; }
 
-            if (type == typeof(int))    { EditorGUILayout.IntField(label, (int)value);       return; }
-            if (type == typeof(float))  { EditorGUILayout.FloatField(label, (float)value);   return; }
-            if (type == typeof(double)) { EditorGUILayout.DoubleField(label, (double)value); return; }
-            if (type == typeof(bool))   { EditorGUILayout.Toggle(label, (bool)value);        return; }
-            if (type == typeof(string)) { EditorGUILayout.TextField(label, (string)value);   return; }
-
-            if (type == typeof(Vector2))    { EditorGUILayout.Vector2Field(label, (Vector2)value);       return; }
-            if (type == typeof(Vector3))    { EditorGUILayout.Vector3Field(label, (Vector3)value);       return; }
-            if (type == typeof(Vector4))    { EditorGUILayout.Vector4Field(label, (Vector4)value);       return; }
-            if (type == typeof(Vector2Int)) { EditorGUILayout.Vector2IntField(label, (Vector2Int)value); return; }
-            if (type == typeof(Vector3Int)) { EditorGUILayout.Vector3IntField(label, (Vector3Int)value); return; }
-            if (type == typeof(Color))      { EditorGUILayout.ColorField(label, (Color)value);           return; }
-            if (type == typeof(Bounds))     { EditorGUILayout.BoundsField(label, (Bounds)value);         return; }
-            if (type == typeof(Rect))       { EditorGUILayout.RectField(label, (Rect)value);             return; }
+            if (type == typeof(Vector2))    { EditorGUILayout.Vector2Field(label, (Vector2)value);       return true; }
+            if (type == typeof(Vector3))    { EditorGUILayout.Vector3Field(label, (Vector3)value);       return true; }
+            if (type == typeof(Vector4))    { EditorGUILayout.Vector4Field(label, (Vector4)value);       return true; }
+            if (type == typeof(Vector2Int)) { EditorGUILayout.Vector2IntField(label, (Vector2Int)value); return true; }
+            if (type == typeof(Vector3Int)) { EditorGUILayout.Vector3IntField(label, (Vector3Int)value); return true; }
+            if (type == typeof(Color))      { EditorGUILayout.ColorField(label, (Color)value);           return true; }
+            if (type == typeof(Bounds))     { EditorGUILayout.BoundsField(label, (Bounds)value);         return true; }
+            if (type == typeof(Rect))       { EditorGUILayout.RectField(label, (Rect)value);             return true; }
 
             if (type == typeof(Quaternion))
             {
                 var q = (Quaternion)value;
                 EditorGUILayout.Vector4Field(label, new Vector4(q.x, q.y, q.z, q.w));
-                return;
+                return true;
             }
 
             if (type.IsEnum)
             {
                 EditorGUILayout.EnumPopup(label, (Enum)value);
-                return;
+                return true;
             }
 
             if (typeof(Object).IsAssignableFrom(type))
             {
                 EditorGUILayout.ObjectField(label, (Object)value, type, true);
-                return;
+                return true;
             }
 
-            EditorGUILayout.LabelField(label, new GUIContent(value.ToString()));
+            return false;
         }
 
         // ── ShowIf evaluation ──────────────────────────────────────────────────
